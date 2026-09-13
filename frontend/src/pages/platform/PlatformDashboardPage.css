@@ -1,0 +1,176 @@
+.page-title {
+  font-family: var(--font-display);
+  font-size: var(--text-2xl);
+  margin-bottom: var(--space-8);
+}
+
+.section-title {
+  font-size: var(--text-lg);
+  font-weight: 600;
+  margin: 0;
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-4);
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+.section-link {
+  font-size: var(--text-sm);
+  color: var(--color-accent);
+  text-decoration: none;
+}
+
+.section-link:hover {
+  text-decoration: underline;
+}
+
+.stat-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: var(--space-4);
+  margin-bottom: var(--space-8);
+}
+
+.stat-card {
+  background-color: var(--color-paper);
+  border: 1px solid var(--color-line);
+  border-radius: 8px;
+  padding: var(--space-6);
+}
+
+.stat-card__value {
+  font-family: var(--font-display);
+  font-size: var(--text-3xl);
+  font-weight: 600;
+  color: var(--color-ink);
+  margin-bottom: var(--space-1);
+}
+
+.stat-card__label {
+  font-size: var(--text-sm);
+  color: var(--color-ink-soft);
+  text-transform: capitalize;
+}
+
+.role-breakdown {
+  margin-bottom: var(--space-8);
+}
+
+.recent-institutions {
+  background-color: var(--color-paper);
+  border: 1px solid var(--color-line);
+  border-radius: 8px;
+  padding: var(--space-6);
+}
+
+/* Wraps every <table> in the app so wide tables scroll horizontally on
+   small screens instead of being clipped or crushing their own columns. */
+.table-wrapper {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.data-table {
+  width: 100%;
+  min-width: 500px;
+  border-collapse: collapse;
+}
+
+.data-table th {
+  text-align: left;
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--color-ink-soft);
+  padding: var(--space-3);
+  border-bottom: 1px solid var(--color-line);
+  white-space: nowrap;
+}
+
+.data-table td {
+  padding: var(--space-3);
+  border-bottom: 1px solid var(--color-line);
+  font-size: var(--text-sm);
+  white-space: nowrap;
+}
+
+.status-badge {
+  font-size: var(--text-xs);
+  padding: var(--space-1) var(--space-2);
+  border-radius: 4px;
+  font-weight: 500;
+}
+
+.status-badge--active {
+  background-color: rgba(45, 95, 76, 0.12);
+  color: var(--color-accent);
+}
+
+.status-badge--archived {
+  background-color: rgba(0, 0, 0, 0.06);
+  color: var(--color-ink-soft);
+}
+
+.status-badge--suspended {
+  background-color: rgba(179, 38, 30, 0.1);
+  color: #b3261e;
+}
+
+.page-error {
+  color: #b3261e;
+}
+
+.empty-state {
+  color: var(--color-ink-soft);
+  padding: var(--space-6) 0;
+  text-align: center;
+}
+
+.table-action-link {
+  background: none;
+  border: none;
+  color: var(--color-accent);
+  font-size: var(--text-sm);
+  cursor: pointer;
+  padding: 0;
+}
+
+.table-action-link:hover {
+  text-decoration: underline;
+}
+
+.credential-warning {
+  background-color: #fff8e1;
+  border: 1px solid #f0d878;
+  border-radius: 4px;
+  padding: var(--space-3);
+  font-size: var(--text-sm);
+  color: #7a5c00;
+  margin-bottom: var(--space-4);
+}
+
+.credential-row {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin-bottom: var(--space-4);
+}
+
+.credential-label {
+  font-size: var(--text-xs);
+  color: var(--color-ink-soft);
+}
+
+.credential-value {
+  font-family: monospace;
+  font-size: var(--text-base);
+  background-color: var(--color-canvas);
+  padding: var(--space-2) var(--space-3);
+  border-radius: 4px;
+  word-break: break-all;
+}

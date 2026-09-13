@@ -1,0 +1,198 @@
+.dashboard-shell {
+  display: flex;
+  min-height: 100vh;
+  background-color: var(--color-canvas);
+  overflow-x: hidden;
+}
+
+.dashboard-sidebar {
+  width: 240px;
+  flex-shrink: 0;
+  background-color: var(--color-ink);
+  color: var(--color-white);
+  padding: var(--space-6) var(--space-4);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.dashboard-sidebar__brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+  font-weight: 600;
+  padding: 0 var(--space-2);
+  margin-bottom: var(--space-2);
+}
+
+.dashboard-sidebar__logo {
+  width: 24px;
+  height: 24px;
+  background-color: var(--color-accent);
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+.dashboard-sidebar__context {
+  font-size: var(--text-xs);
+  color: rgba(255, 255, 255, 0.6);
+  padding: 0 var(--space-2);
+  margin-bottom: var(--space-6);
+}
+
+.dashboard-sidebar__nav {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.dashboard-sidebar__link {
+  padding: var(--space-3) var(--space-3);
+  border-radius: 6px;
+  color: rgba(255, 255, 255, 0.75);
+  text-decoration: none;
+  font-size: var(--text-sm);
+}
+
+.dashboard-sidebar__link:hover {
+  background-color: rgba(255, 255, 255, 0.08);
+  color: var(--color-white);
+}
+
+.dashboard-sidebar__link--active {
+  background-color: var(--color-accent);
+  color: var(--color-white);
+}
+
+/* Account block, pinned to the bottom of the sidebar */
+.dashboard-sidebar__account {
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  padding-top: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.dashboard-sidebar__user {
+  display: flex;
+  flex-direction: column;
+  padding: 0 var(--space-2);
+}
+
+.dashboard-sidebar__name {
+  font-size: var(--text-sm);
+  font-weight: 500;
+}
+
+.dashboard-sidebar__role {
+  font-size: var(--text-xs);
+  color: rgba(255, 255, 255, 0.6);
+  text-transform: capitalize;
+}
+
+.dashboard-sidebar__logout {
+  font-size: var(--text-sm);
+  background: none;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 6px;
+  padding: var(--space-2) var(--space-3);
+  cursor: pointer;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.dashboard-sidebar__logout:hover {
+  border-color: rgba(255, 255, 255, 0.5);
+  color: var(--color-white);
+}
+
+.dashboard-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0; /* prevents flex children from forcing horizontal overflow */
+}
+
+/* Topbar — only meaningfully used on mobile now (hamburger trigger) */
+.dashboard-topbar {
+  display: none;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-6);
+  background-color: var(--color-paper);
+  border-bottom: 1px solid var(--color-line);
+}
+
+.dashboard-topbar__menu-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: var(--space-2);
+}
+
+.dashboard-topbar__menu-icon,
+.dashboard-topbar__menu-icon::before,
+.dashboard-topbar__menu-icon::after {
+  display: block;
+  width: 20px;
+  height: 2px;
+  background-color: var(--color-ink);
+  position: relative;
+}
+
+.dashboard-topbar__menu-icon::before,
+.dashboard-topbar__menu-icon::after {
+  content: "";
+  position: absolute;
+}
+
+.dashboard-topbar__menu-icon::before {
+  top: -6px;
+}
+
+.dashboard-topbar__menu-icon::after {
+  top: 6px;
+}
+
+.dashboard-topbar__brand-mobile {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: var(--text-lg);
+  color: var(--color-ink);
+}
+
+.dashboard-content {
+  flex: 1;
+  padding: var(--space-8);
+  min-width: 0;
+}
+
+/* --- Mobile: hide the permanent sidebar, show hamburger + slide-down drawer --- */
+@media (max-width: 720px) {
+  .dashboard-sidebar--desktop {
+    display: none;
+  }
+
+  .dashboard-topbar {
+    display: flex;
+  }
+
+  .dashboard-sidebar--mobile {
+    width: 100%;
+    position: absolute;
+    top: 61px; /* just below the topbar */
+    left: 0;
+    z-index: 10;
+  }
+
+  .dashboard-content {
+    padding: var(--space-4);
+  }
+}
+
+@media (min-width: 721px) {
+  .dashboard-sidebar--mobile {
+    display: none;
+  }
+}
