@@ -7,3 +7,16 @@ frontend/dist/
 **/__pycache__/
 *.pyc
 backend/.git.local/
+.neon
+.env.local
+node_modules/
+
+# Test/debug files with credentials or tokens
+backend/login.json
+backend/cookies.txt
+backend/invite.json
+backend/test-institution.json
+
+# Neon tooling artifacts
+skills-lock.json
+package-lock.json

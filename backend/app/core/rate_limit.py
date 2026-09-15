@@ -18,10 +18,15 @@ only the runtime multiplier changes based on environment, so nothing needs
 to be manually reverted before deploying.
 """
 
+import logging
+
 from fastapi import HTTPException, Request, status
+import redis as redis_lib
 
 from app.core.config import settings
 from app.core.redis_client import redis_client
+
+logger = logging.getLogger(__name__)
 
 _DEV_MULTIPLIER = 20
 
@@ -41,20 +46,28 @@ def rate_limit(*, max_requests: int, window_seconds: int, key_prefix: str):
         client_ip = request.client.host if request.client else "unknown"
         redis_key = f"ratelimit:{key_prefix}:{client_ip}"
 
-        # INCR atomically increments the counter (creating it at 1 if it
-        # doesn't exist yet) — atomic matters here so concurrent requests
-        # from the same IP can't race past each other and both slip through.
-        current_count = redis_client.incr(redis_key)
+        try:
+            # INCR atomically increments the counter (creating it at 1 if it
+            # doesn't exist yet) — atomic matters here so concurrent requests
+            # from the same IP can't race past each other and both slip through.
+            current_count = redis_client.incr(redis_key)
 
-        if current_count == 1:
-            # This is the first request in a new window — set it to expire
-            # after window_seconds, starting the clock on this window.
-            redis_client.expire(redis_key, window_seconds)
+            if current_count == 1:
+                # This is the first request in a new window — set it to expire
+                # after window_seconds, starting the clock on this window.
+                redis_client.expire(redis_key, window_seconds)
 
-        if current_count > effective_max:
-            raise HTTPException(
-                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-                detail="Too many requests, please try again later.",
-            )
+            if current_count > effective_max:
+                raise HTTPException(
+                    status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                    detail="Too many requests, please try again later.",
+                )
+        except HTTPException:
+            # Re-raise 429s — those are intentional, not Redis errors.
+            raise
+        except redis_lib.RedisError as exc:
+            # Redis is unavailable — fail open so a Redis outage doesn't take
+            # down auth endpoints. Log a warning so it's visible in Render logs.
+            logger.warning("Rate limiter Redis error (failing open): %s", exc)
 
     return _check
