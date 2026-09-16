@@ -5,14 +5,10 @@
  * errors have one consistent shape everywhere in the app.
  */
 
-// In production (Vercel), call the Render backend directly since Vercel's
-// free plan does not support proxying rewrites to external URLs.
-// In local dev, use an empty string so Vite's proxy handles it transparently.
-const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL ||
-  (import.meta.env.PROD
-    ? "https://learning-management-system-5nws.onrender.com"
-    : "");
+// Empty string → relative paths → proxied by Vercel (production) or
+// Vite dev server (local). Keeps everything same-origin so SameSite cookies
+// and CSRF (document.cookie) work correctly in all browsers.
+const API_BASE_URL = "";
 
 const SAFE_METHODS = new Set(["GET", "HEAD"]);
 
