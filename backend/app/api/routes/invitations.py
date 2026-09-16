@@ -204,7 +204,7 @@ def approve_invitation(
         db.rollback()
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="Could not create the account — please try again",
+            detail="A user with this email address already exists. Ask the teacher to use a different email, then send a new invitation.",
         )
 
     db.refresh(new_user)
