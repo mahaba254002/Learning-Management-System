@@ -61,13 +61,19 @@ def request_create_institution(
 
     admin = db.get(User, ctx.user_id)
 
-    verification_id = generate_verification_code(
-        db=db,
-        user_id=ctx.user_id,
-        user_email=admin.email if admin else None,
-        purpose=VerificationPurpose.CREATE_INSTITUTION,
-        payload=payload.model_dump(mode="json"),
-    )
+    try:
+        verification_id = generate_verification_code(
+            db=db,
+            user_id=ctx.user_id,
+            user_email=admin.email if admin else None,
+            purpose=VerificationPurpose.CREATE_INSTITUTION,
+            payload=payload.model_dump(mode="json"),
+        )
+    except VerificationError as e:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=str(e),
+        )
 
     return VerificationRequiredResponse(verification_id=verification_id)
 
