@@ -3,6 +3,64 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest, ApiError } from "../../api/client";
 import "../platform/PlatformDashboardPage.css";
 
+function SendInviteForm({ onSent }) {
+    const [email, setEmail] = useState("");
+    const [error, setError] = useState(null);
+    const [success, setSuccess] = useState(null);
+
+    const sendMutation = useMutation({
+        mutationFn: (email) =>
+            apiRequest("/api/institution/invitations/teachers", {
+                method: "POST",
+                body: { email },
+            }),
+        onSuccess: () => {
+            setSuccess(`Invitation sent to ${email}`);
+            setError(null);
+            setEmail("");
+            onSent();
+        },
+        onError: (err) => {
+            setError(err instanceof ApiError ? err.message : "Failed to send invitation.");
+            setSuccess(null);
+        },
+    });
+
+    const handleSubmit = (e) => {
+        e.preventDefault();
+        if (!email.trim()) return;
+        setError(null);
+        setSuccess(null);
+        sendMutation.mutate(email.trim());
+    };
+
+    return (
+        <div className="recent-institutions" style={{ marginBottom: "1.5rem", padding: "1.25rem" }}>
+            <h2 style={{ fontSize: "1rem", fontWeight: 600, marginBottom: "1rem" }}>Send teacher invitation</h2>
+            <form onSubmit={handleSubmit} style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap" }}>
+                <input
+                    type="email"
+                    className="form-input"
+                    placeholder="teacher@example.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                    style={{ flex: "1", minWidth: "220px" }}
+                />
+                <button
+                    type="submit"
+                    className="btn btn--primary"
+                    disabled={sendMutation.isPending}
+                >
+                    {sendMutation.isPending ? "Sending…" : "Send invite"}
+                </button>
+            </form>
+            {error && <p className="form-error" style={{ marginTop: "0.75rem" }}>{error}</p>}
+            {success && <p style={{ marginTop: "0.75rem", color: "var(--color-success, green)" }}>{success}</p>}
+        </div>
+    );
+}
+
 export default function InstitutionInvitationsPage() {
     const [actionError, setActionError] = useState(null);
     const [approvedCredentials, setApprovedCredentials] = useState(null);
@@ -41,6 +99,12 @@ export default function InstitutionInvitationsPage() {
     return (
         <div>
             <h1 className="page-title">Teacher invitations</h1>
+
+            <SendInviteForm
+                onSent={() =>
+                    queryClient.invalidateQueries({ queryKey: ["institution-invitations"] })
+                }
+            />
 
             {actionError && <p className="page-error" style={{ marginBottom: "1rem" }}>{actionError}</p>}
 
