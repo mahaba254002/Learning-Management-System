@@ -90,12 +90,17 @@ export default function InstitutionTeachersPage() {
                             </thead>
                             <tbody>
                                 {teachers.map((t) => (
-                                    <tr key={t.id}>
+                                    <tr key={t.id} style={{ cursor: "pointer" }}>
                                         <td>
-                                            <strong>{t.first_name} {t.last_name}</strong>
-                                            <div style={{ fontSize: "0.75rem", color: "var(--color-ink-soft)" }}>
-                                                @{t.username}
-                                            </div>
+                                            <Link
+                                                to={`/institution/teachers/${t.id}`}
+                                                style={{ textDecoration: "none", color: "inherit" }}
+                                            >
+                                                <strong style={{ color: "var(--color-accent)" }}>{t.first_name} {t.last_name}</strong>
+                                                <div style={{ fontSize: "0.75rem", color: "var(--color-ink-soft)" }}>
+                                                    @{t.username}
+                                                </div>
+                                            </Link>
                                         </td>
                                         <td>{t.email}</td>
                                         <td>{t.qualification}</td>

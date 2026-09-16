@@ -73,6 +73,28 @@ def list_teachers(
     return [TeacherSummary.from_orm_join(t, u) for t, u in rows]
 
 
+@router.get("/api/institution/teachers/{teacher_id}", response_model=TeacherSummary)
+def get_teacher(
+    teacher_id: str,
+    db: Session = Depends(get_db),
+    ctx: AuthContext = Depends(require_role(UserRole.INSTITUTION_ADMIN)),
+) -> TeacherSummary:
+    from sqlalchemy import select
+    row = (
+        db.execute(
+            select(Teacher, User)
+            .join(User, User.id == Teacher.user_id)
+            .where(Teacher.institution_id == ctx.institution_id)
+            .where(Teacher.id == teacher_id)
+        )
+        .first()
+    )
+    if row is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Teacher not found")
+    teacher, user = row
+    return TeacherSummary.from_orm_join(teacher, user)
+
+
 
 
 

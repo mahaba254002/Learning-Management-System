@@ -18,6 +18,7 @@ import InstitutionLayout from "./pages/institution/InstitutionLayout";
 import InstitutionDashboardPage from "./pages/institution/InstitutionDashboardPage";
 import InstitutionInvitationsPage from "./pages/institution/InstitutionInvitationsPage";
 import InstitutionTeachersPage from "./pages/institution/InstitutionTeachersPage";
+import InstitutionTeacherDetailPage from "./pages/institution/InstitutionTeacherDetailPage";
 
 function App() {
   return (
@@ -49,6 +50,7 @@ function App() {
           <Route path="dashboard" element={<InstitutionDashboardPage />} />
           <Route path="invitations" element={<InstitutionInvitationsPage />} />
           <Route path="teachers" element={<InstitutionTeachersPage />} />
+          <Route path="teachers/:teacherId" element={<InstitutionTeacherDetailPage />} />
           <Route path="students" element={<ComingSoon title="Students" />} />
           <Route path="settings" element={<ComingSoon title="Settings" />} />
         </Route>
