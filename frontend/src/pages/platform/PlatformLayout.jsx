@@ -1,6 +1,6 @@
 import { Outlet } from "react-router-dom";
 import DashboardLayout from "../../components/layout/DashboardLayout";
-import { platformNavItems } from "./PlatformNavItems";
+import { platformNavItems } from "./platformNavItems";
 
 export default function PlatformLayout() {
   return (

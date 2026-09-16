@@ -6,7 +6,7 @@ import { apiRequest, ApiError } from "../../api/client";
 import { resetPasswordSchema } from "./resetPasswordSchema";
 import "./LoginPage.css";
 
-import PasswordInput from "../../components/common/Passwordinput";
+import PasswordInput from "../../components/common/PasswordInput";
 
 export default function ResetPasswordPage() {
   const [searchParams] = useSearchParams();
