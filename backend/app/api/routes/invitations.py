@@ -50,8 +50,29 @@ router = APIRouter(tags=["invitations"])
 
 
 # ---------------------------------------------------------------------------
-# Institution Admin: send, list, approve, reject
+# Institution Admin: list teachers
 # ---------------------------------------------------------------------------
+
+from app.schemas.teacher import TeacherSummary
+
+@router.get("/api/institution/teachers", response_model=list[TeacherSummary])
+def list_teachers(
+    db: Session = Depends(get_db),
+    ctx: AuthContext = Depends(require_role(UserRole.INSTITUTION_ADMIN)),
+) -> list[TeacherSummary]:
+    from sqlalchemy import select
+    rows = (
+        db.execute(
+            select(Teacher, User)
+            .join(User, User.id == Teacher.user_id)
+            .where(Teacher.institution_id == ctx.institution_id)
+            .order_by(User.last_name, User.first_name)
+        )
+        .all()
+    )
+    return [TeacherSummary.from_orm_join(t, u) for t, u in rows]
+
+
 
 
 
