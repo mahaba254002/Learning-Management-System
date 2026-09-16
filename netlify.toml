@@ -1,0 +1,23 @@
+# Netlify configuration
+# -----------------------------------------------------------------
+# All /api/* requests are proxied to the Render backend.
+# This makes cookies first-party (same origin), so SameSite=Lax
+# and CSRF work correctly without any backend changes.
+# To swap backends in future, only change the :splat target URL here.
+# -----------------------------------------------------------------
+
+[[redirects]]
+  from   = "/api/*"
+  to     = "https://learning-management-system-5nws.onrender.com/api/:splat"
+  status = 200
+  force  = true
+
+  [redirects.headers]
+    X-Forwarded-Host = "rollback4.netlify.app"
+
+# SPA fallback — serve index.html for every non-file route so that
+# React Router handles client-side navigation and direct links work.
+[[redirects]]
+  from   = "/*"
+  to     = "/index.html"
+  status = 200

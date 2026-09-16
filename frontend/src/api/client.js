@@ -5,7 +5,10 @@
  * errors have one consistent shape everywhere in the app.
  */
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000";
+// Empty string → relative paths → proxied by Netlify (production) or
+// Vite dev server (local). No cross-origin request is ever made by the
+// browser, so SameSite=Lax cookies and CSRF work on all browsers.
+const API_BASE_URL = "";
 
 const SAFE_METHODS = new Set(["GET", "HEAD"]);
 
