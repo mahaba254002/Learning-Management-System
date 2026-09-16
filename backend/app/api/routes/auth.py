@@ -40,10 +40,15 @@ REFRESH_TOKEN_COOKIE = "refresh_token"
 
 
 def _set_auth_cookies(response: Response, *, access_token: str, refresh_token: str) -> None:
+    # In production the frontend (Vercel) and backend (Render) are on different
+    # domains, so cross-origin fetch requests require SameSite=None; Secure.
+    # In local dev everything is same-origin via Vite proxy, so Lax is fine.
+    samesite = "none" if settings.cookie_secure else "lax"
+
     cookie_kwargs = dict(
         httponly=True,
         secure=settings.cookie_secure,
-        samesite="lax",
+        samesite=samesite,
         path="/",
     )
 
@@ -67,7 +72,7 @@ def _set_auth_cookies(response: Response, *, access_token: str, refresh_token: s
         max_age=settings.REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60,
         httponly=False,
         secure=settings.cookie_secure,
-        samesite="lax",
+        samesite=samesite,
         path="/",
     )
 
