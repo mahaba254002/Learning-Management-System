@@ -6,12 +6,10 @@ export default defineConfig({
   plugins: [react()],
   server: {
     proxy: {
-      // Mirror the Netlify proxy so local dev and production behave identically.
-      // /api/* is forwarded to the Render backend; cookies are first-party.
+      // Forward local API calls to the FastAPI server started from backend/.
       '/api': {
-        target: 'https://learning-management-system-5nws.onrender.com',
+        target: 'http://127.0.0.1:8000',
         changeOrigin: true,
-        secure: true,
       },
     },
   },

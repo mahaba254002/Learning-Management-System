@@ -36,6 +36,8 @@
 }
 
 .form-field input {
+  box-sizing: border-box;
+  min-width: 0;
   width: 100%;
   padding: var(--space-3);
   font-size: var(--text-base);
@@ -118,4 +120,42 @@
   outline: none;
   border-color: var(--color-accent);
   box-shadow: 0 0 0 3px rgba(45, 95, 76, 0.12);
+}
+
+
+
+/* Variant of .auth-form for use inside AuthSplitLayout, which already
+   provides its own page background and centering — this just needs the
+   form's internal spacing, not a bordered card of its own. */
+.auth-form--embedded {
+  border: none;
+  padding: 0;
+  background: transparent;
+  max-width: none;
+}
+
+.auth-form--embedded h2 {
+  font-family: var(--font-display);
+  font-size: var(--text-xl);
+  font-weight: 600;
+  color: var(--color-ink);
+  margin-bottom: var(--space-6);
+}
+
+@media (max-width: 840px) {
+  .auth-form--embedded {
+    width: 100%;
+  }
+
+  .auth-form--embedded h2 {
+    margin-bottom: var(--space-5);
+  }
+
+  .form-field {
+    margin-bottom: var(--space-5);
+  }
+
+  .form-error {
+    overflow-wrap: anywhere;
+  }
 }

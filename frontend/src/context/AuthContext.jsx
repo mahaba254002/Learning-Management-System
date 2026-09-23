@@ -29,8 +29,12 @@ export function AuthProvider({ children }) {
     };
   }, []);
 
-  const login = useCallback(async (username, password) => {
-    const data = await apiRequest("/api/auth/login", {
+  // loginPath lets callers choose the staff or student door while sharing
+  // this one method — the actual portal enforcement happens server-side
+  // (see backend/app/api/routes/auth.py), this parameter only decides
+  // which URL the frontend calls.
+  const login = useCallback(async (username, password, loginPath = "/api/auth/login") => {
+    const data = await apiRequest(loginPath, {
       method: "POST",
       body: { username, password },
     });

@@ -1,0 +1,188 @@
+.auth-split {
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: grid;
+  grid-template-columns: 42% 58%;
+  background-color: var(--color-paper);
+}
+
+.auth-split__panel {
+  background-color: var(--color-accent);
+  padding: var(--space-12) var(--space-8);
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.auth-split__brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-family: var(--font-display);
+  font-size: var(--text-xl);
+  font-weight: 600;
+  color: var(--color-white);
+  position: relative;
+  z-index: 2;
+}
+
+.auth-split__logo {
+  width: 24px;
+  height: 24px;
+  background-color: var(--color-accent-warm);
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+.auth-split__heading {
+  position: relative;
+  z-index: 2;
+  max-width: 32ch;
+}
+
+.auth-split__heading h1 {
+  font-family: var(--font-display);
+  font-size: var(--text-3xl);
+  font-weight: 600;
+  color: var(--color-white);
+  margin-bottom: var(--space-3);
+  line-height: 1.2;
+}
+
+.auth-split__heading p {
+  font-size: var(--text-sm);
+  color: var(--color-canvas);
+  opacity: 0.85;
+}
+
+.auth-split__shapes {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.auth-split__shape {
+  position: absolute;
+  display: block;
+}
+
+.auth-split__shape--circle-lg {
+  width: 160px;
+  height: 160px;
+  border-radius: 50%;
+  background-color: var(--color-accent-warm);
+  opacity: 0.15;
+  top: 58%;
+  left: 55%;
+}
+
+.auth-split__shape--circle-sm {
+  width: 90px;
+  height: 90px;
+  border-radius: 50%;
+  background-color: var(--color-white);
+  opacity: 0.08;
+  top: 12%;
+  left: 68%;
+}
+
+.auth-split__shape--square {
+  width: 60px;
+  height: 60px;
+  border-radius: 12px;
+  background-color: var(--color-white);
+  opacity: 0.1;
+  top: 72%;
+  left: 8%;
+  transform: rotate(20deg);
+}
+
+.auth-split__form-side {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-8);
+}
+
+.auth-split__form-area {
+  width: 100%;
+  max-width: 380px;
+}
+
+/* --- Responsive: below this width, the branded panel collapses to a
+   short fixed-height header instead of taking half the screen. Fixed
+   height (not just min-height) matters here — without it, the panel
+   grows to fit its content and pushes the form further down than
+   necessary, and can look cramped against the decorative shapes. --- */
+@media (max-width: 840px) {
+  .auth-split {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .auth-split__panel {
+    height: 140px;
+    min-height: 140px;
+    padding: var(--space-6);
+    flex-direction: column;
+    justify-content: flex-start;
+    gap: var(--space-3);
+  }
+
+  .auth-split__heading h1 {
+    font-size: var(--text-xl);
+    margin-bottom: 0;
+  }
+
+  .auth-split__heading p {
+    display: none;
+  }
+
+  /* Decorative shapes are sized for the tall desktop panel — at 140px
+     tall they'd either overflow the panel edges or crowd the heading
+     text, so they're dropped entirely on small screens rather than
+     rescaled, since they're purely decorative. */
+  .auth-split__shapes {
+    display: none;
+  }
+
+  .auth-split__form-side {
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: flex-start;
+    padding: var(--space-6) var(--space-4) calc(var(--space-8) + env(safe-area-inset-bottom));
+  }
+}
+
+/* --- Extra-small screens: tighten further so the header stays compact
+   and the heading doesn't wrap awkwardly. Only kicks in below 400px. --- */
+@media (max-width: 400px) {
+  .auth-split__panel {
+    height: 110px;
+    min-height: 110px;
+    padding: var(--space-4);
+  }
+
+  .auth-split__heading h1 {
+    font-size: var(--text-lg);
+  }
+
+  .auth-split__form-side {
+    padding-inline: var(--space-3);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* Entrance animations are one-shot and brief, so they're left as-is.
+     The continuous floating-shape loop is disabled in JS via Framer
+     Motion's useReducedMotion() hook inside AuthSplitLayout.jsx — this
+     rule is a no-op safety net only, since CSS animations aren't what
+     drive the shapes here. */
+  .auth-split__shape {
+    animation: none !important;
+  }
+}

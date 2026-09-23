@@ -44,6 +44,7 @@ def generate_verification_code(
     user_email: str | None,
     purpose: VerificationPurpose,
     payload: dict,
+    reset_link_path: str | None = None,
 ) -> uuid.UUID:
     if not user_email:
         raise VerificationError("This account has no email on file to send a code to")
@@ -61,10 +62,19 @@ def generate_verification_code(
     db.flush()
 
     subject = _PURPOSE_SUBJECTS.get(purpose, "Your verification code")
+
+    link_html = ""
+    if reset_link_path is not None:
+        from app.core.config import settings
+
+        reset_link = f"{settings.FRONTEND_BASE_URL}{reset_link_path}?verification_id={record.id}"
+        link_html = f'<p><a href="{reset_link}">Click here to reset your password</a></p>'
+
     html_body = (
         "<p>Your verification code is:</p>"
         f'<h2 style="letter-spacing: 4px;">{raw_code}</h2>'
         f"<p>This code expires in {CODE_EXPIRY_MINUTES} minutes and can only be used once.</p>"
+        f"{link_html}"
     )
 
     try:
@@ -86,7 +96,6 @@ def generate_verification_code(
     db.commit()
     db.refresh(record)
     return record.id
-
 
 def confirm_verification_code(
     *,

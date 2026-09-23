@@ -1,7 +1,8 @@
 import enum
 import uuid
+from datetime import datetime
 
-from sqlalchemy import Boolean, Enum, ForeignKey, String
+from sqlalchemy import Boolean, DateTime, Enum, ForeignKey, String
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -55,3 +56,13 @@ class User(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     # True until the user completes their first login and sets their own
     # password. Checked by the login flow to force a password-change step.
     must_change_password: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+
+    # Stamped every time this user's password changes (self-service change,
+    # self-service reset, or admin-assisted reset). get_current_context
+    # rejects any token issued before this timestamp, so an old session
+    # cannot outlive a password reset — this matters most for the
+    # admin-assisted student reset path, where the reset may be a response
+    # to a compromised account.
+    password_changed_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )

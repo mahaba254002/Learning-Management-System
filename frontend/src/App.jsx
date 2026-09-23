@@ -20,6 +20,10 @@ import InstitutionInvitationsPage from "./pages/institution/InstitutionInvitatio
 import InstitutionTeachersPage from "./pages/institution/InstitutionTeachersPage";
 import InstitutionTeacherDetailPage from "./pages/institution/InstitutionTeacherDetailPage";
 
+
+import StudentLoginPage from "./pages/student/StudentLoginPage";
+import StudentForgotPasswordPage from "./pages/student/StudentForgotPasswordPage";
+import StudentResetPasswordPage from "./pages/student/StudentResetPasswordPage";
 function App() {
   return (
     <BrowserRouter>
@@ -29,6 +33,9 @@ function App() {
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />
         <Route path="/invite/:token" element={<InvitePage />} />
+        <Route path="/student/login" element={<StudentLoginPage />} />
+        <Route path="/student/forgot-password" element={<StudentForgotPasswordPage />} />
+        <Route path="/student/reset-password" element={<StudentResetPasswordPage />} />
 
         <Route
           path="/change-password"

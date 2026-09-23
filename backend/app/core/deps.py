@@ -12,6 +12,7 @@ forget on an individual route.
 
 import uuid
 from dataclasses import dataclass
+from datetime import datetime, timezone
 
 import jwt
 from fastapi import Depends, HTTPException, Request, status
@@ -25,12 +26,22 @@ from app.models.user import User, UserRole, UserStatus
 
 ACCESS_TOKEN_COOKIE_NAME = "access_token"
 
+# Routes a user with must_change_password=True is still allowed to hit.
+# Everything else is blocked with 403 until they change their password.
+# Paths are matched against request.url.path exactly.
+ALLOWED_WHILE_PASSWORD_CHANGE_REQUIRED = frozenset({
+    "/api/auth/change-password",
+    "/api/auth/logout",
+    "/api/me",
+})
+
 
 @dataclass(frozen=True)
 class AuthContext:
     user_id: uuid.UUID
     institution_id: uuid.UUID | None
     role: UserRole
+    must_change_password: bool
 
 
 def _unauthorized(detail: str = "Could not validate credentials") -> HTTPException:
@@ -66,6 +77,17 @@ def get_current_context(
     if user is None or user.status != UserStatus.ACTIVE:
         raise _unauthorized("Account is no longer active")
 
+    # If the password has been changed (self-service or admin-assisted)
+    # since this token was issued, the token is dead — even if it hasn't
+    # hit its normal 15-minute expiry yet. Without this, an old session
+    # from before a reset keeps working, defeating the point of the reset.
+    if user.password_changed_at is not None:
+        issued_at = payload.get("iat")
+        if issued_at is not None:
+            issued_at_dt = datetime.fromtimestamp(issued_at, tz=timezone.utc)
+            if issued_at_dt < user.password_changed_at:
+                raise _unauthorized("Session expired, please log in again")
+
     institution_id = user.institution_id
 
     if institution_id is not None:
@@ -73,7 +95,22 @@ def get_current_context(
         if institution is None or institution.status != InstitutionStatus.ACTIVE:
             raise _unauthorized("Institution is no longer active")
 
-    return AuthContext(user_id=user.id, institution_id=institution_id, role=user.role)
+    # Server-side enforcement of the forced password change. The frontend
+    # redirect to /change-password is a UX nicety, not a security
+    # boundary — without this check, a user with a temporary password
+    # could call any other endpoint directly and skip changing it.
+    if user.must_change_password and request.url.path not in ALLOWED_WHILE_PASSWORD_CHANGE_REQUIRED:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You must change your password before continuing.",
+        )
+
+    return AuthContext(
+        user_id=user.id,
+        institution_id=institution_id,
+        role=user.role,
+        must_change_password=user.must_change_password,
+    )
 
 
 def require_tenant_user(ctx: AuthContext = Depends(get_current_context)) -> AuthContext:

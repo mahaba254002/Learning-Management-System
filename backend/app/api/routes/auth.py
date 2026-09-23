@@ -1,11 +1,22 @@
 """
 Authentication routes.
 
-Login/logout now work via httpOnly cookies instead of returning tokens in
-the JSON response body. The CSRF token cookie is set alongside them,
-readable by frontend JS so it can be echoed back as a header on mutating
-requests (see app/core/csrf.py for the verification side).
+Login/logout work via httpOnly cookies instead of returning tokens in the
+JSON response body. The CSRF token cookie is set alongside them, readable
+by frontend JS so it can be echoed back as a header on mutating requests
+(see app/core/csrf.py for the verification side).
+
+Portal separation: staff (platform admin, institution admin, teacher) and
+students log in through different endpoints, even though they share the
+same `users` table and JWT/cookie mechanism. This is enforced here, not
+just in the frontend routing, so a student cannot authenticate through the
+staff door and vice versa. Both doors return the identical error message
+for "wrong role for this door" and "wrong password" so a username's role
+can't be discovered by testing which door accepts it. The same separation
+applies to forgot/reset password.
 """
+
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy.orm import Session
@@ -18,7 +29,7 @@ from app.core.rate_limit import rate_limit
 from app.core.security import create_access_token, create_refresh_token, hash_password, verify_password
 from app.db.session import get_db
 from app.models.institution import Institution, InstitutionStatus
-from app.models.user import User, UserStatus
+from app.models.user import User, UserRole, UserStatus
 from app.models.verification_code import VerificationCode, VerificationPurpose
 from app.core.verification import VerificationError, generate_verification_code
 from app.schemas.auth import (
@@ -38,17 +49,17 @@ router = APIRouter(prefix="/api/auth", tags=["auth"])
 ACCESS_TOKEN_COOKIE = "access_token"
 REFRESH_TOKEN_COOKIE = "refresh_token"
 
+# Roles that use the staff login door (/api/auth/login, /api/auth/forgot-password, ...).
+STAFF_ROLES = frozenset({UserRole.PLATFORM_ADMIN, UserRole.INSTITUTION_ADMIN, UserRole.TEACHER})
+# Roles that use the student door (/api/auth/student/login, /api/auth/student/forgot-password, ...).
+STUDENT_ROLES = frozenset({UserRole.STUDENT})
+
 
 def _set_auth_cookies(response: Response, *, access_token: str, refresh_token: str) -> None:
-    # In production the frontend (Vercel) and backend (Render) are on different
-    # domains, so cross-origin fetch requests require SameSite=None; Secure.
-    # In local dev everything is same-origin via Vite proxy, so Lax is fine.
-    samesite = "none" if settings.cookie_secure else "lax"
-
     cookie_kwargs = dict(
         httponly=True,
         secure=settings.cookie_secure,
-        samesite=samesite,
+        samesite="lax",
         path="/",
     )
 
@@ -72,17 +83,39 @@ def _set_auth_cookies(response: Response, *, access_token: str, refresh_token: s
         max_age=settings.REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60,
         httponly=False,
         secure=settings.cookie_secure,
-        samesite=samesite,
+        samesite="lax",
         path="/",
     )
 
 
-@router.post(
-    "/login",
-    response_model=LoginResponse,
-    dependencies=[Depends(rate_limit(max_requests=5, window_seconds=60, key_prefix="login"))],
-)
-def login(payload: LoginRequest, response: Response, db: Session = Depends(get_db)) -> LoginResponse:
+def _bump_password_changed_at(user: User) -> None:
+    """
+    Stamps password_changed_at so that any access/refresh tokens issued
+    before this moment are rejected by get_current_context, even if they
+    haven't hit their normal expiry yet. This matters most for the
+    admin-assisted student reset: if a student's account was reset because
+    it was compromised, this prevents the attacker's existing session from
+    continuing to work after the reset.
+
+    Requires the users.password_changed_at column (migration
+    e1a2b3c4d5f6) and the corresponding check in get_current_context.
+    """
+    user.password_changed_at = datetime.now(timezone.utc)
+
+
+def _authenticate(
+    payload: LoginRequest,
+    response: Response,
+    db: Session,
+    *,
+    allowed_roles: frozenset[UserRole],
+) -> LoginResponse:
+    """
+    Shared login logic for every portal. `allowed_roles` is the enforcement
+    point for portal separation: a user whose role is not in this set is
+    rejected with the SAME error as a wrong password, so a login attempt
+    can never be used to discover which door a given username belongs to.
+    """
     user = db.query(User).filter(User.username == payload.username).first()
 
     invalid_credentials = HTTPException(
@@ -91,9 +124,18 @@ def login(payload: LoginRequest, response: Response, db: Session = Depends(get_d
     )
 
     if user is None:
+        # Run the password hasher anyway against a dummy hash so a
+        # nonexistent username takes the same amount of time as a wrong
+        # password for an existing one — otherwise response timing leaks
+        # which usernames exist.
+        verify_password(payload.password, hash_password("not-a-real-password"))
         raise invalid_credentials
 
     if not verify_password(payload.password, user.password_hash):
+        raise invalid_credentials
+
+    if user.role not in allowed_roles:
+        # Deliberately identical to the wrong-password error above.
         raise invalid_credentials
 
     if user.status != UserStatus.ACTIVE:
@@ -122,6 +164,28 @@ def login(payload: LoginRequest, response: Response, db: Session = Depends(get_d
         user=UserSummary.model_validate(user),
     )
 
+
+@router.post(
+    "/login",
+    response_model=LoginResponse,
+    dependencies=[Depends(rate_limit(max_requests=5, window_seconds=60, key_prefix="login"))],
+)
+def login(payload: LoginRequest, response: Response, db: Session = Depends(get_db)) -> LoginResponse:
+    """Staff login door — platform admin, institution admin, teacher.
+    Student accounts are rejected here; they use /student/login."""
+    return _authenticate(payload, response, db, allowed_roles=STAFF_ROLES)
+
+
+@router.post(
+    "/student/login",
+    response_model=LoginResponse,
+    dependencies=[Depends(rate_limit(max_requests=5, window_seconds=60, key_prefix="student-login"))],
+)
+def student_login(payload: LoginRequest, response: Response, db: Session = Depends(get_db)) -> LoginResponse:
+    """Student login door. Staff accounts are rejected here."""
+    return _authenticate(payload, response, db, allowed_roles=STUDENT_ROLES)
+
+
 @router.post("/logout")
 def logout(response: Response, ctx: AuthContext = Depends(get_current_context)) -> dict:
     for cookie_name in (ACCESS_TOKEN_COOKIE, REFRESH_TOKEN_COOKIE, CSRF_COOKIE_NAME):
@@ -139,6 +203,12 @@ def change_password(
     db: Session = Depends(get_db),
     ctx: AuthContext = Depends(get_current_context),
 ) -> ChangePasswordResponse:
+    """
+    Shared across every role — the acting user is always determined from
+    their own authenticated session (ctx.user_id), never a client-supplied
+    ID, so no portal split is needed here: a student and a staff member
+    each change only their own password through the same logic.
+    """
     user = db.get(User, ctx.user_id)
     if user is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
@@ -159,9 +229,45 @@ def change_password(
 
     user.password_hash = hash_password(payload.new_password)
     user.must_change_password = False
+    _bump_password_changed_at(user)
     db.commit()
 
     return ChangePasswordResponse()
+
+
+def _forgot_password(
+    payload: ForgotPasswordRequest,
+    db: Session,
+    *,
+    allowed_roles: frozenset[UserRole],
+    reset_link_path: str,
+) -> ForgotPasswordResponse:
+    user = db.query(User).filter(User.email == payload.email).first()
+
+    if user is not None and user.role in allowed_roles and user.status == UserStatus.ACTIVE:
+        try:
+            generate_verification_code(
+                db=db,
+                user_id=user.id,
+                user_email=user.email,
+                purpose=VerificationPurpose.PASSWORD_RESET,
+                # Recording the role lets the matching reset endpoint
+                # refuse to redeem a code minted for the other portal,
+                # even though both portals share the same
+                # VerificationPurpose.PASSWORD_RESET value.
+                payload={"user_id": str(user.id), "role": user.role.value},
+                reset_link_path=reset_link_path,
+            )
+        except VerificationError:
+            # Still return the generic success response even if sending
+            # failed — preserves enumeration-safe behavior (never reveal
+            # via this endpoint whether the account/email exists or
+            # whether sending succeeded). The failure is already recorded
+            # in email_failures for the Super Admin to see.
+            pass
+
+    return ForgotPasswordResponse()
+
 
 @router.post(
     "/forgot-password",
@@ -169,37 +275,32 @@ def change_password(
     dependencies=[Depends(rate_limit(max_requests=3, window_seconds=600, key_prefix="forgot-password"))],
 )
 def forgot_password(payload: ForgotPasswordRequest, db: Session = Depends(get_db)) -> ForgotPasswordResponse:
-    user = db.query(User).filter(User.email == payload.email).first()
+    """Staff forgot-password. A student email is treated as "not found" —
+    same generic response either way, so no enumeration."""
+    return _forgot_password(payload, db, allowed_roles=STAFF_ROLES, reset_link_path="/reset-password")
 
-    if user is not None and user.status == UserStatus.ACTIVE:
-        try:
-            generate_verification_code(
-                db=db,
-                user_id=user.id,
-                user_email=user.email,
-                purpose=VerificationPurpose.PASSWORD_RESET,
-                payload={"user_id": str(user.id)},
-            )
-        except VerificationError:
-            # We still return the generic success response even if sending
-            # failed — this preserves the enumeration-safe behavior (never
-            # reveal via this endpoint whether the account/email exists or
-            # whether sending succeeded). The failure is already recorded
-            # in email_failures for the Super Admin to see.
-            pass
-
-    return ForgotPasswordResponse()
 
 @router.post(
-    "/reset-password",
-    response_model=ResetPasswordResponse,
-    dependencies=[Depends(rate_limit(max_requests=10, window_seconds=600, key_prefix="reset-password"))],
+    "/student/forgot-password",
+    response_model=ForgotPasswordResponse,
+    dependencies=[Depends(rate_limit(max_requests=3, window_seconds=600, key_prefix="student-forgot-password"))],
 )
-def reset_password(payload: ResetPasswordRequest, db: Session = Depends(get_db)) -> ResetPasswordResponse:
-    from datetime import datetime, timezone
+def student_forgot_password(payload: ForgotPasswordRequest, db: Session = Depends(get_db)) -> ForgotPasswordResponse:
+    """Student forgot-password. A staff email is treated as "not found"."""
+    return _forgot_password(payload, db, allowed_roles=STUDENT_ROLES, reset_link_path="/student/reset-password")
 
+
+def _reset_password(payload: ResetPasswordRequest, db: Session, *, allowed_roles: frozenset[UserRole]) -> ResetPasswordResponse:
     record = db.get(VerificationCode, payload.verification_id)
     if record is None or record.purpose != VerificationPurpose.PASSWORD_RESET:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid or expired reset request")
+
+    # Portal check: a code minted for a student cannot be redeemed on the
+    # staff reset endpoint, and vice versa. record.payload["role"] was
+    # stamped in generate_verification_code above at request time. Codes
+    # created before this field existed have no "role" key and are safely
+    # rejected here (.get returns None, which matches no allowed role).
+    if record.payload.get("role") not in {r.value for r in allowed_roles}:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid or expired reset request")
 
     if record.consumed_at is not None:
@@ -227,7 +328,26 @@ def reset_password(payload: ResetPasswordRequest, db: Session = Depends(get_db))
 
     user.password_hash = hash_password(payload.new_password)
     user.must_change_password = False
+    _bump_password_changed_at(user)
     record.consumed_at = datetime.now(timezone.utc)
     db.commit()
 
     return ResetPasswordResponse()
+
+
+@router.post(
+    "/reset-password",
+    response_model=ResetPasswordResponse,
+    dependencies=[Depends(rate_limit(max_requests=10, window_seconds=600, key_prefix="reset-password"))],
+)
+def reset_password(payload: ResetPasswordRequest, db: Session = Depends(get_db)) -> ResetPasswordResponse:
+    return _reset_password(payload, db, allowed_roles=STAFF_ROLES)
+
+
+@router.post(
+    "/student/reset-password",
+    response_model=ResetPasswordResponse,
+    dependencies=[Depends(rate_limit(max_requests=10, window_seconds=600, key_prefix="student-reset-password"))],
+)
+def student_reset_password(payload: ResetPasswordRequest, db: Session = Depends(get_db)) -> ResetPasswordResponse:
+    return _reset_password(payload, db, allowed_roles=STUDENT_ROLES)
