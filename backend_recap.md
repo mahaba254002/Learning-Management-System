@@ -286,4 +286,4 @@ src/
 - Students list page + Student direct-creation flow
 - Student and Teacher dashboards (currently show `RoleHoldingPage`)
 - Platform Users, Revenue, Audit Logs, Settings (currently `ComingSoon` placeholders)
-- Institution archive UI (backend exists, no frontend button yet)
+- Institution archive UI (backendd exists, no frontend button yet)
