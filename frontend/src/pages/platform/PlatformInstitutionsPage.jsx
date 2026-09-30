@@ -3,6 +3,8 @@ import { useQuery } from "@tanstack/react-query";
 import { apiRequest } from "../../api/client";
 import CreateAdminModal from "./CreateAdminModal";
 import CreateInstitutionModal from "./CreateInstitutionModal";
+import InstitutionAccessControls from "./InstitutionAccessControls";
+import '../teacher/TeachingWorkspace.css';
 import "./PlatformDashboardPage.css";
 
 export default function PlatformInstitutionsPage() {
@@ -10,8 +12,8 @@ export default function PlatformInstitutionsPage() {
   const [createModalOpen, setCreateModalOpen] = useState(false);
 
   const institutionsQuery = useQuery({
-    queryKey: ["platform-institutions"],
-    queryFn: () => apiRequest("/api/platform/institutions"),
+    queryFn: () => apiRequest("/api/platform/institutions?include_archived=true"),
+    queryKey: ["platform-institutions", "all"],
   });
 
   return (
@@ -56,11 +58,13 @@ export default function PlatformInstitutionsPage() {
                     </td>
                     <td>
                       <button
+                        disabled={inst.status !== 'ACTIVE'}
                         className="table-action-link"
                         onClick={() => setAdminModalInstitution(inst)}
                       >
                         Create admin
                       </button>
+                      <InstitutionAccessControls institution={inst} />
                     </td>
                   </tr>
                 ))}

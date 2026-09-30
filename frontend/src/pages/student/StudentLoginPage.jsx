@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useAuth } from "../../context/useAuth";
@@ -12,6 +12,7 @@ import "../auth/LoginPage.css";
 export default function StudentLoginPage() {
   const { login } = useAuth();
   const navigate = useNavigate();
+  const { state } = useLocation();
   const [serverError, setServerError] = useState(null);
 
   const {
@@ -57,6 +58,7 @@ export default function StudentLoginPage() {
     >
       <form className="auth-form auth-form--embedded" onSubmit={handleSubmit(onSubmit)} noValidate>
         <h2>Student sign in</h2>
+        {state?.passwordChanged && <p className="form-field" role="status">Your password has been changed. Sign in with your new password.</p>}
 
         <div className="form-field">
           <label htmlFor="username">Username</label>

@@ -1,0 +1,40 @@
+.portal-picker__cards {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-6);
+  margin-top: var(--space-12);
+}
+
+.portal-picker__card {
+  display: flex;
+  flex-direction: column;
+  text-decoration: none;
+}
+
+.portal-picker__card:hover,
+.portal-picker__card:focus-visible {
+  border-color: var(--color-accent);
+  background-color: var(--color-canvas);
+}
+
+.portal-picker__action {
+  display: block;
+  padding-top: var(--space-8);
+  margin-top: auto;
+  color: var(--color-accent);
+  font-weight: 500;
+}
+
+.portal-picker__help {
+  margin-top: var(--space-8);
+  color: var(--color-ink-soft);
+  font-size: var(--text-sm);
+}
+
+@media (max-width: 840px) {
+  .portal-picker__cards {
+    grid-template-columns: 1fr;
+    gap: var(--space-4);
+    margin-top: var(--space-8);
+  }
+}

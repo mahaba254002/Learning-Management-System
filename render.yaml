@@ -1,0 +1,31 @@
+services:
+  - type: web
+    name: learning-management-system-5nws
+    runtime: python
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt && alembic upgrade head
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: DATABASE_URL_UNPOOLED
+        sync: false
+      - key: JWT_SECRET_KEY
+        sync: false
+      - key: ENVIRONMENT
+        value: production
+      - key: ALLOWED_ORIGINS
+        sync: false
+      - key: FRONTEND_BASE_URL
+        sync: false
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: learning-management-system-redis
+          property: connectionString
+
+  - type: redis
+    name: learning-management-system-redis
+    plan: free
+    ipAllowList: []

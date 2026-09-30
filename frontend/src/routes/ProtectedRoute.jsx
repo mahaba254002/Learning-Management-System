@@ -1,6 +1,6 @@
-import { Navigate } from "react-router-dom";
+import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/useAuth";
-import { getRoleHomePath } from "./roleRoutes";
+import { getProtectedRouteRedirect } from "./roleRoutes";
 
 /**
  * @param {string[]} [allowedRoles] - if provided, only these roles may
@@ -9,19 +9,15 @@ import { getRoleHomePath } from "./roleRoutes";
  * just not authorized for this specific page).
  */
 export default function ProtectedRoute({ children, allowedRoles }) {
-  const { isAuthenticated, isLoading, user } = useAuth();
+  const { isLoading, user } = useAuth();
+  const { pathname } = useLocation();
 
   if (isLoading) {
-    return <p style={{ padding: "2rem" }}>Loading...</p>;
+    return <p style={{ padding: "var(--space-8)" }}>Loading...</p>;
   }
 
-  if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
-  }
-
-  if (allowedRoles && !allowedRoles.includes(user.role)) {
-    return <Navigate to={getRoleHomePath(user.role)} replace />;
-  }
+  const redirect = getProtectedRouteRedirect(user, allowedRoles, pathname);
+  if (redirect) return <Navigate to={redirect} replace />;
 
   return children;
 }

@@ -6,6 +6,7 @@ frontend/dist/
 
 **/__pycache__/
 *.pyc
+**/.pytest_cache/
 backend/.git.local/
 .neon
 .env.local

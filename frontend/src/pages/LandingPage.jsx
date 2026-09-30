@@ -33,7 +33,7 @@ export default function LandingPage() {
               {link.label}
             </Link>
           ))}
-          <Link to="/login" className="landing-header__signin">Sign in</Link>
+          <Link to="/sign-in" className="landing-header__signin">Sign in</Link>
         </nav>
 
         <button
@@ -53,7 +53,7 @@ export default function LandingPage() {
               {link.label}
             </Link>
           ))}
-          <Link to="/login" className="landing-header__signin--mobile">Sign in</Link>
+          <Link to="/sign-in" className="landing-header__signin--mobile">Sign in</Link>
         </nav>
       )}
 
@@ -82,12 +82,36 @@ export default function LandingPage() {
             </ul>
           </div>
 
-          <div className="video-placeholder">
-            <button className="video-placeholder__play" aria-label="Play product demo video">
-              ▶
-            </button>
-            <p className="video-placeholder__caption">See Rollcall in two minutes</p>
-          </div>
+          <div className="feature-highlights">
+  <div className="feature-card">
+    <span className="feature-card__marker" aria-hidden="true" />
+    <h3 className="feature-card__title">Multi-tenant by design</h3>
+    <p className="feature-card__description">
+      Every institution's data is isolated and secure, on one shared platform.
+    </p>
+  </div>
+  <div className="feature-card">
+    <span className="feature-card__marker" aria-hidden="true" />
+    <h3 className="feature-card__title">Built for any institution</h3>
+    <p className="feature-card__description">
+      University, college, high school, or training center — one flexible system.
+    </p>
+  </div>
+  <div className="feature-card">
+    <span className="feature-card__marker" aria-hidden="true" />
+    <h3 className="feature-card__title">A dashboard for every role</h3>
+    <p className="feature-card__description">
+      Admins, teachers, and students each get a view built for what they need to do.
+    </p>
+  </div>
+  <div className="feature-card">
+    <span className="feature-card__marker" aria-hidden="true" />
+    <h3 className="feature-card__title">Secure from day one</h3>
+    <p className="feature-card__description">
+      Encrypted credentials, verified actions, and tenant isolation enforced everywhere.
+    </p>
+  </div>
+</div>
         </div>
       </main>
     </div>

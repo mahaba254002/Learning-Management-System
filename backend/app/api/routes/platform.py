@@ -6,8 +6,10 @@ routes elsewhere that use require_tenant_user instead.
 """
 
 from datetime import datetime, timezone
+from uuid import UUID
+from app.services.audit_service import record_audit
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 from sqlalchemy import func
@@ -122,6 +124,8 @@ def confirm_create_institution(
     db.add(institution)
 
     try:
+        db.flush()
+        record_audit(db, ctx, 'institution.created', institution.id, institution.id)
         db.commit()
     except IntegrityError:
         # Defense in depth against a race condition between our check above
@@ -148,7 +152,7 @@ def confirm_create_institution(
     dependencies=[Depends(rate_limit(max_requests=5, window_seconds=300, key_prefix="inst-request-archive"))],
 )
 def request_archive_institution(
-    institution_id: str,
+    institution_id: UUID,
     db: Session = Depends(get_db),
     ctx: AuthContext = Depends(require_platform_admin),
 ) -> VerificationRequiredResponse:
@@ -195,7 +199,7 @@ def confirm_archive_institution(
     except VerificationError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
-    institution = db.get(Institution, stored_payload["institution_id"])
+    institution = db.get(Institution, UUID(stored_payload["institution_id"]))
     if institution is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Institution not found")
 
@@ -207,6 +211,7 @@ def confirm_archive_institution(
     institution.status = InstitutionStatus.ARCHIVED
     institution.archived_at = datetime.now(timezone.utc)
     institution.archived_by = ctx.user_id
+    record_audit(db, ctx, 'institution.archived', institution.id, institution.id)
 
     db.commit()
     db.refresh(institution)
@@ -245,8 +250,9 @@ def list_institutions(
     dependencies=[Depends(rate_limit(max_requests=10, window_seconds=300, key_prefix="create-inst-admin"))],
 )
 def create_institution_admin(
-    institution_id: str,
+    institution_id: UUID,
     payload: InstitutionAdminCreateRequest,
+    response: Response,
     db: Session = Depends(get_db),
     ctx: AuthContext = Depends(require_platform_admin),
 ) -> InstitutionAdminCreatedResponse:
@@ -285,6 +291,8 @@ def create_institution_admin(
     db.add(new_admin)
 
     try:
+        db.flush()
+        record_audit(db, ctx, 'institution.admin_created', new_admin.id, institution.id)
         db.commit()
     except IntegrityError:
         db.rollback()
@@ -295,6 +303,7 @@ def create_institution_admin(
 
     db.refresh(new_admin)
 
+    response.headers['Cache-Control'] = 'no-store'
     return InstitutionAdminCreatedResponse(
         id=new_admin.id,
         username=new_admin.username,
@@ -326,6 +335,7 @@ def get_platform_stats(
     users_by_role = {role.value: count for role, count in role_counts}
 
     return PlatformStats(
+        suspended_institutions=db.query(Institution).filter(Institution.status == InstitutionStatus.SUSPENDED).count(),
         total_institutions=total_institutions,
         active_institutions=active_institutions,
         archived_institutions=archived_institutions,

@@ -29,6 +29,8 @@ export default function CreateAdminModal({ institution, onClose }) {
       // stays in sync — harmless no-op right now, useful once we show
       // per-institution admin counts later.
       queryClient.invalidateQueries({ queryKey: ["platform-institutions"] });
+      queryClient.invalidateQueries({ queryKey: ["platform-stats"] });
+      queryClient.invalidateQueries({ queryKey: ["teaching"] });
     },
     onError: (err) => {
       setServerError(err instanceof ApiError ? err.message : "Something went wrong.");
@@ -86,8 +88,8 @@ export default function CreateAdminModal({ institution, onClose }) {
 
         {serverError && <p className="form-error" role="alert">{serverError}</p>}
 
-        <button type="submit" className="btn btn--primary" disabled={isSubmitting} style={{ width: "100%" }}>
-          {isSubmitting ? "Creating..." : "Create admin account"}
+        <button type="submit" className="btn btn--primary" disabled={isSubmitting || mutation.isPending} style={{ width: "100%" }}>
+          {mutation.isPending ? "Creating..." : "Create admin account"}
         </button>
       </form>
     </Modal>

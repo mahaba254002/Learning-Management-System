@@ -85,7 +85,10 @@ def get_current_context(
         issued_at = payload.get("iat")
         if issued_at is not None:
             issued_at_dt = datetime.fromtimestamp(issued_at, tz=timezone.utc)
-            if issued_at_dt < user.password_changed_at:
+            changed_at = user.password_changed_at
+            if changed_at.tzinfo is None:
+                changed_at = changed_at.replace(tzinfo=timezone.utc)
+            if issued_at_dt < changed_at:
                 raise _unauthorized("Session expired, please log in again")
 
     institution_id = user.institution_id

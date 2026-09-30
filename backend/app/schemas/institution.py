@@ -59,7 +59,7 @@ class ConfirmCodeRequest(BaseModel):
 class InstitutionAdminCreateRequest(BaseModel):
     first_name: str = Field(min_length=1, max_length=100)
     last_name: str = Field(min_length=1, max_length=100)
-    email: str | None = None
+    email: str = Field(min_length=3, max_length=255, pattern=r'^[^\s@]+@[^\s@]+\.[^\s@]+$')
 
 
 class InstitutionAdminCreatedResponse(BaseModel):
@@ -76,6 +76,7 @@ class InstitutionAdminCreatedResponse(BaseModel):
 
 
 class PlatformStats(BaseModel):
+    suspended_institutions: int = 0
     total_institutions: int
     active_institutions: int
     archived_institutions: int

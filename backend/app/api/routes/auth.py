@@ -6,14 +6,14 @@ JSON response body. The CSRF token cookie is set alongside them, readable
 by frontend JS so it can be echoed back as a header on mutating requests
 (see app/core/csrf.py for the verification side).
 
-Portal separation: staff (platform admin, institution admin, teacher) and
-students log in through different endpoints, even though they share the
+Portal separation: platform/institution admins, teachers, and students
+each log in through their own endpoint, even though all three share the
 same `users` table and JWT/cookie mechanism. This is enforced here, not
-just in the frontend routing, so a student cannot authenticate through the
-staff door and vice versa. Both doors return the identical error message
-for "wrong role for this door" and "wrong password" so a username's role
-can't be discovered by testing which door accepts it. The same separation
-applies to forgot/reset password.
+just in the frontend routing, so an account of one kind cannot
+authenticate through another portal's door. Every door returns the
+identical error message for "wrong role for this door" and "wrong
+password" so a username's role can't be discovered by testing which door
+accepts it. The same separation applies to forgot/reset password.
 """
 
 from datetime import datetime, timezone
@@ -49,9 +49,10 @@ router = APIRouter(prefix="/api/auth", tags=["auth"])
 ACCESS_TOKEN_COOKIE = "access_token"
 REFRESH_TOKEN_COOKIE = "refresh_token"
 
-# Roles that use the staff login door (/api/auth/login, /api/auth/forgot-password, ...).
-STAFF_ROLES = frozenset({UserRole.PLATFORM_ADMIN, UserRole.INSTITUTION_ADMIN, UserRole.TEACHER})
-# Roles that use the student door (/api/auth/student/login, /api/auth/student/forgot-password, ...).
+# Three portals, three doors. Each set is disjoint from the others, and
+# every user's role belongs to exactly one of them.
+ADMIN_ROLES = frozenset({UserRole.PLATFORM_ADMIN, UserRole.INSTITUTION_ADMIN})
+TEACHER_ROLES = frozenset({UserRole.TEACHER})
 STUDENT_ROLES = frozenset({UserRole.STUDENT})
 
 
@@ -92,13 +93,9 @@ def _bump_password_changed_at(user: User) -> None:
     """
     Stamps password_changed_at so that any access/refresh tokens issued
     before this moment are rejected by get_current_context, even if they
-    haven't hit their normal expiry yet. This matters most for the
-    admin-assisted student reset: if a student's account was reset because
-    it was compromised, this prevents the attacker's existing session from
-    continuing to work after the reset.
-
-    Requires the users.password_changed_at column (migration
-    e1a2b3c4d5f6) and the corresponding check in get_current_context.
+    haven't hit their normal expiry yet. Requires the
+    users.password_changed_at column and the corresponding check in
+    get_current_context.
     """
     user.password_changed_at = datetime.now(timezone.utc)
 
@@ -171,9 +168,19 @@ def _authenticate(
     dependencies=[Depends(rate_limit(max_requests=5, window_seconds=60, key_prefix="login"))],
 )
 def login(payload: LoginRequest, response: Response, db: Session = Depends(get_db)) -> LoginResponse:
-    """Staff login door — platform admin, institution admin, teacher.
-    Student accounts are rejected here; they use /student/login."""
-    return _authenticate(payload, response, db, allowed_roles=STAFF_ROLES)
+    """Admin login door — platform admin, institution admin only.
+    Teachers and students are rejected here; they have their own doors."""
+    return _authenticate(payload, response, db, allowed_roles=ADMIN_ROLES)
+
+
+@router.post(
+    "/teacher/login",
+    response_model=LoginResponse,
+    dependencies=[Depends(rate_limit(max_requests=5, window_seconds=60, key_prefix="teacher-login"))],
+)
+def teacher_login(payload: LoginRequest, response: Response, db: Session = Depends(get_db)) -> LoginResponse:
+    """Teacher login door. Admins and students are rejected here."""
+    return _authenticate(payload, response, db, allowed_roles=TEACHER_ROLES)
 
 
 @router.post(
@@ -182,7 +189,7 @@ def login(payload: LoginRequest, response: Response, db: Session = Depends(get_d
     dependencies=[Depends(rate_limit(max_requests=5, window_seconds=60, key_prefix="student-login"))],
 )
 def student_login(payload: LoginRequest, response: Response, db: Session = Depends(get_db)) -> LoginResponse:
-    """Student login door. Staff accounts are rejected here."""
+    """Student login door. Admins and teachers are rejected here."""
     return _authenticate(payload, response, db, allowed_roles=STUDENT_ROLES)
 
 
@@ -206,8 +213,8 @@ def change_password(
     """
     Shared across every role — the acting user is always determined from
     their own authenticated session (ctx.user_id), never a client-supplied
-    ID, so no portal split is needed here: a student and a staff member
-    each change only their own password through the same logic.
+    ID, so no portal split is needed here: any role changes only their own
+    password through this same logic.
     """
     user = db.get(User, ctx.user_id)
     if user is None:
@@ -252,8 +259,8 @@ def _forgot_password(
                 user_email=user.email,
                 purpose=VerificationPurpose.PASSWORD_RESET,
                 # Recording the role lets the matching reset endpoint
-                # refuse to redeem a code minted for the other portal,
-                # even though both portals share the same
+                # refuse to redeem a code minted for a different portal,
+                # even though all three portals share the same
                 # VerificationPurpose.PASSWORD_RESET value.
                 payload={"user_id": str(user.id), "role": user.role.value},
                 reset_link_path=reset_link_path,
@@ -275,9 +282,20 @@ def _forgot_password(
     dependencies=[Depends(rate_limit(max_requests=3, window_seconds=600, key_prefix="forgot-password"))],
 )
 def forgot_password(payload: ForgotPasswordRequest, db: Session = Depends(get_db)) -> ForgotPasswordResponse:
-    """Staff forgot-password. A student email is treated as "not found" —
-    same generic response either way, so no enumeration."""
-    return _forgot_password(payload, db, allowed_roles=STAFF_ROLES, reset_link_path="/reset-password")
+    """Admin forgot-password. A teacher or student email is treated as
+    "not found" — same generic response either way, so no enumeration."""
+    return _forgot_password(payload, db, allowed_roles=ADMIN_ROLES, reset_link_path="/reset-password")
+
+
+@router.post(
+    "/teacher/forgot-password",
+    response_model=ForgotPasswordResponse,
+    dependencies=[Depends(rate_limit(max_requests=3, window_seconds=600, key_prefix="teacher-forgot-password"))],
+)
+def teacher_forgot_password(payload: ForgotPasswordRequest, db: Session = Depends(get_db)) -> ForgotPasswordResponse:
+    """Teacher forgot-password. An admin or student email is treated as
+    "not found"."""
+    return _forgot_password(payload, db, allowed_roles=TEACHER_ROLES, reset_link_path="/teacher/reset-password")
 
 
 @router.post(
@@ -286,7 +304,8 @@ def forgot_password(payload: ForgotPasswordRequest, db: Session = Depends(get_db
     dependencies=[Depends(rate_limit(max_requests=3, window_seconds=600, key_prefix="student-forgot-password"))],
 )
 def student_forgot_password(payload: ForgotPasswordRequest, db: Session = Depends(get_db)) -> ForgotPasswordResponse:
-    """Student forgot-password. A staff email is treated as "not found"."""
+    """Student forgot-password. An admin or teacher email is treated as
+    "not found"."""
     return _forgot_password(payload, db, allowed_roles=STUDENT_ROLES, reset_link_path="/student/reset-password")
 
 
@@ -295,8 +314,8 @@ def _reset_password(payload: ResetPasswordRequest, db: Session, *, allowed_roles
     if record is None or record.purpose != VerificationPurpose.PASSWORD_RESET:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid or expired reset request")
 
-    # Portal check: a code minted for a student cannot be redeemed on the
-    # staff reset endpoint, and vice versa. record.payload["role"] was
+    # Portal check: a code minted for one portal cannot be redeemed on a
+    # different portal's reset endpoint. record.payload["role"] was
     # stamped in generate_verification_code above at request time. Codes
     # created before this field existed have no "role" key and are safely
     # rejected here (.get returns None, which matches no allowed role).
@@ -341,7 +360,16 @@ def _reset_password(payload: ResetPasswordRequest, db: Session, *, allowed_roles
     dependencies=[Depends(rate_limit(max_requests=10, window_seconds=600, key_prefix="reset-password"))],
 )
 def reset_password(payload: ResetPasswordRequest, db: Session = Depends(get_db)) -> ResetPasswordResponse:
-    return _reset_password(payload, db, allowed_roles=STAFF_ROLES)
+    return _reset_password(payload, db, allowed_roles=ADMIN_ROLES)
+
+
+@router.post(
+    "/teacher/reset-password",
+    response_model=ResetPasswordResponse,
+    dependencies=[Depends(rate_limit(max_requests=10, window_seconds=600, key_prefix="teacher-reset-password"))],
+)
+def teacher_reset_password(payload: ResetPasswordRequest, db: Session = Depends(get_db)) -> ResetPasswordResponse:
+    return _reset_password(payload, db, allowed_roles=TEACHER_ROLES)
 
 
 @router.post(

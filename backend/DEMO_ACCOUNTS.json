@@ -1,0 +1,367 @@
+{
+  "created": {
+    "users": 49,
+    "institutions": 4,
+    "teachers": 8,
+    "students": 36,
+    "academic_classes": 4,
+    "class_enrollments": 36,
+    "teaching_subjects": 12,
+    "course_materials": 36,
+    "coursework": 72,
+    "assignment_submissions": 156,
+    "student_scores": 168,
+    "student_attendance": 1200,
+    "invitations": 10,
+    "audit_events": 4
+  },
+  "accounts": [
+    {
+      "username": "demo.platform",
+      "role": "PLATFORM_ADMIN",
+      "institution": null,
+      "status": "ACTIVE",
+      "must_change_password": false
+    },
+    {
+      "username": "demo.acacia.admin",
+      "role": "INSTITUTION_ADMIN",
+      "institution": "demo-acacia",
+      "status": "ACTIVE",
+      "must_change_password": false
+    },
+    {
+      "username": "demo.acacia.teacher1",
+      "role": "TEACHER",
+      "institution": "demo-acacia",
+      "status": "ACTIVE",
+      "must_change_password": false
+    },
+    {
+      "username": "demo.acacia.teacher2",
+      "role": "TEACHER",
+      "institution": "demo-acacia",
+      "status": "ACTIVE",
+      "must_change_password": false
+    },
+    {
+      "username": "demo.acacia.teacher3",
+      "role": "TEACHER",
+      "institution": "demo-acacia",
+      "status": "ACTIVE",
+      "must_change_password": false
+    },
+    {
+      "username": "demo.acacia.teacher4",
+      "role": "TEACHER",
+      "institution": "demo-acacia",
+      "status": "ACTIVE",
+      "must_change_password": false
+    },
+    {
+      "username": "demo.acacia.suspended",
+      "role": "STUDENT",
+      "institution": "demo-acacia",
+      "status": "SUSPENDED",
+      "must_change_password": false
+    },
+    {
+      "username": "demo.acacia.firstlogin",
+      "role": "STUDENT",
+      "institution": "demo-acacia",
+      "status": "ACTIVE",
+      "must_change_password": true
+    },
+    {
+      "username": "demo.acacia.student01",
+      "role": "STUDENT",
+      "institution": "demo-acacia",
+      "status": "ACTIVE",
+      "must_change_password": false
+    },
+    {
+      "username": "demo.acacia.student02",
+      "role": "STUDENT",
+      "institution": "demo-acacia",
+      "status": "ACTIVE",
+      "must_change_password": false
+    },
+    {
+      "username": "demo.acacia.student03",
+      "role": "STUDENT",
+      "institution": "demo-acacia",
+      "status": "ACTIVE",
+      "must_change_password": false
+    },
+    {
+      "username": "demo.acacia.student04",
+      "role": "STUDENT",
+      "institution": "demo-acacia",
+      "status": "ACTIVE",
+      "must_change_password": false
+    },
+    {
+      "username": "demo.acacia.student05",
+      "role": "STUDENT",
+      "institution": "demo-acacia",
+      "status": "ACTIVE",
+      "must_change_password": false
+    },
+    {
+      "username": "demo.acacia.student06",
+      "role": "STUDENT",
+      "institution": "demo-acacia",
+      "status": "ACTIVE",
+      "must_change_password": false
+    },
+    {
+      "username": "demo.acacia.student07",
+      "role": "STUDENT",
+      "institution": "demo-acacia",
+      "status": "ACTIVE",
+      "must_change_password": false
+    },
+    {
+      "username": "demo.acacia.student08",
+      "role": "STUDENT",
+      "institution": "demo-acacia",
+      "status": "ACTIVE",
+      "must_change_password": false
+    },
+    {
+      "username": "demo.acacia.student09",
+      "role": "STUDENT",
+      "institution": "demo-acacia",
+      "status": "ACTIVE",
+      "must_change_password": false
+    },
+    {
+      "username": "demo.acacia.student10",
+      "role": "STUDENT",
+      "institution": "demo-acacia",
+      "status": "ACTIVE",
+      "must_change_password": false
+    },
+    {
+      "username": "demo.acacia.student11",
+      "role": "STUDENT",
+      "institution": "demo-acacia",
+      "status": "ACTIVE",
+      "must_change_password": false
+    },
+    {
+      "username": "demo.acacia.student12",
+      "role": "STUDENT",
+      "institution": "demo-acacia",
+      "status": "ACTIVE",
+      "must_change_password": false
+    },
+    {
+      "username": "demo.acacia.student13",
+      "role": "STUDENT",
+      "institution": "demo-acacia",
+      "status": "ACTIVE",
+      "must_change_password": false
+    },
+    {
+      "username": "demo.acacia.student14",
+      "role": "STUDENT",
+      "institution": "demo-acacia",
+      "status": "ACTIVE",
+      "must_change_password": false
+    },
+    {
+      "username": "demo.acacia.student15",
+      "role": "STUDENT",
+      "institution": "demo-acacia",
+      "status": "ACTIVE",
+      "must_change_password": false
+    },
+    {
+      "username": "demo.acacia.student16",
+      "role": "STUDENT",
+      "institution": "demo-acacia",
+      "status": "ACTIVE",
+      "must_change_password": false
+    },
+    {
+      "username": "demo.harbour.admin",
+      "role": "INSTITUTION_ADMIN",
+      "institution": "demo-harbour",
+      "status": "ACTIVE",
+      "must_change_password": false
+    },
+    {
+      "username": "demo.harbour.teacher1",
+      "role": "TEACHER",
+      "institution": "demo-harbour",
+      "status": "ACTIVE",
+      "must_change_password": false
+    },
+    {
+      "username": "demo.harbour.teacher2",
+      "role": "TEACHER",
+      "institution": "demo-harbour",
+      "status": "ACTIVE",
+      "must_change_password": false
+    },
+    {
+      "username": "demo.harbour.teacher3",
+      "role": "TEACHER",
+      "institution": "demo-harbour",
+      "status": "ACTIVE",
+      "must_change_password": false
+    },
+    {
+      "username": "demo.harbour.teacher4",
+      "role": "TEACHER",
+      "institution": "demo-harbour",
+      "status": "ACTIVE",
+      "must_change_password": false
+    },
+    {
+      "username": "demo.harbour.suspended",
+      "role": "STUDENT",
+      "institution": "demo-harbour",
+      "status": "SUSPENDED",
+      "must_change_password": false
+    },
+    {
+      "username": "demo.harbour.firstlogin",
+      "role": "STUDENT",
+      "institution": "demo-harbour",
+      "status": "ACTIVE",
+      "must_change_password": true
+    },
+    {
+      "username": "demo.harbour.student01",
+      "role": "STUDENT",
+      "institution": "demo-harbour",
+      "status": "ACTIVE",
+      "must_change_password": false
+    },
+    {
+      "username": "demo.harbour.student02",
+      "role": "STUDENT",
+      "institution": "demo-harbour",
+      "status": "ACTIVE",
+      "must_change_password": false
+    },
+    {
+      "username": "demo.harbour.student03",
+      "role": "STUDENT",
+      "institution": "demo-harbour",
+      "status": "ACTIVE",
+      "must_change_password": false
+    },
+    {
+      "username": "demo.harbour.student04",
+      "role": "STUDENT",
+      "institution": "demo-harbour",
+      "status": "ACTIVE",
+      "must_change_password": false
+    },
+    {
+      "username": "demo.harbour.student05",
+      "role": "STUDENT",
+      "institution": "demo-harbour",
+      "status": "ACTIVE",
+      "must_change_password": false
+    },
+    {
+      "username": "demo.harbour.student06",
+      "role": "STUDENT",
+      "institution": "demo-harbour",
+      "status": "ACTIVE",
+      "must_change_password": false
+    },
+    {
+      "username": "demo.harbour.student07",
+      "role": "STUDENT",
+      "institution": "demo-harbour",
+      "status": "ACTIVE",
+      "must_change_password": false
+    },
+    {
+      "username": "demo.harbour.student08",
+      "role": "STUDENT",
+      "institution": "demo-harbour",
+      "status": "ACTIVE",
+      "must_change_password": false
+    },
+    {
+      "username": "demo.harbour.student09",
+      "role": "STUDENT",
+      "institution": "demo-harbour",
+      "status": "ACTIVE",
+      "must_change_password": false
+    },
+    {
+      "username": "demo.harbour.student10",
+      "role": "STUDENT",
+      "institution": "demo-harbour",
+      "status": "ACTIVE",
+      "must_change_password": false
+    },
+    {
+      "username": "demo.harbour.student11",
+      "role": "STUDENT",
+      "institution": "demo-harbour",
+      "status": "ACTIVE",
+      "must_change_password": false
+    },
+    {
+      "username": "demo.harbour.student12",
+      "role": "STUDENT",
+      "institution": "demo-harbour",
+      "status": "ACTIVE",
+      "must_change_password": false
+    },
+    {
+      "username": "demo.harbour.student13",
+      "role": "STUDENT",
+      "institution": "demo-harbour",
+      "status": "ACTIVE",
+      "must_change_password": false
+    },
+    {
+      "username": "demo.harbour.student14",
+      "role": "STUDENT",
+      "institution": "demo-harbour",
+      "status": "ACTIVE",
+      "must_change_password": false
+    },
+    {
+      "username": "demo.harbour.student15",
+      "role": "STUDENT",
+      "institution": "demo-harbour",
+      "status": "ACTIVE",
+      "must_change_password": false
+    },
+    {
+      "username": "demo.harbour.student16",
+      "role": "STUDENT",
+      "institution": "demo-harbour",
+      "status": "ACTIVE",
+      "must_change_password": false
+    },
+    {
+      "username": "demo.suspended.admin",
+      "role": "INSTITUTION_ADMIN",
+      "institution": "demo-suspended",
+      "status": "ACTIVE",
+      "must_change_password": false
+    },
+    {
+      "username": "demo.archived.admin",
+      "role": "INSTITUTION_ADMIN",
+      "institution": "demo-archived",
+      "status": "ACTIVE",
+      "must_change_password": false
+    }
+  ],
+  "seed_version": 1,
+  "reference_date": "2026-09-30",
+  "committed": true,
+  "target": "Neon production"
+}

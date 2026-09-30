@@ -1,3 +1,4 @@
+import os
 from logging.config import fileConfig
 
 from alembic import context
@@ -8,7 +9,12 @@ from app.db.base import Base
 from app.models import *  # noqa: F401,F403  (populates Base.metadata)
 
 config = context.config
-config.set_main_option("sqlalchemy.url", settings.DATABASE_URL)
+# Neon recommends the direct connection for Alembic because pooled
+# connections do not support the session behavior used by migrations.
+config.set_main_option(
+    "sqlalchemy.url",
+    os.environ.get("DATABASE_URL_UNPOOLED", settings.DATABASE_URL),
+)
 
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)

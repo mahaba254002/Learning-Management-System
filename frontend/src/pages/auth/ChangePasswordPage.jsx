@@ -2,17 +2,20 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { apiRequest, ApiError } from "../../api/client";
+import { ApiError } from "../../api/client";
 import { changePasswordSchema } from "./changePasswordSchema";
-import PasswordInput from "../../components/common/PasswordInput"; import { useAuth } from "../../context/useAuth";
-import { getRoleHomePath } from "../../routes/roleRoutes";
+import PasswordInput from "../../components/common/PasswordInput";
+import { useAuth } from "../../context/useAuth";
+import { getRoleLoginPath } from "../../routes/roleRoutes";
+import AuthSplitLayout from "../../components/layout/AuthSplitLayout";
 
 import "./LoginPage.css";
 
 export default function ChangePasswordPage() {
   const navigate = useNavigate();
   const [serverError, setServerError] = useState(null);
-  const { user } = useAuth();
+  const { user, changePassword } = useAuth();
+  const portal = user.role === "TEACHER" ? "Teacher" : user.role === "STUDENT" ? "Student" : "Admin";
 
   const {
     register,
@@ -23,8 +26,8 @@ export default function ChangePasswordPage() {
   async function onSubmit(values) {
     setServerError(null);
     try {
-      await apiRequest("/api/auth/change-password", { method: "POST", body: values });
-      navigate(getRoleHomePath(user.role), { replace: true });
+      await changePassword(values);
+      navigate(getRoleLoginPath(user.role), { replace: true, state: { passwordChanged: true } });
     } catch (err) {
       if (err instanceof ApiError) {
         setServerError(err.message);
@@ -35,15 +38,16 @@ export default function ChangePasswordPage() {
   }
 
   return (
-    <div className="auth-page">
-      <form className="auth-form" onSubmit={handleSubmit(onSubmit)} noValidate>
-        <h1>Set a new password</h1>
-        <p style={{ color: "var(--color-ink-soft)", marginBottom: "1.5rem", fontSize: "var(--text-sm)" }}>
-          For your security, you must set a new password before continuing.
+    <AuthSplitLayout heading="Set a new password" subheading="Keep your Rollcall account secure.">
+      <form className="auth-form auth-form--embedded" onSubmit={handleSubmit(onSubmit)} noValidate>
+        <h2>{portal} password change</h2>
+        <p style={{ color: "var(--color-ink-soft)", marginBottom: "var(--space-6)", fontSize: "var(--text-sm)" }}>
+          {user.must_change_password ? "Set a new password before continuing. " : "Choose a new password for your account. "}
+          You will sign in again after saving.
         </p>
 
         <div className="form-field">
-          <label htmlFor="current_password">Current (temporary) password</label>
+          <label htmlFor="current_password">{user.must_change_password ? "Current (temporary) password" : "Current password"}</label>
           <PasswordInput id="current_password" autoComplete="current-password" {...register("current_password")} />
           {errors.current_password && <p className="field-error">{errors.current_password.message}</p>}
         </div>
@@ -66,6 +70,6 @@ export default function ChangePasswordPage() {
           {isSubmitting ? "Updating..." : "Update password"}
         </button>
       </form>
-    </div>
+    </AuthSplitLayout>
   );
 }

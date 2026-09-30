@@ -3,7 +3,7 @@ import logging
 from fastapi import FastAPI, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api.routes import auth, platform
+from app.api.routes import administration
 from app.core.config import settings
 from app.core.deps import get_current_context, AuthContext
 from app.core.exception_handlers import register_exception_handlers
@@ -14,7 +14,7 @@ from app.db.session import get_db
 from app.models.user import User
 from app.schemas.auth import UserSummary
 
-from app.api.routes import auth, invitations, platform
+from app.api.routes import auth, invitations, platform, teaching, learning
 
 logging.basicConfig(level=logging.INFO)
 
@@ -35,6 +35,9 @@ app.add_middleware(
 app.include_router(auth.router)
 app.include_router(platform.router)
 app.include_router(invitations.router)
+app.include_router(teaching.router)
+app.include_router(learning.router)
+app.include_router(administration.router)
 
 @app.get("/health")
 def health_check():

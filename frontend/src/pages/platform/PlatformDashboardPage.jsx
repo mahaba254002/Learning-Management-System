@@ -25,6 +25,7 @@ export default function PlatformDashboardPage() {
         <div className="stat-cards">
           <StatCard label="Total institutions" value={statsQuery.data.total_institutions} />
           <StatCard label="Active institutions" value={statsQuery.data.active_institutions} />
+          <StatCard label="Suspended institutions" value={statsQuery.data.suspended_institutions} />
           <StatCard label="Archived institutions" value={statsQuery.data.archived_institutions} />
           <StatCard label="Total users" value={statsQuery.data.total_users} />
         </div>

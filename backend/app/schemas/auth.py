@@ -18,6 +18,7 @@ class UserSummary(BaseModel):
     last_name: str
     role: str
     institution_id: uuid.UUID | None
+    must_change_password: bool
 
     # Concept note: `model_config` with from_attributes=True tells Pydantic
     # it's allowed to build this schema directly from a SQLAlchemy model

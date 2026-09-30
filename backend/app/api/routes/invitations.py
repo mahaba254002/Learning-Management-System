@@ -14,6 +14,7 @@ Two distinct trust boundaries in this file, worth reading carefully:
 """
 
 import uuid
+from app.services.audit_service import record_audit
 from datetime import date, datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -119,6 +120,8 @@ def send_teacher_invitation(
         expires_at=datetime.now(timezone.utc) + timedelta(days=INVITATION_VALIDITY_DAYS),
     )
     db.add(invitation)
+    db.flush()
+    record_audit(db, ctx, 'invitation.sent', invitation.id, ctx.institution_id)
     db.commit()
     db.refresh(invitation)
 
@@ -241,6 +244,7 @@ def approve_invitation(
         invitation.reviewed_by = ctx.user_id
         invitation.reviewed_at = datetime.now(timezone.utc)
         invitation.created_user_id = new_user.id
+        record_audit(db, ctx, 'invitation.approved', invitation.id, ctx.institution_id)
 
         db.commit()
     except IntegrityError:
@@ -307,6 +311,7 @@ def reject_invitation(
         )
 
     invitation.status = InvitationStatus.REJECTED
+    record_audit(db, ctx, 'invitation.rejected', invitation.id, ctx.institution_id)
     invitation.reviewed_by = ctx.user_id
     invitation.reviewed_at = datetime.now(timezone.utc)
     db.commit()
