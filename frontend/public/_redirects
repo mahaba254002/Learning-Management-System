@@ -1,0 +1,5 @@
+# Proxy API requests to the Render backend.
+/api/* https://learning-management-system-5nws.onrender.com/api/:splat 200
+
+# SPA fallback for React Router.
+/* /index.html 200
