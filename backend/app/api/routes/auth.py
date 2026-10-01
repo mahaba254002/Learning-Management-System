@@ -141,6 +141,9 @@ def _authenticate(
             detail="This account is not active. Contact your administrator.",
         )
 
+    if user.role != UserRole.PLATFORM_ADMIN and user.institution_id is None:
+        raise HTTPException(status_code=403, detail="Your account is not assigned to an institution. Contact your administrator.")
+
     if user.institution_id is not None:
         institution = db.get(Institution, user.institution_id)
         if institution is None or institution.status != InstitutionStatus.ACTIVE:

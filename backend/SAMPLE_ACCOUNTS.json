@@ -1,0 +1,401 @@
+{
+  "created": {},
+  "accounts": [
+    {
+      "full_name": "Nathan Kimani",
+      "username": "nathan.kimani.platform",
+      "role": "PLATFORM_ADMIN",
+      "institution": null,
+      "status": "ACTIVE",
+      "must_change_password": false
+    },
+    {
+      "full_name": "Miriam Wanjiru",
+      "username": "miriam.wanjiru.acacia",
+      "role": "INSTITUTION_ADMIN",
+      "institution": "acacia",
+      "status": "ACTIVE",
+      "must_change_password": false
+    },
+    {
+      "full_name": "Grace Muli",
+      "username": "grace.muli.acacia",
+      "role": "TEACHER",
+      "institution": "acacia",
+      "status": "ACTIVE",
+      "must_change_password": false
+    },
+    {
+      "full_name": "Daniel Ouma",
+      "username": "daniel.ouma.acacia",
+      "role": "TEACHER",
+      "institution": "acacia",
+      "status": "ACTIVE",
+      "must_change_password": false
+    },
+    {
+      "full_name": "Faith Kariuki",
+      "username": "faith.kariuki.acacia",
+      "role": "TEACHER",
+      "institution": "acacia",
+      "status": "ACTIVE",
+      "must_change_password": false
+    },
+    {
+      "full_name": "Peter Kibet",
+      "username": "peter.kibet.acacia",
+      "role": "TEACHER",
+      "institution": "acacia",
+      "status": "ACTIVE",
+      "must_change_password": false
+    },
+    {
+      "full_name": "Kevin Kilonzo",
+      "username": "kevin.kilonzo.acacia",
+      "role": "STUDENT",
+      "institution": "acacia",
+      "status": "SUSPENDED",
+      "must_change_password": false
+    },
+    {
+      "full_name": "Sarah Chebet",
+      "username": "sarah.chebet.acacia",
+      "role": "STUDENT",
+      "institution": "acacia",
+      "status": "ACTIVE",
+      "must_change_password": true
+    },
+    {
+      "full_name": "Amani Otieno",
+      "username": "amani.otieno.acacia.01",
+      "role": "STUDENT",
+      "institution": "acacia",
+      "status": "ACTIVE",
+      "must_change_password": false
+    },
+    {
+      "full_name": "Zuri Kamau",
+      "username": "zuri.kamau.acacia.02",
+      "role": "STUDENT",
+      "institution": "acacia",
+      "status": "ACTIVE",
+      "must_change_password": false
+    },
+    {
+      "full_name": "Imani Njeri",
+      "username": "imani.njeri.acacia.03",
+      "role": "STUDENT",
+      "institution": "acacia",
+      "status": "ACTIVE",
+      "must_change_password": false
+    },
+    {
+      "full_name": "Baraka Mwangi",
+      "username": "baraka.mwangi.acacia.04",
+      "role": "STUDENT",
+      "institution": "acacia",
+      "status": "ACTIVE",
+      "must_change_password": false
+    },
+    {
+      "full_name": "Neema Wanjiku",
+      "username": "neema.wanjiku.acacia.05",
+      "role": "STUDENT",
+      "institution": "acacia",
+      "status": "ACTIVE",
+      "must_change_password": false
+    },
+    {
+      "full_name": "Jabari Kiptoo",
+      "username": "jabari.kiptoo.acacia.06",
+      "role": "STUDENT",
+      "institution": "acacia",
+      "status": "ACTIVE",
+      "must_change_password": false
+    },
+    {
+      "full_name": "Nia Achieng",
+      "username": "nia.achieng.acacia.07",
+      "role": "STUDENT",
+      "institution": "acacia",
+      "status": "ACTIVE",
+      "must_change_password": false
+    },
+    {
+      "full_name": "Kito Mutua",
+      "username": "kito.mutua.acacia.08",
+      "role": "STUDENT",
+      "institution": "acacia",
+      "status": "ACTIVE",
+      "must_change_password": false
+    },
+    {
+      "full_name": "Amani Otieno",
+      "username": "amani.otieno.acacia.09",
+      "role": "STUDENT",
+      "institution": "acacia",
+      "status": "ACTIVE",
+      "must_change_password": false
+    },
+    {
+      "full_name": "Zuri Kamau",
+      "username": "zuri.kamau.acacia.10",
+      "role": "STUDENT",
+      "institution": "acacia",
+      "status": "ACTIVE",
+      "must_change_password": false
+    },
+    {
+      "full_name": "Imani Njeri",
+      "username": "imani.njeri.acacia.11",
+      "role": "STUDENT",
+      "institution": "acacia",
+      "status": "ACTIVE",
+      "must_change_password": false
+    },
+    {
+      "full_name": "Baraka Mwangi",
+      "username": "baraka.mwangi.acacia.12",
+      "role": "STUDENT",
+      "institution": "acacia",
+      "status": "ACTIVE",
+      "must_change_password": false
+    },
+    {
+      "full_name": "Neema Wanjiku",
+      "username": "neema.wanjiku.acacia.13",
+      "role": "STUDENT",
+      "institution": "acacia",
+      "status": "ACTIVE",
+      "must_change_password": false
+    },
+    {
+      "full_name": "Jabari Kiptoo",
+      "username": "jabari.kiptoo.acacia.14",
+      "role": "STUDENT",
+      "institution": "acacia",
+      "status": "ACTIVE",
+      "must_change_password": false
+    },
+    {
+      "full_name": "Nia Achieng",
+      "username": "nia.achieng.acacia.15",
+      "role": "STUDENT",
+      "institution": "acacia",
+      "status": "ACTIVE",
+      "must_change_password": false
+    },
+    {
+      "full_name": "Kito Mutua",
+      "username": "kito.mutua.acacia.16",
+      "role": "STUDENT",
+      "institution": "acacia",
+      "status": "ACTIVE",
+      "must_change_password": false
+    },
+    {
+      "full_name": "David Odhiambo",
+      "username": "david.odhiambo.harbour",
+      "role": "INSTITUTION_ADMIN",
+      "institution": "harbour",
+      "status": "ACTIVE",
+      "must_change_password": false
+    },
+    {
+      "full_name": "Grace Muli",
+      "username": "grace.muli.harbour",
+      "role": "TEACHER",
+      "institution": "harbour",
+      "status": "ACTIVE",
+      "must_change_password": false
+    },
+    {
+      "full_name": "Daniel Ouma",
+      "username": "daniel.ouma.harbour",
+      "role": "TEACHER",
+      "institution": "harbour",
+      "status": "ACTIVE",
+      "must_change_password": false
+    },
+    {
+      "full_name": "Faith Kariuki",
+      "username": "faith.kariuki.harbour",
+      "role": "TEACHER",
+      "institution": "harbour",
+      "status": "ACTIVE",
+      "must_change_password": false
+    },
+    {
+      "full_name": "Peter Kibet",
+      "username": "peter.kibet.harbour",
+      "role": "TEACHER",
+      "institution": "harbour",
+      "status": "ACTIVE",
+      "must_change_password": false
+    },
+    {
+      "full_name": "Kevin Kilonzo",
+      "username": "kevin.kilonzo.harbour",
+      "role": "STUDENT",
+      "institution": "harbour",
+      "status": "SUSPENDED",
+      "must_change_password": false
+    },
+    {
+      "full_name": "Sarah Chebet",
+      "username": "sarah.chebet.harbour",
+      "role": "STUDENT",
+      "institution": "harbour",
+      "status": "ACTIVE",
+      "must_change_password": true
+    },
+    {
+      "full_name": "Amani Otieno",
+      "username": "amani.otieno.harbour.01",
+      "role": "STUDENT",
+      "institution": "harbour",
+      "status": "ACTIVE",
+      "must_change_password": false
+    },
+    {
+      "full_name": "Zuri Kamau",
+      "username": "zuri.kamau.harbour.02",
+      "role": "STUDENT",
+      "institution": "harbour",
+      "status": "ACTIVE",
+      "must_change_password": false
+    },
+    {
+      "full_name": "Imani Njeri",
+      "username": "imani.njeri.harbour.03",
+      "role": "STUDENT",
+      "institution": "harbour",
+      "status": "ACTIVE",
+      "must_change_password": false
+    },
+    {
+      "full_name": "Baraka Mwangi",
+      "username": "baraka.mwangi.harbour.04",
+      "role": "STUDENT",
+      "institution": "harbour",
+      "status": "ACTIVE",
+      "must_change_password": false
+    },
+    {
+      "full_name": "Neema Wanjiku",
+      "username": "neema.wanjiku.harbour.05",
+      "role": "STUDENT",
+      "institution": "harbour",
+      "status": "ACTIVE",
+      "must_change_password": false
+    },
+    {
+      "full_name": "Jabari Kiptoo",
+      "username": "jabari.kiptoo.harbour.06",
+      "role": "STUDENT",
+      "institution": "harbour",
+      "status": "ACTIVE",
+      "must_change_password": false
+    },
+    {
+      "full_name": "Nia Achieng",
+      "username": "nia.achieng.harbour.07",
+      "role": "STUDENT",
+      "institution": "harbour",
+      "status": "ACTIVE",
+      "must_change_password": false
+    },
+    {
+      "full_name": "Kito Mutua",
+      "username": "kito.mutua.harbour.08",
+      "role": "STUDENT",
+      "institution": "harbour",
+      "status": "ACTIVE",
+      "must_change_password": false
+    },
+    {
+      "full_name": "Amani Otieno",
+      "username": "amani.otieno.harbour.09",
+      "role": "STUDENT",
+      "institution": "harbour",
+      "status": "ACTIVE",
+      "must_change_password": false
+    },
+    {
+      "full_name": "Zuri Kamau",
+      "username": "zuri.kamau.harbour.10",
+      "role": "STUDENT",
+      "institution": "harbour",
+      "status": "ACTIVE",
+      "must_change_password": false
+    },
+    {
+      "full_name": "Imani Njeri",
+      "username": "imani.njeri.harbour.11",
+      "role": "STUDENT",
+      "institution": "harbour",
+      "status": "ACTIVE",
+      "must_change_password": false
+    },
+    {
+      "full_name": "Baraka Mwangi",
+      "username": "baraka.mwangi.harbour.12",
+      "role": "STUDENT",
+      "institution": "harbour",
+      "status": "ACTIVE",
+      "must_change_password": false
+    },
+    {
+      "full_name": "Neema Wanjiku",
+      "username": "neema.wanjiku.harbour.13",
+      "role": "STUDENT",
+      "institution": "harbour",
+      "status": "ACTIVE",
+      "must_change_password": false
+    },
+    {
+      "full_name": "Jabari Kiptoo",
+      "username": "jabari.kiptoo.harbour.14",
+      "role": "STUDENT",
+      "institution": "harbour",
+      "status": "ACTIVE",
+      "must_change_password": false
+    },
+    {
+      "full_name": "Nia Achieng",
+      "username": "nia.achieng.harbour.15",
+      "role": "STUDENT",
+      "institution": "harbour",
+      "status": "ACTIVE",
+      "must_change_password": false
+    },
+    {
+      "full_name": "Kito Mutua",
+      "username": "kito.mutua.harbour.16",
+      "role": "STUDENT",
+      "institution": "harbour",
+      "status": "ACTIVE",
+      "must_change_password": false
+    },
+    {
+      "full_name": "Joseph Kariuki",
+      "username": "joseph.kariuki.ridgeway",
+      "role": "INSTITUTION_ADMIN",
+      "institution": "ridgeway",
+      "status": "ACTIVE",
+      "must_change_password": false
+    },
+    {
+      "full_name": "Agnes Naliaka",
+      "username": "agnes.naliaka.lakeview",
+      "role": "INSTITUTION_ADMIN",
+      "institution": "lakeview",
+      "status": "ACTIVE",
+      "must_change_password": false
+    }
+  ],
+  "seed_version": 1,
+  "reference_date": "2026-09-30",
+  "qa_repaired": true,
+  "target": "Neon production"
+}

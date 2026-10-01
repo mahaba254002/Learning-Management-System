@@ -131,3 +131,21 @@ def test_institution_admin_can_oversee_only_own_academic_records(env):
     assert c.get(f"/api/teaching/subjects/{env['subject'].id}/coursework").status_code == 200
     assert c.get(f"/api/teaching/subjects/{env['other_subject'].id}/coursework").status_code == 404
     assert c.get(f"/api/teaching/coursework/{env['other_work'].id}/submissions").status_code == 404
+
+
+def test_orphan_student_cannot_receive_a_session_or_enter_portal(env, monkeypatch):
+    from fastapi import HTTPException, Response
+    from app.api.routes import auth
+    from app.schemas.auth import LoginRequest
+    # Remove the profile first: real production orphan has no valid tenant profile.
+    from app.models.academic import Enrollment, Student
+    env['db'].query(Enrollment).filter_by(student_id=env['student'].id).delete()
+    env['db'].delete(env['student'])
+    env['db'].flush()
+    env['pupil'].institution_id = None
+    env['db'].commit()
+    monkeypatch.setattr(auth, 'verify_password', lambda *args: True)
+    with pytest.raises(HTTPException) as error:
+        auth._authenticate(LoginRequest(username='pupil', password='Test-password1!'), Response(), env['db'], allowed_roles=auth.STUDENT_ROLES)
+    assert error.value.status_code == 403
+    assert env['as_user'](env['pupil']).get('/api/me').status_code == 401

@@ -28,7 +28,7 @@ def test_complete_demo_is_consistent_and_repeatable(env):
     assert result['created']['assignment_submissions'] == 156
     assert result['created']['student_scores'] == 168
     assert result['created']['student_attendance'] == 1200
-    ids = {u.id for u in db.query(User).all() if u.username.startswith('demo.')}
+    ids = {module.identity(key) for key in module.account_keys()}
     for student in db.query(Student).filter(Student.user_id.in_(ids)).all():
         assert db.query(Enrollment).filter_by(student_id=student.id).count() == 1
     for row in db.query(Submission).all():
@@ -57,3 +57,22 @@ def test_complete_demo_is_consistent_and_repeatable(env):
     assert len(c.get('/api/student/subjects').json()) == 3
     assert len(c.get('/api/student/assignments').json()) == 15
     assert len(c.get('/api/student/attendance').json()) == 40
+
+
+def test_legacy_names_can_be_renamed_without_replacing_academic_records(env):
+    db = env['db']
+    module.seed(db, 'test-hash', date(2026, 9, 30))
+    db.commit()
+    school = db.get(Institution, module.identity('acacia/institution'))
+    user = db.get(User, module.identity('demo/acacia/admin'))
+    school.name, school.code = 'Acacia Demo Secondary School', 'demo-acacia'
+    user.username, user.email = 'demo.acacia.admin', 'demo.acacia.admin@example.test'
+    db.commit()
+    result = module.seed(db, 'different', date(2026, 9, 30), rename_existing=True)
+    db.commit()
+    assert result['created'] == {}
+    assert school.name == 'Acacia Secondary School' and school.code == 'acacia'
+    assert user.username == 'miriam.wanjiru.acacia' and user.password_hash == 'test-hash'
+    for account in result['accounts']:
+        assert 'demo' not in str(account).lower()
+    assert db.query(Score).count() == 168

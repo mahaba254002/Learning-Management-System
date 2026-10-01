@@ -93,6 +93,9 @@ def get_current_context(
 
     institution_id = user.institution_id
 
+    if user.role != UserRole.PLATFORM_ADMIN and institution_id is None:
+        raise _unauthorized("Your account is not assigned to an institution. Contact your administrator.")
+
     if institution_id is not None:
         institution = db.get(Institution, institution_id)
         if institution is None or institution.status != InstitutionStatus.ACTIVE:
