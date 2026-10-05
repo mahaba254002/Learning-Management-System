@@ -196,3 +196,10 @@
     display: none;
   }
 }
+.dashboard-content { width: 100%; max-width: 1440px; margin-inline: auto; padding: clamp(24px, 3vw, 48px); }
+.dashboard-sidebar__nav { margin-bottom: 32px; }
+.dashboard-sidebar__link { border-radius: 3px; }
+.dashboard-sidebar__link--active { border-left: 3px solid #c8d8cd; padding-left: 9px; }
+.dashboard-sidebar__account { margin-top: 24px; }
+@media (min-width: 721px) { .dashboard-sidebar--desktop { position: sticky; top: 0; height: 100dvh; overflow-y: auto; } }
+@media (max-width: 720px) { .dashboard-content { padding: 24px 16px; } .dashboard-sidebar--mobile { max-height: calc(100dvh - 61px); overflow-y: auto; } }

@@ -21,3 +21,22 @@ backend/test-institution.json
 # Neon tooling artifacts
 skills-lock.json
 package-lock.json
+
+# Private operational records and local tooling (never publish)
+.env
+.env.*
+**/.env
+**/.env.*
+!**/.env.example
+.agents/
+.codex/
+backend/*cookies*.txt
+backend/login*.json
+backend/change_pw.json
+backend/SAMPLE_ACCOUNTS.json
+backend/reset_super_admin_password.py
+backend/update_super_admin_email.py
+backend/scripts/repair_seed_accounts.py
+*.log
+*.pem
+*.key

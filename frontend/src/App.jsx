@@ -1,54 +1,62 @@
+import { lazy, Suspense } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import LandingPage from "./pages/LandingPage";
+import NotFoundPage from "./pages/NotFoundPage";
 import PortalPickerPage from "./pages/PortalPickerPage";
-import LoginPage from "./pages/auth/LoginPage";
+const LoginPage = lazy(() => import("./pages/auth/LoginPage"));
 import ProtectedRoute from "./routes/ProtectedRoute";
 
-import ForgotPasswordPage from "./pages/auth/ForgotPasswordPage";
-import ResetPasswordPage from "./pages/auth/ResetPasswordPage";
-import ChangePasswordPage from "./pages/auth/ChangePasswordPage";
+const ForgotPasswordPage = lazy(() => import("./pages/auth/ForgotPasswordPage"));
+const ResetPasswordPage = lazy(() => import("./pages/auth/ResetPasswordPage"));
+const ChangePasswordPage = lazy(() => import("./pages/auth/ChangePasswordPage"));
 
-import PlatformLayout from "./pages/platform/PlatformLayout";
-import PlatformDashboardPage from "./pages/platform/PlatformDashboardPage";
-import PlatformInstitutionsPage from "./pages/platform/PlatformInstitutionsPage";
-import { AdminAccountPage, AdminAuditPage, AdminUsersPage, InstitutionSettingsPage, PlatformUsagePage } from "./pages/AdminPages";
-import TeacherLayout from "./pages/teacher/TeacherLayout";
-import TeacherDashboardPage from "./pages/teacher/TeacherDashboardPage";
-import TeacherProfilePage from "./pages/teacher/TeacherProfilePage";
-import TeacherClassesPage from "./pages/teacher/TeacherClassesPage";
-import ClassStudentsPage from "./pages/teacher/ClassStudentsPage";
-import TeacherAttendancePage from "./pages/teacher/TeacherAttendancePage";
-import TeacherCourseworkPage from "./pages/teacher/TeacherCourseworkPage";
-import TeacherScoresPage from "./pages/teacher/TeacherScoresPage";
-import InstitutionClassesPage from "./pages/institution/InstitutionClassesPage";
-import StudentCourseworkPage from "./pages/student/StudentCourseworkPage";
-import StudentLayout from "./pages/student/StudentLayout";
-import StudentDashboardPage from "./pages/student/StudentDashboardPage";
-import StudentSubjectsPage, { StudentSubjectPage } from "./pages/student/StudentSubjectsPage";
-import StudentAttendancePage from "./pages/student/StudentAttendancePage";
-import StudentProfilePage from "./pages/student/StudentProfilePage";
-import StudentAssignmentPage from "./pages/student/StudentAssignmentPage";
-import TeacherMaterialsPage from "./pages/teacher/TeacherMaterialsPage";
+const PlatformLayout = lazy(() => import("./pages/platform/PlatformLayout"));
+const PlatformDashboardPage = lazy(() => import("./pages/platform/PlatformDashboardPage"));
+const PlatformInstitutionsPage = lazy(() => import("./pages/platform/PlatformInstitutionsPage"));
+const AdminAccountPage = lazy(() => import("./pages/AdminPages").then(module => ({ default: module.AdminAccountPage })));
+const AdminAuditPage = lazy(() => import("./pages/AdminPages").then(module => ({ default: module.AdminAuditPage })));
+const AdminUsersPage = lazy(() => import("./pages/AdminPages").then(module => ({ default: module.AdminUsersPage })));
+const InstitutionSettingsPage = lazy(() => import("./pages/AdminPages").then(module => ({ default: module.InstitutionSettingsPage })));
+const PlatformUsagePage = lazy(() => import("./pages/AdminPages").then(module => ({ default: module.PlatformUsagePage })));
+const TeacherLayout = lazy(() => import("./pages/teacher/TeacherLayout"));
+const TeacherDashboardPage = lazy(() => import("./pages/teacher/TeacherDashboardPage"));
+const TeacherProfilePage = lazy(() => import("./pages/teacher/TeacherProfilePage"));
+const TeacherClassesPage = lazy(() => import("./pages/teacher/TeacherClassesPage"));
+const ClassStudentsPage = lazy(() => import("./pages/teacher/ClassStudentsPage"));
+const TeacherAttendancePage = lazy(() => import("./pages/teacher/TeacherAttendancePage"));
+const TeacherCourseworkPage = lazy(() => import("./pages/teacher/TeacherCourseworkPage"));
+const TeacherScoresPage = lazy(() => import("./pages/teacher/TeacherScoresPage"));
+const InstitutionClassesPage = lazy(() => import("./pages/institution/InstitutionClassesPage"));
+const StudentCourseworkPage = lazy(() => import("./pages/student/StudentCourseworkPage"));
+const StudentLayout = lazy(() => import("./pages/student/StudentLayout"));
+const StudentDashboardPage = lazy(() => import("./pages/student/StudentDashboardPage"));
+const StudentSubjectsPage = lazy(() => import("./pages/student/StudentSubjectsPage"));
+const StudentSubjectPage = lazy(() => import("./pages/student/StudentSubjectsPage").then(module => ({ default: module.StudentSubjectPage })));
+const StudentAttendancePage = lazy(() => import("./pages/student/StudentAttendancePage"));
+const StudentProfilePage = lazy(() => import("./pages/student/StudentProfilePage"));
+const StudentAssignmentPage = lazy(() => import("./pages/student/StudentAssignmentPage"));
+const TeacherMaterialsPage = lazy(() => import("./pages/teacher/TeacherMaterialsPage"));
 
-import InvitePage from "./pages/invite/InvitePage";
-import InstitutionLayout from "./pages/institution/InstitutionLayout";
-import InstitutionDashboardPage from "./pages/institution/InstitutionDashboardPage";
-import InstitutionInvitationsPage from "./pages/institution/InstitutionInvitationsPage";
-import InstitutionTeachersPage from "./pages/institution/InstitutionTeachersPage";
-import InstitutionTeacherDetailPage from "./pages/institution/InstitutionTeacherDetailPage";
+const InvitePage = lazy(() => import("./pages/invite/InvitePage"));
+const InstitutionLayout = lazy(() => import("./pages/institution/InstitutionLayout"));
+const InstitutionDashboardPage = lazy(() => import("./pages/institution/InstitutionDashboardPage"));
+const InstitutionInvitationsPage = lazy(() => import("./pages/institution/InstitutionInvitationsPage"));
+const InstitutionTeachersPage = lazy(() => import("./pages/institution/InstitutionTeachersPage"));
+const InstitutionTeacherDetailPage = lazy(() => import("./pages/institution/InstitutionTeacherDetailPage"));
 
 
-import StudentLoginPage from "./pages/student/StudentLoginPage";
-import StudentForgotPasswordPage from "./pages/student/StudentForgotPasswordPage";
-import StudentResetPasswordPage from "./pages/student/StudentResetPasswordPage";
+const StudentLoginPage = lazy(() => import("./pages/student/StudentLoginPage"));
+const StudentForgotPasswordPage = lazy(() => import("./pages/student/StudentForgotPasswordPage"));
+const StudentResetPasswordPage = lazy(() => import("./pages/student/StudentResetPasswordPage"));
 
-import TeacherLoginPage from "./pages/teacher/TeacherLoginPage";
-import TeacherForgotPasswordPage from "./pages/teacher/TeacherForgotPasswordPage";
-import TeacherResetPasswordPage from "./pages/teacher/TeacherResetPasswordPage";
+const TeacherLoginPage = lazy(() => import("./pages/teacher/TeacherLoginPage"));
+const TeacherForgotPasswordPage = lazy(() => import("./pages/teacher/TeacherForgotPasswordPage"));
+const TeacherResetPasswordPage = lazy(() => import("./pages/teacher/TeacherResetPasswordPage"));
 
 function App() {
   return (
     <BrowserRouter>
+      <Suspense fallback={<div role="status" className="route-loading">Opening your workspace…</div>}>
       <Routes>
         <Route path="/" element={<LandingPage />} />
         <Route path="/sign-in" element={<PortalPickerPage />} />
@@ -158,7 +166,9 @@ function App() {
           <Route path="audit-logs" element={<AdminAuditPage platform />} />
           <Route path="settings" element={<AdminAccountPage />} />
         </Route>
+        <Route path="*" element={<NotFoundPage />} />
       </Routes>
+      </Suspense>
     </BrowserRouter>
   );
 }

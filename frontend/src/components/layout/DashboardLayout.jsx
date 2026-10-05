@@ -20,11 +20,12 @@ export default function DashboardLayout({ navItems, children, brandLabel }) {
 
         <nav className="dashboard-sidebar__nav">
           {navItems.map((item) => {
-            const isActive = location.pathname === item.path;
+            const isActive = location.pathname === item.path || location.pathname.startsWith(`${item.path}/`);
             return (
               <Link
                 key={item.path}
                 to={item.path}
+                aria-current={isActive ? "page" : undefined}
                 className={`dashboard-sidebar__link ${isActive ? "dashboard-sidebar__link--active" : ""}`}
                 onClick={() => setMobileNavOpen(false)}
               >
@@ -58,6 +59,8 @@ export default function DashboardLayout({ navItems, children, brandLabel }) {
           <button
             className="dashboard-topbar__menu-btn"
             aria-label={mobileNavOpen ? "Close menu" : "Open menu"}
+            aria-expanded={mobileNavOpen}
+            aria-controls="dashboard-mobile-navigation"
             onClick={() => setMobileNavOpen((open) => !open)}
           >
             <span className="dashboard-topbar__menu-icon" />
@@ -66,7 +69,7 @@ export default function DashboardLayout({ navItems, children, brandLabel }) {
         </header>
 
         {mobileNavOpen && (
-          <div className="dashboard-sidebar dashboard-sidebar--mobile">
+          <div id="dashboard-mobile-navigation" className="dashboard-sidebar dashboard-sidebar--mobile">
             {sidebarContent}
           </div>
         )}

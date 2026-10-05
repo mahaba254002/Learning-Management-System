@@ -45,3 +45,8 @@ input:focus-visible {
     transition-duration: 0.01ms !important;
   }
 }
+/* Consistent, keyboard-accessible controls throughout the learning workspace. */
+input, select, textarea, button { font: inherit; }
+select:focus-visible, textarea:focus-visible, summary:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 3px; }
+button:disabled { cursor: not-allowed; }
+.route-loading { padding: var(--space-12); color: var(--color-ink-soft); }
