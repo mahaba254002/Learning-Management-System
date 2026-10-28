@@ -19,6 +19,9 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
         response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
 
+        if request.url.path.startswith("/api/"):
+            response.headers["Cache-Control"] = "no-store"
+
         # HSTS only makes sense once served over HTTPS (which local dev
         # over http://localhost is not). We only add it outside
         # development so it doesn't cause confusing behavior locally.

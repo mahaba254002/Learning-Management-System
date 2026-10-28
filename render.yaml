@@ -19,6 +19,12 @@ services:
         sync: false
       - key: FRONTEND_BASE_URL
         sync: false
+      - key: PRODUCT_ENQUIRY_EMAIL
+        sync: false
+      - key: RESEND_API_KEY
+        sync: false
+      - key: EMAIL_FROM_ADDRESS
+        sync: false
       - key: REDIS_URL
         fromService:
           type: redis

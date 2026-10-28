@@ -1,10 +1,11 @@
 import { useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { apiRequest, ApiError } from "../../api/client";
 import { institutionDetailsSchema, codeSchema, INSTITUTION_TYPES } from "./createInstitutionSchema";
 import Modal from "../../components/common/Modal";
+import AcademicConfigurationEditor from '../../components/common/AcademicConfigurationEditor';
 
 const STEPS = {
   DETAILS: "details",
@@ -20,6 +21,11 @@ export default function CreateInstitutionModal({ onClose }) {
   const queryClient = useQueryClient();
 
   const detailsForm = useForm({ resolver: zodResolver(institutionDetailsSchema) });
+  const type = useWatch({ control: detailsForm.control, name: 'type' });
+  const templates = useQuery({ queryKey:['academic-templates'],queryFn:()=>apiRequest('/api/platform/academic-templates') });
+  const [setup,setSetup] = useState(null);
+  const template = templates.data?.find(t => t.type === type);
+  const academic = setup && setup.type === type ? setup.value : template;
   const codeForm = useForm({ resolver: zodResolver(codeSchema) });
 
   const requestMutation = useMutation({
@@ -31,7 +37,7 @@ export default function CreateInstitutionModal({ onClose }) {
       );
       return apiRequest("/api/platform/institutions/request-create", {
         method: "POST",
-        body: cleaned,
+        body: { ...cleaned, ...(academic ? {academic_configuration:academic.configuration,learning_settings:academic.labels} : {}) },
       });
     },
     onSuccess: (data) => {
@@ -113,8 +119,8 @@ export default function CreateInstitutionModal({ onClose }) {
   }
 
   return (
-    <Modal isOpen title="Create institution" onClose={onClose}>
-      <form onSubmit={detailsForm.handleSubmit((values) => requestMutation.mutate(values))} noValidate>
+    <Modal isOpen title="Create institution" onClose={onClose} wide>
+      <form className="institution-onboarding" onSubmit={detailsForm.handleSubmit((values) => requestMutation.mutate(values))} noValidate>
         <div className="form-field">
           <label htmlFor="name">Institution name</label>
           <input id="name" type="text" {...detailsForm.register("name")} />
@@ -144,6 +150,8 @@ export default function CreateInstitutionModal({ onClose }) {
           )}
         </div>
 
+        {templates.isError && <p role="alert">Academic templates could not load. Close this dialog and try again.</p>}
+        {academic && <AcademicConfigurationEditor key={type} value={academic} onChange={value=>setSetup({type,value})} disabled={requestMutation.isPending} />}
         <div className="form-field">
           <label htmlFor="country">Country</label>
           <input id="country" type="text" {...detailsForm.register("country")} />

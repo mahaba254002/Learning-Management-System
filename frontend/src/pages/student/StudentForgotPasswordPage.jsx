@@ -59,6 +59,7 @@ export default function StudentForgotPasswordPage() {
     >
       <form className="auth-form auth-form--embedded" onSubmit={handleSubmit(onSubmit)} noValidate>
         <h2>Reset your password</h2>
+        <p>If you sign in with a student ID and have no email, ask your institution administrator for a temporary password.</p>
 
         <div className="form-field">
           <label htmlFor="email">Email</label>

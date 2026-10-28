@@ -11,6 +11,7 @@ forget on an individual route.
 """
 
 import uuid
+import ipaddress
 from dataclasses import dataclass
 from datetime import datetime, timezone
 
@@ -23,6 +24,9 @@ from app.core.security import decode_token
 from app.db.session import get_db
 from app.models.institution import Institution, InstitutionStatus
 from app.models.user import User, UserRole, UserStatus
+from app.core.workspace_access import resolve_workspace_target
+from app.models.audit import AuditEvent
+from app.models.pilot import AuthSession
 
 ACCESS_TOKEN_COOKIE_NAME = "access_token"
 
@@ -42,6 +46,11 @@ class AuthContext:
     institution_id: uuid.UUID | None
     role: UserRole
     must_change_password: bool
+    actor_user_id: uuid.UUID | None = None
+    read_only: bool = False
+    ip_address: str | None = None
+    request_method: str | None = None
+    request_path: str | None = None
 
 
 def _unauthorized(detail: str = "Could not validate credentials") -> HTTPException:
@@ -56,6 +65,12 @@ def get_current_context(
     # request with a missing/invalid CSRF token is rejected regardless of
     # whether the JWT itself is valid.
     verify_csrf(request)
+    try:
+        peer_ip = str(ipaddress.ip_address(request.client.host)) if request.client else None
+    except ValueError:
+        peer_ip = None
+    metadata = dict(ip_address=peer_ip,
+                    request_method=request.method, request_path=request.url.path[:500])
 
     token = request.cookies.get(ACCESS_TOKEN_COOKIE_NAME)
     if token is None:
@@ -71,11 +86,24 @@ def get_current_context(
     if payload.get("type") != "access":
         raise _unauthorized("Invalid token type")
 
-    user_id = uuid.UUID(payload["sub"])
+    try:
+        user_id = uuid.UUID(payload["sub"])
+    except (KeyError, TypeError, ValueError):
+        raise _unauthorized("Invalid authentication token")
 
     user = db.get(User, user_id)
     if user is None or user.status != UserStatus.ACTIVE:
         raise _unauthorized("Account is no longer active")
+
+    if payload.get('sid'):
+        try:
+            session = db.get(AuthSession, uuid.UUID(payload['sid']))
+        except (TypeError, ValueError):
+            raise _unauthorized()
+        if not session or session.user_id != user.id or session.revoked:
+            raise _unauthorized('Your session has ended. Please sign in again.')
+        expiry = session.expires_at.replace(tzinfo=timezone.utc) if session.expires_at.tzinfo is None else session.expires_at
+        if expiry <= datetime.now(timezone.utc): raise _unauthorized('Your session has ended. Please sign in again.')
 
     # If the password has been changed (self-service or admin-assisted)
     # since this token was issued, the token is dead — even if it hasn't
@@ -100,6 +128,9 @@ def get_current_context(
         institution = db.get(Institution, institution_id)
         if institution is None or institution.status != InstitutionStatus.ACTIVE:
             raise _unauthorized("Institution is no longer active")
+        from app.services.subscriptions import check_subscription_access
+        if request.url.path not in {"/api/me", "/api/auth/logout", "/api/auth/change-password", "/api/institution/subscription"}:
+            check_subscription_access(db, institution_id)
 
     # Server-side enforcement of the forced password change. The frontend
     # redirect to /change-password is a UX nicety, not a security
@@ -111,11 +142,38 @@ def get_current_context(
             detail="You must change your password before continuing.",
         )
 
+    workspace_token = request.headers.get("X-Workspace-Token")
+    if workspace_token:
+        try:
+            workspace = decode_token(workspace_token)
+            if workspace.get("type") != "workspace" or workspace.get("sub") != str(user.id):
+                raise _unauthorized("Invalid workspace access")
+            target_id = uuid.UUID(workspace["target"])
+        except (jwt.PyJWTError, KeyError, TypeError, ValueError):
+            raise _unauthorized("Workspace access expired or invalid. Return to your own workspace.")
+        target, read_only = resolve_workspace_target(db, user, target_id)
+        mutation = request.method not in {"GET", "HEAD", "OPTIONS"}
+        management = request.method == "POST" and request.url.path in {
+            "/api/workspace-access/start", "/api/workspace-access/stop", "/api/auth/logout",
+        }
+        if request.url.path == "/api/auth/change-password":
+            raise HTTPException(403, "Return to your own workspace to manage account credentials.")
+        if read_only and mutation and not management:
+            raise HTTPException(403, "This workspace is read-only. Changes are not permitted.")
+        if mutation and not management:
+            db.add(AuditEvent(actor_id=user.id, institution_id=target.institution_id,
+                              action="workspace.mutation_attempt", target_id=str(target.id),
+                              detail=f"{request.method} {request.url.path}"[:500], **metadata))
+            db.commit()
+        return AuthContext(user_id=target.id, institution_id=target.institution_id, role=target.role,
+                           must_change_password=False, actor_user_id=user.id, read_only=read_only, **metadata)
+
     return AuthContext(
         user_id=user.id,
         institution_id=institution_id,
         role=user.role,
         must_change_password=user.must_change_password,
+        **metadata,
     )
 
 

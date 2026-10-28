@@ -32,30 +32,41 @@ def verify_password(plain_password: str, password_hash: str) -> bool:
     return pwd_context.verify(plain_password, password_hash)
 
 
-def create_access_token(*, user_id: uuid.UUID, institution_id: uuid.UUID | None, role: str) -> str:
+def create_access_token(*, user_id: uuid.UUID, institution_id: uuid.UUID | None, role: str, session_id: uuid.UUID | None = None) -> str:
     now = datetime.now(timezone.utc)
     payload = {
         "sub": str(user_id),
         "institution_id": str(institution_id) if institution_id else None,
         "role": role,
-        "iat": now,
+        "iat": now.timestamp(),
         "exp": now + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES),
         "type": "access",
     }
+    if session_id:
+        payload['sid'] = str(session_id)
     return jwt.encode(payload, settings.JWT_SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
 
 
-def create_refresh_token(*, user_id: uuid.UUID) -> str:
+def create_refresh_token(*, user_id: uuid.UUID, session_id: uuid.UUID | None = None, expires_at: datetime | None = None) -> str:
     now = datetime.now(timezone.utc)
     payload = {
         "sub": str(user_id),
-        "iat": now,
-        "exp": now + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS),
+        "iat": now.timestamp(),
+        "exp": expires_at or now + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS),
         "type": "refresh",
     }
+    if session_id:
+        payload.update(sid=str(session_id), jti=str(uuid.uuid4()))
     return jwt.encode(payload, settings.JWT_SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
 
 
 def decode_token(token: str) -> dict:
     """Raises jwt.PyJWTError (or a subclass) if invalid/expired/tampered."""
     return jwt.decode(token, settings.JWT_SECRET_KEY, algorithms=[settings.JWT_ALGORITHM])
+
+
+def create_workspace_token(*, actor_id: uuid.UUID, target_id: uuid.UUID) -> str:
+    now = datetime.now(timezone.utc)
+    return jwt.encode({"sub": str(actor_id), "target": str(target_id), "type": "workspace",
+                       "iat": now, "exp": now + timedelta(minutes=10)},
+                      settings.JWT_SECRET_KEY, algorithm=settings.JWT_ALGORITHM)

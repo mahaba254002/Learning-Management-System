@@ -1,8 +1,6 @@
 import { lazy, Suspense } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import LandingPage from "./pages/LandingPage";
 import NotFoundPage from "./pages/NotFoundPage";
-import PortalPickerPage from "./pages/PortalPickerPage";
 const LoginPage = lazy(() => import("./pages/auth/LoginPage"));
 import ProtectedRoute from "./routes/ProtectedRoute";
 
@@ -36,9 +34,21 @@ const StudentAttendancePage = lazy(() => import("./pages/student/StudentAttendan
 const StudentProfilePage = lazy(() => import("./pages/student/StudentProfilePage"));
 const StudentAssignmentPage = lazy(() => import("./pages/student/StudentAssignmentPage"));
 const TeacherMaterialsPage = lazy(() => import("./pages/teacher/TeacherMaterialsPage"));
+const PlatformInstitutionDetailPage = lazy(() => import("./pages/platform/PlatformInstitutionDetailPage"));
+const PlatformBillingPage = lazy(() => import("./pages/platform/PlatformBillingPage"));
+const PlatformBackupPage = lazy(() => import("./pages/platform/PlatformBackupPage"));
+const PlatformRestorePage = lazy(() => import("./pages/platform/PlatformRestorePage"));
 
 const InvitePage = lazy(() => import("./pages/invite/InvitePage"));
 const InstitutionLayout = lazy(() => import("./pages/institution/InstitutionLayout"));
+const AcademicStructurePage = lazy(() => import('./pages/institution/AcademicStructurePage'));
+const CourseRegistrationsPage = lazy(() => import('./pages/institution/CourseRegistrationsPage'));
+const AcademicDocumentsPage = lazy(() => import('./pages/AcademicDocumentsPage'));
+const AcademicRecordPage = lazy(() => import('./pages/student/AcademicRecordPage'));
+const StudentProgressionPage = lazy(() => import('./pages/student/StudentProgressionPage'));
+const InstitutionProgressionPage = lazy(() => import('./pages/institution/StudentProgressionPage'));
+const AcademicYearsPage = lazy(() => import('./pages/institution/AcademicYearsPage'));
+const StudentImportPage = lazy(() => import('./pages/institution/StudentImportPage'));
 const InstitutionDashboardPage = lazy(() => import("./pages/institution/InstitutionDashboardPage"));
 const InstitutionInvitationsPage = lazy(() => import("./pages/institution/InstitutionInvitationsPage"));
 const InstitutionTeachersPage = lazy(() => import("./pages/institution/InstitutionTeachersPage"));
@@ -56,11 +66,11 @@ const TeacherResetPasswordPage = lazy(() => import("./pages/teacher/TeacherReset
 function App() {
   return (
     <BrowserRouter>
-      <Suspense fallback={<div role="status" className="route-loading">Opening your workspace…</div>}>
+      <Suspense fallback={<div role="status" className="route-loading">Opening your workspaceâ€¦</div>}>
       <Routes>
-        <Route path="/" element={<LandingPage />} />
-        <Route path="/sign-in" element={<PortalPickerPage />} />
-        <Route path="/login" element={<LoginPage />} />
+        <Route path="/" element={<LoginPage key="staff-home" />} />
+        <Route path="/sign-in" element={<LoginPage key="staff-sign-in" />} />
+        <Route path="/login" element={<LoginPage key="staff-admin" />} />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />
         <Route path="/invite/:token" element={<InvitePage />} />
@@ -94,10 +104,16 @@ function App() {
           }
         >
           <Route path="dashboard" element={<InstitutionDashboardPage />} />
+          <Route path="reports" element={<AcademicDocumentsPage />} />
           <Route path="invitations" element={<InstitutionInvitationsPage />} />
           <Route path="teachers" element={<InstitutionTeachersPage />} />
           <Route path="teachers/:teacherId" element={<InstitutionTeacherDetailPage />} />
           <Route path="classes" element={<InstitutionClassesPage />} />
+          <Route path="progression" element={<InstitutionProgressionPage />} />
+          <Route path="academic-years" element={<AcademicYearsPage />} />
+          <Route path="academic-structure" element={<AcademicStructurePage />} />
+          <Route path="course-enrollment" element={<CourseRegistrationsPage />} />
+          <Route path="student-imports" element={<StudentImportPage />} />
           <Route path="classes/:classId" element={<ClassStudentsPage />} />
           <Route index element={<Navigate to="dashboard" replace />} />
           <Route path="students" element={<AdminUsersPage key="students" studentsOnly />} />
@@ -120,6 +136,7 @@ function App() {
         >
           <Route index element={<Navigate to="dashboard" replace />} />
           <Route path="dashboard" element={<TeacherDashboardPage />} />
+          <Route path="reports" element={<AcademicDocumentsPage />} />
           <Route path="profile" element={<TeacherProfilePage />} />
           <Route path="classes" element={<TeacherClassesPage />} />
           <Route path="classes/:classId" element={<ClassStudentsPage />} />
@@ -138,6 +155,7 @@ function App() {
         >
           <Route index element={<Navigate to="dashboard" replace />} />
           <Route path="dashboard" element={<StudentDashboardPage />} />
+          <Route path="reports" element={<AcademicDocumentsPage />} />
           <Route path="subjects" element={<StudentSubjectsPage />} />
           <Route path="subjects/:subjectId" element={<StudentSubjectPage />} />
           <Route path="attendance" element={<StudentAttendancePage />} />
@@ -145,6 +163,8 @@ function App() {
           <Route path="assignments/:assignmentId" element={<StudentAssignmentPage />} />
           <Route path="grades" element={<StudentCourseworkPage gradesOnly />} />
           <Route path="profile" element={<StudentProfilePage />} />
+          <Route path="progression" element={<StudentProgressionPage />} />
+          <Route path="academic-record" element={<AcademicRecordPage />} />
         </Route>
         <Route path="/teacher/login" element={<TeacherLoginPage />} />
         <Route path="/teacher/forgot-password" element={<TeacherForgotPasswordPage />} />
@@ -159,6 +179,10 @@ function App() {
         >
           <Route path="dashboard" element={<PlatformDashboardPage />} />
           <Route path="institutions" element={<PlatformInstitutionsPage />} />
+          <Route path="institutions/:institutionId" element={<PlatformInstitutionDetailPage />} />
+          <Route path="billing" element={<PlatformBillingPage />} />
+          <Route path="backup" element={<PlatformBackupPage />} />
+          <Route path="restore" element={<PlatformRestorePage />} />
           <Route index element={<Navigate to="dashboard" replace />} />
           <Route path="users" element={<AdminUsersPage key="platform-users" platform />} />
           <Route path="usage" element={<PlatformUsagePage />} />

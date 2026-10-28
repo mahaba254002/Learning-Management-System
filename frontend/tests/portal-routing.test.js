@@ -20,6 +20,9 @@ for (const [role, login, password, home] of portals) {
     assert.equal(getProtectedRouteRedirect(user, [role], home), password);
     assert.equal(getProtectedRouteRedirect(user, [role], password), null);
   });
+  test(`${role}: delegated workspaces cannot open account-password forms`, () => {
+    assert.equal(getProtectedRouteRedirect({ role, must_change_password: false }, [role], password, true), home);
+  });
   test(`${role}: access is allowed only for the expected role`, () => {
     const user = { role, must_change_password: false };
     assert.equal(getProtectedRouteRedirect(user, [role], home), null);

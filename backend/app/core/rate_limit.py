@@ -66,8 +66,11 @@ def rate_limit(*, max_requests: int, window_seconds: int, key_prefix: str):
             # Re-raise 429s — those are intentional, not Redis errors.
             raise
         except redis_lib.RedisError as exc:
-            # Redis is unavailable — fail open so a Redis outage doesn't take
-            # down auth endpoints. Log a warning so it's visible in Render logs.
-            logger.warning("Rate limiter Redis error (failing open): %s", exc)
+            logger.error("Rate limiter unavailable: %s", exc)
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="Authentication is temporarily unavailable. Please try again shortly.",
+                headers={"Retry-After": "60"},
+            ) from exc
 
     return _check

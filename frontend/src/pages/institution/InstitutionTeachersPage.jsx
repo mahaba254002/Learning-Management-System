@@ -1,3 +1,4 @@
+import WorkspaceAccessButton from "../../components/common/WorkspaceAccessButton";
 import { useQuery } from "@tanstack/react-query";
 import { apiRequest } from "../../api/client";
 import { Link } from "react-router-dom";
@@ -86,6 +87,7 @@ export default function InstitutionTeachersPage() {
                                     <th>Type</th>
                                     <th>Status</th>
                                     <th>Joined</th>
+                                    <th>Teacher workspace</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -112,6 +114,7 @@ export default function InstitutionTeachersPage() {
                                             </span>
                                         </td>
                                         <td>{new Date(t.joined_at).toLocaleDateString()}</td>
+                                        <td><WorkspaceAccessButton userId={t.user_id} role="TEACHER" disabled={t.status !== "ACTIVE"} /></td>
                                     </tr>
                                 ))}
                             </tbody>

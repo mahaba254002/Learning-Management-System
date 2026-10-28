@@ -38,7 +38,7 @@ export default function ChangePasswordPage() {
   }
 
   return (
-    <AuthSplitLayout heading="Set a new password" subheading="Keep your Rollcall account secure.">
+    <AuthSplitLayout heading="Set a new password" subheading="Keep your Skynet account secure.">
       <form className="auth-form auth-form--embedded" onSubmit={handleSubmit(onSubmit)} noValidate>
         <h2>{portal} password change</h2>
         <p style={{ color: "var(--color-ink-soft)", marginBottom: "var(--space-6)", fontSize: "var(--text-sm)" }}>

@@ -203,3 +203,64 @@
 .dashboard-sidebar__account { margin-top: 24px; }
 @media (min-width: 721px) { .dashboard-sidebar--desktop { position: sticky; top: 0; height: 100dvh; overflow-y: auto; } }
 @media (max-width: 720px) { .dashboard-content { padding: 24px 16px; } .dashboard-sidebar--mobile { max-height: calc(100dvh - 61px); overflow-y: auto; } }
+
+.dashboard-brand-image { display: block; width: 100%; max-width: 190px; height: auto; padding: 8px; background: white; border-radius: 6px; }
+.workspace-access-banner { position: sticky; top: 0; z-index: 20; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px; margin: 16px 24px 0; padding: 16px 20px; border: 1px solid #026aa7; border-left-width: 5px; border-radius: 8px; color: #334155; background: #eaf4fb; }
+.workspace-access-banner p { font-size: 13px; margin-top: 4px; }
+.workspace-access-banner button { border: 1px solid #026aa7; border-radius: 6px; background: white; color: #026aa7; padding: 10px 14px; cursor: pointer; font-weight: 600; }
+.workspace-access-banner--full { background: #fff6e6; border-color: #946200; }
+.workspace-access-banner--full button { border-color: #946200; color: #765000; }
+.workspace-form-fields { display: contents; border: 0; margin: 0; padding: 0; min-width: 0; }
+.workspace-form-fields:disabled :is(input, select, textarea) { opacity: 1; color: #334155; background: #eef3f7; }
+.workspace-access-action { display: grid; gap: 6px; }
+.workspace-access-action button { border: 1px solid #026aa7; background: #f4f7fa; color: #026aa7; border-radius: 6px; padding: 8px 12px; cursor: pointer; }
+.workspace-access-action button:disabled { opacity: .55; cursor: not-allowed; }
+.dashboard-shell { height: 100vh; height: 100dvh; min-height: 0; overflow: hidden; background: #f4f6fb; }
+.dashboard-sidebar { background: #fff; color: #334155; padding: 20px 14px; border-right: 1px solid #e2e8f0; gap: 16px; box-sizing: border-box; }
+.dashboard-sidebar--desktop { width: 248px; height: 100%; overflow: hidden; position: relative; flex-shrink: 0; }
+.dashboard-sidebar__primary { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+.dashboard-brand-image { max-width: 175px; padding: 0; margin: 2px auto 20px; }
+.dashboard-brand-mark { display: none; font: 800 26px var(--font-display); color: var(--color-accent); }
+.dashboard-sidebar__context { color: #64748b; }
+.dashboard-sidebar__nav { overflow-y: auto; min-height: 0; margin: 0; gap: 5px; padding: 3px; scrollbar-width: thin; }
+.dashboard-sidebar__link { display: flex; align-items: center; gap: 12px; padding: 11px 13px; min-height: 44px; color: #526176; border: 0; border-radius: 8px; font-weight: 500; flex-shrink: 0; }
+.dashboard-sidebar__link svg { flex-shrink: 0; }
+.dashboard-sidebar__link:hover { color: #026aa7; background: #f0f5fb; }
+.dashboard-sidebar__link--active { color: #026aa7; background: #e8f2fc; border: 0; padding-left: 13px; font-weight: 700; }
+.dashboard-sidebar__account { flex-shrink: 0; border-top: 1px solid #e2e8f0; margin-top: 0; padding-top: 16px; gap: 12px; }
+.dashboard-sidebar__user { display: grid; grid-template-columns: 36px minmax(0, 1fr); column-gap: 10px; padding: 0 4px; align-items: center; }
+.dashboard-sidebar__avatar { grid-row: span 2; width: 36px; height: 36px; display: grid; place-items: center; background: #e8f2fc; color: #026aa7; border-radius: 10px; font-size: 12px; font-weight: 700; }
+.dashboard-sidebar__name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dashboard-sidebar__role { color: #64748b; font-size: 11px; }
+.dashboard-sidebar__logout { display: flex; align-items: center; justify-content: center; gap: 10px; min-height: 44px; color: #526176; border-color: #dbe3ed; }
+.dashboard-sidebar__logout:hover { color: #026aa7; border-color: #026aa7; }
+.dashboard-main { height: 100%; min-height: 0; overflow: hidden; }
+.dashboard-topbar { display: flex; flex-shrink: 0; height: 64px; padding: 12px 28px; background: #fff; }
+.dashboard-topbar__context { text-transform: capitalize; color: #526176; font-size: 14px; }
+.dashboard-desktop-toggle { display: grid; place-items: center; width: 40px; height: 40px; border: 1px solid #e2e8f0; background: #fff; color: #526176; border-radius: 8px; cursor: pointer; }
+.dashboard-topbar__menu-btn, .dashboard-topbar__brand-mobile { display: none; }
+.dashboard-content { min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 28px; max-width: none; }
+.workspace-access-banner { position: relative; flex-shrink: 0; }
+.dashboard-sidebar :is(a, button):focus-visible, .dashboard-topbar button:focus-visible { outline: 2px solid #026aa7; outline-offset: 2px; }
+.dashboard-skip-link { position: fixed; top: 8px; left: 8px; z-index: 100; transform: translateY(-200%); padding: 12px 18px; background: #026aa7; color: #fff; border-radius: 6px; }
+.dashboard-skip-link:focus { transform: translateY(0); }
+@media (min-width: 721px) {
+  .dashboard-shell--collapsed .dashboard-sidebar--desktop { width: 76px; }
+  .dashboard-shell--collapsed .dashboard-sidebar--desktop :is(.dashboard-brand-image,.dashboard-sidebar__context,.dashboard-sidebar__link > span,.dashboard-sidebar__name,.dashboard-sidebar__role,.dashboard-sidebar__logout > span) { display: none; }
+  .dashboard-shell--collapsed .dashboard-brand-mark { display: block; text-align: center; margin-bottom: 24px; }
+  .dashboard-shell--collapsed .dashboard-sidebar__link { justify-content: center; padding: 11px; }
+  .dashboard-shell--collapsed .dashboard-sidebar__user { display: flex; justify-content: center; padding: 0; }
+}
+@media (max-width: 720px) {
+  .dashboard-desktop-toggle, .dashboard-topbar__context { display: none; }
+  .dashboard-topbar__menu-btn, .dashboard-topbar__brand-mobile { display: block; }
+  .dashboard-topbar { padding: 12px 20px; }
+  .dashboard-sidebar--mobile { position: fixed; inset: 64px 0 0; width: 100%; height: calc(100dvh - 64px); max-height: none; overflow: hidden; }
+  .dashboard-content { padding: 22px 16px; }
+}
+@media (max-width: 700px) { .workspace-access-banner { margin: 12px; padding: 14px; } .workspace-access-banner button { width: 100%; } }
+@media (max-width: 720px) {
+  .dashboard-topbar__brand-mobile { order: 0; }
+  .dashboard-topbar__menu-btn { order: 1; margin-left: auto; }
+  .dashboard-sidebar--mobile { z-index: 40; }
+}

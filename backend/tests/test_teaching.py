@@ -129,7 +129,7 @@ def test_only_admin_can_assign_classes_and_teachers(env):
 
 
 def test_student_creation_creates_forced_change_account(env):
-    c = env["as_user"](env["supervisor"])
+    c = env["as_user"](env["admin"])
     result = c.post(path(env), json={"first_name": "New", "last_name": "Student", "email": "new@example.test", "admission_number": "A002"})
     assert result.status_code == 201
     assert result.headers["cache-control"] == "no-store"
@@ -195,6 +195,10 @@ def test_coursework_publication_and_student_score_privacy(env):
     assert c.put(url, json=body).status_code == 200
     assert c.put(url + "/scores", json={"entries": [{"student_id": str(env["student"].id), "score": 18, "feedback": "Good work"}]}).status_code == 200
     assert c.put(url, json={**body, "max_score": 10}).status_code == 400
+    withheld = env["as_user"](env["pupil"]).get("/api/student/coursework").json()[0]
+    assert withheld["score"] is None and withheld["feedback"] == ""
+    c = env["as_user"](env["teacher"])
+    assert c.put(url + "/results-release", json={"released": True}).status_code == 200
     published = env["as_user"](env["pupil"]).get("/api/student/coursework").json()
     assert len(published) == 1 and published[0]["score"] == 18
     assert env["as_user"](env["other_pupil"]).get("/api/student/coursework").json() == []

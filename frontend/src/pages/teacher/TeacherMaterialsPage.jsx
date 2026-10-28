@@ -1,3 +1,5 @@
+import { useAuth } from "../../context/useAuth";
+import WorkspaceForm from "../../components/common/WorkspaceForm";
 import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useTeachingMutation, useTeachingQuery } from "./teachingQueries";
@@ -14,6 +16,7 @@ export default function TeacherMaterialsPage() {
 }
 
 function Materials({ subject }) {
+  const { readOnly } = useAuth();
   const query = useTeachingQuery(`/api/teaching/subjects/${subject.id}/materials`);
   const mutation = useTeachingMutation();
   const [editing, setEditing] = useState(null);
@@ -31,14 +34,14 @@ function Materials({ subject }) {
     } catch { /* Error shown below. */ }
   }
   return <><QueryState query={query} /><MutationState mutation={mutation} message="Material saved." />{validationError && <p role="alert" className="form-error">{validationError}</p>}
-    <section className="teaching-panel"><h2>{editing ? "Edit material" : "New learning material"}</h2><form key={editing?.id || "new"} className="teaching-form" onSubmit={submit}>
+    <section className="teaching-panel"><h2>{editing ? "Edit material" : "New learning material"}</h2><WorkspaceForm key={editing?.id || "new"} className="teaching-form" onSubmit={submit}>
       <Field label="Title" name="title" required maxLength={200} defaultValue={editing?.title || ""} />
       <div className="form-field"><label htmlFor="material-body">Lesson notes / description</label><textarea id="material-body" name="body" maxLength={50000} defaultValue={editing?.body || ""} /></div>
       <Field label="Resource link (optional)" name="link_url" type="url" maxLength={2000} defaultValue={editing?.link_url || ""} />
       <label className="teaching-checkbox"><input type="checkbox" name="published" defaultChecked={editing?.published || false} />Publish to enrolled students</label>
       <p className="teaching-muted">For document links, ensure your students have permission to open the resource.</p>
       <div className="teaching-actions"><button className="btn btn--primary" disabled={mutation.isPending}>Save material</button>{editing && <button type="button" onClick={() => setEditing(null)}>Cancel</button>}</div>
-    </form></section>
-    {query.data?.length === 0 && <Empty>No materials posted yet.</Empty>}{query.data?.map(m => <article className="teaching-panel" key={m.id}><div className="section-header"><h2>{m.title}</h2><span className={`status-badge status-badge--${m.published ? "active" : "archived"}`}>{m.published ? "Published" : "Draft"}</span></div><p className="teaching-instructions">{m.body}</p>{m.link_url && <a href={m.link_url} target="_blank" rel="noopener noreferrer">Open resource (new tab)</a>}<div className="teaching-actions"><button type="button" onClick={() => { setEditing(m); mutation.reset(); }}>Edit / change visibility</button></div></article>)}
+    </WorkspaceForm></section>
+    {query.data?.length === 0 && <Empty>No materials posted yet.</Empty>}{query.data?.map(m => <article className="teaching-panel" key={m.id}><div className="section-header"><h2>{m.title}</h2><span className={`status-badge status-badge--${m.published ? "active" : "archived"}`}>{m.published ? "Published" : "Draft"}</span></div><p className="teaching-instructions">{m.body}</p>{m.link_url && <a href={m.link_url} target="_blank" rel="noopener noreferrer">Open resource (new tab)</a>}<div className="teaching-actions"><button type="button" disabled={readOnly} onClick={() => { setEditing(m); mutation.reset(); }}>Edit / change visibility</button></div></article>)}
   </>;
 }

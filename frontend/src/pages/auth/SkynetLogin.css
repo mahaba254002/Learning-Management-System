@@ -1,0 +1,192 @@
+
+.skynet-page {
+  --skynet-blue: #026aa7; --skynet-sky: #23ace7; --skynet-paper: #f4f7fa; --skynet-ink: #334155; --skynet-muted: #64748b;
+  height: 100vh; height: 100dvh; display: grid; grid-template-rows: auto minmax(0, 1fr); row-gap: clamp(16px, 3.6vh, 36px); background: radial-gradient(ellipse at bottom left, #23ace780, transparent 53%), var(--skynet-paper);
+  color: var(--skynet-ink); font-family: "Poppins", "Inter", sans-serif; padding: 32px 4% 28px;
+}
+.skynet-page h1, .skynet-page h2 { font-family: inherit; }
+.skynet-header { max-width: 1500px; width: 100%; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; gap: 40px; }
+.skynet-header img { display: block; width: clamp(180px, 19vw, 280px); height: auto; }
+.skynet-header nav { display: flex; align-items: center; justify-content: space-between; gap: clamp(20px, 4vw, 76px); padding: 10px 0 10px 16px; border-left: 2px solid var(--skynet-ink); color: #111; font-size: clamp(14px, 1.45vw, 23px); }
+.skynet-main { max-width: 1392px; width: 100%; min-height: 0; height: 100%; margin: 0 auto; display: grid; grid-template-columns: 1.62fr 1fr; gap: 4.2%; align-items: stretch; }
+.skynet-offer { background: var(--skynet-blue); border-radius: 38px; color: var(--skynet-paper); display: flex; flex-direction: column; justify-content: space-between; min-height: 0; padding: 78px 54px 70px; }
+.skynet-offer-copy h2 { font-size: clamp(30px, 3.4vw, 56px); font-weight: 400; letter-spacing: -2px; margin-bottom: 24px; }
+.skynet-offer ol { padding-left: 24px; margin: 0; font-size: clamp(18px, 1.72vw, 28px); line-height: 1.55; letter-spacing: -.9px; }
+.skynet-offer li { padding-left: 2px; }
+.skynet-tagline { margin: 76px -34px 0; }
+.skynet-tagline p { font-size: clamp(19px, 1.8vw, 28px); margin-bottom: 16px; letter-spacing: -1px; }
+.skynet-tagline h2 { font-size: clamp(32px, 4vw, 66px); font-weight: 600; line-height: 1.25; letter-spacing: -2px; }
+.skynet-arrow { display: inline-flex; width: .95em; height: .95em; align-items: center; justify-content: center; border-radius: 50%; background: var(--skynet-paper); color: var(--skynet-sky); font-size: .85em; vertical-align: middle; font-weight: 400; margin-right: 10px; }
+.skynet-login { padding: 4px 0 22px; min-width: 0; }
+.skynet-login h1 { color: var(--skynet-sky); font-size: clamp(34px, 4vw, 66px); letter-spacing: -2.5px; line-height: 1.2; font-weight: 600; margin-bottom: 32px; white-space: nowrap; }
+.skynet-intro { color: var(--skynet-muted); font-size: clamp(15px, 1.28vw, 21px); line-height: 1.55; letter-spacing: -.5px; margin-bottom: 34px; }
+.skynet-portals, .skynet-student-heading { margin: 0 0 28px; padding: 0; display: flex; border: 1px solid #808080; border-radius: 18px; min-width: 0; overflow: hidden; min-height: 64px; }
+.skynet-portals label { min-height: 62px; width: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: clamp(19px, 1.7vw, 27px); gap: 10px; border-radius: 16px; }
+.skynet-portals label.selected { background: #e3eff6; box-shadow: inset 0 -3px var(--skynet-blue); }
+.skynet-portals input { accent-color: var(--skynet-blue); width: 17px; height: 17px; }
+.skynet-student-heading { align-items: center; justify-content: center; font-size: 23px; }
+.skynet-role-note { font-size: 13px; color: var(--skynet-muted); margin: -16px 0 18px; }
+.skynet-field { margin-bottom: 30px; }
+.skynet-field > label { display: block; font-size: clamp(18px, 1.5vw, 24px); font-weight: 600; margin-bottom: 20px; }
+.skynet-field input { width: 100%; min-width: 0; padding: 18px 24px; height: 66px; border: 1px solid #808080; border-radius: 17px; background: var(--skynet-paper); color: var(--skynet-ink); font-size: 17px; }
+.skynet-field input::placeholder { color: var(--skynet-muted); opacity: 1; }
+.skynet-field .password-input input { padding-right: 76px; }
+.skynet-field .password-input__toggle { color: var(--skynet-muted); right: 14px; }
+.skynet-options { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: -4px 0 36px; font-size: clamp(13px, 1.1vw, 18px); color: var(--skynet-muted); }
+.skynet-options label { display: flex; align-items: center; gap: 12px; cursor: pointer; }
+.skynet-options input { margin: 0; width: 23px; height: 23px; accent-color: var(--skynet-blue); }
+.skynet-options a { text-decoration: none; }
+.skynet-options a:hover, .skynet-switch a:hover { text-decoration: underline; }
+.skynet-submit { width: 100%; min-height: 66px; border: 0; border-radius: 17px; background: var(--skynet-blue); color: white; font-size: 21px; cursor: pointer; }
+.skynet-submit:hover:not(:disabled) { background: #00598e; }
+.skynet-submit:disabled { opacity: .65; }
+.skynet-switch { text-align: center; font-size: 13px; color: var(--skynet-muted); margin-top: 20px; }
+.skynet-switch a { color: var(--skynet-blue); font-weight: 600; margin-left: 4px; }
+.skynet-notice { margin-bottom: 18px; }
+.skynet-page :is(input, button, a):focus-visible { outline: 3px solid var(--skynet-sky); outline-offset: 4px; }
+.skynet-sr-only { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+
+@media (max-width: 1000px) { .skynet-page { padding: 24px; } .skynet-header { gap: 24px; } .skynet-header nav { flex-wrap: wrap; gap: 8px 20px; } .skynet-main { gap: 30px; grid-template-columns: 1.1fr 1fr; } .skynet-offer { padding: 48px 28px; min-height: 0; border-radius: 28px; } .skynet-tagline { margin: 50px 0 0; } .skynet-login h1 { letter-spacing: -1.5px; } }
+@media (max-width: 1000px) { .skynet-page { padding: 24px 20px; } .skynet-header { flex-direction: column; align-items: flex-start; gap: 22px; } .skynet-header img { width: 200px; } .skynet-header nav { width: 100%; font-size: 12px; gap: 10px 16px; } .skynet-main { display: flex; flex-direction: column; margin-top: 0; gap: 0; } .skynet-login { order: -1; } .skynet-login h1 { font-size: clamp(32px, 10.5vw, 42px); margin-bottom: 20px; } .skynet-intro { font-size: 16px; margin-bottom: 26px; } .skynet-field { margin-bottom: 24px; } .skynet-field > label { margin-bottom: 12px; } .skynet-options { font-size: 13px; } .skynet-offer { min-height: auto; padding: 34px 28px; } .skynet-offer-copy h2 { letter-spacing: -1px; } .skynet-offer ol { font-size: 18px; letter-spacing: -.3px; } .skynet-tagline h2 { font-size: clamp(28px, 8.5vw, 38px); } }
+
+/* Solid form surfaces keep the page gradient behind the content. */
+.skynet-login { background: var(--skynet-paper); }
+.skynet-portals, .skynet-student-heading { background: var(--skynet-paper); }
+.skynet-menu-toggle { display: none; }
+@media (max-width: 1000px) {
+  .skynet-header { position: relative; flex-direction: row; align-items: center; justify-content: flex-start; gap: 16px; }
+  .skynet-menu-toggle { display: inline-flex; flex-shrink: 0; align-items: center; justify-content: center; width: 44px; height: 44px; padding: 0; border: 1px solid #64748b; border-radius: 6px; color: var(--skynet-ink); background: var(--skynet-paper); cursor: pointer; }
+  .skynet-header img { width: clamp(160px, 48vw, 200px); }
+  .skynet-header nav { display: none; position: absolute; top: calc(100% + 16px); left: 0; right: 0; z-index: 10; width: auto; padding: 12px; border: 1px solid #64748b; border-radius: 8px; background: var(--skynet-paper); font-size: 16px; }
+  .skynet-header nav.is-open { display: flex; flex-direction: column; align-items: stretch; gap: 0; }
+  .skynet-header nav button { padding: 12px; text-align: left; }
+}
+
+.skynet-header nav button { border: 0; padding: 0; background: var(--skynet-paper); color: var(--skynet-ink); font: inherit; cursor: pointer; white-space: nowrap; }
+.skynet-header nav button:hover { color: var(--skynet-blue); text-decoration: underline; text-underline-offset: 5px; }
+.skynet-enquiry { width: min(600px, calc(100% - 32px)); max-height: calc(100dvh - 32px); margin: auto; padding: 28px; border: 1px solid #64748b; border-radius: 16px; background: var(--skynet-paper); color: var(--skynet-ink); overflow-y: auto; font: inherit; }
+.skynet-enquiry::backdrop { background: rgb(15 23 42 / 55%); }
+.skynet-enquiry-header { display: flex; align-items: center; justify-content: space-between; gap: 20px; }
+.skynet-enquiry-header h2 { font-size: 26px; letter-spacing: -.5px; }
+.skynet-enquiry-header button { display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; flex-shrink: 0; border: 1px solid #64748b; border-radius: 6px; background: var(--skynet-paper); color: var(--skynet-ink); font-size: 28px; cursor: pointer; }
+.skynet-enquiry-intro { color: var(--skynet-muted); margin: 16px 0 24px; font-size: 14px; }
+.skynet-enquiry label { display: flex; flex-direction: column; gap: 8px; margin-bottom: 18px; font-size: 14px; font-weight: 500; }
+.skynet-enquiry :is(input, select, textarea) { width: 100%; min-width: 0; border: 1px solid #64748b; border-radius: 8px; padding: 11px 12px; background: var(--skynet-paper); color: var(--skynet-ink); font: inherit; font-size: 16px; }
+.skynet-enquiry textarea { resize: vertical; }
+.skynet-enquiry-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.skynet-enquiry .skynet-submit { min-height: 52px; border-radius: 8px; font-size: 17px; }
+.skynet-enquiry-contact { text-align: center; font-size: 13px; color: var(--skynet-muted); margin-top: 16px; overflow-wrap: anywhere; }
+.skynet-enquiry-contact a { color: var(--skynet-blue); }
+.skynet-enquiry-success { display: grid; gap: 20px; padding-top: 24px; }
+.skynet-enquiry-success h3 { font: inherit; font-size: 22px; font-weight: 600; }
+@media (max-width: 1000px) { .skynet-header nav button { padding: 12px; text-align: left; white-space: normal; } }
+@media (max-width: 480px) { .skynet-enquiry { padding: 20px; } .skynet-enquiry-grid { grid-template-columns: 1fr; gap: 0; } .skynet-enquiry-header h2 { font-size: 22px; } }
+
+/* Keep sign-in within the viewport without clipping content or disabling scrolling. */
+@media (min-width: 1001px) and (max-height: 950px) {
+  .skynet-page { padding-top: 20px; padding-bottom: 20px; }
+  .skynet-header img { width: 220px; }
+  .skynet-main { margin-top: 0; }
+  .skynet-offer { min-height: 0; padding: 40px 42px; }
+  .skynet-offer-copy h2 { font-size: 40px; margin-bottom: 18px; }
+  .skynet-offer ol { font-size: 21px; line-height: 1.5; }
+  .skynet-tagline { margin-top: 32px; margin-left: -14px; margin-right: -14px; }
+  .skynet-tagline p { font-size: 22px; margin-bottom: 12px; }
+  .skynet-tagline h2 { font-size: 48px; }
+  .skynet-login { padding: 0; }
+  .skynet-login h1 { font-size: 48px; margin-bottom: 20px; }
+  .skynet-intro { font-size: 16px; margin-bottom: 22px; }
+  .skynet-portals, .skynet-student-heading { min-height: 52px; margin-bottom: 20px; }
+  .skynet-portals label { min-height: 50px; font-size: 22px; }
+  .skynet-field { margin-bottom: 22px; }
+  .skynet-field > label { font-size: 19px; margin-bottom: 12px; }
+  .skynet-field input { height: 54px; padding: 14px 20px; }
+  .skynet-options { margin-bottom: 24px; font-size: 14px; }
+  .skynet-submit { min-height: 54px; font-size: 18px; }
+  .skynet-switch { margin-top: 16px; }
+}
+@media (max-width: 1000px) {
+  .skynet-page { padding: 20px; background: var(--skynet-paper); }
+  .skynet-main { margin-top: 0; }
+  .skynet-offer { display: none; }
+  .skynet-login { padding: 0; background: var(--skynet-paper); }
+  .skynet-login h1 { margin-bottom: 14px; }
+  .skynet-intro { margin-bottom: 22px; }
+  .skynet-portals, .skynet-student-heading { min-height: 54px; margin-bottom: 22px; }
+  .skynet-portals label { min-height: 52px; }
+  .skynet-field { margin-bottom: 22px; }
+  .skynet-field input { height: 56px; padding: 14px 18px; }
+  .skynet-options { margin-bottom: 26px; }
+  .skynet-submit { min-height: 56px; }
+}
+@media (max-width: 1000px) and (max-height: 740px) {
+  .skynet-page { padding: 16px 20px; }
+  .skynet-main { margin-top: 0; }
+  .skynet-login h1 { font-size: 32px; margin-bottom: 18px; }
+  .skynet-intro { font-size: 14px; line-height: 1.4; margin-bottom: 10px; }
+  .skynet-portals, .skynet-student-heading { min-height: 48px; margin-bottom: 18px; }
+  .skynet-portals label { min-height: 46px; font-size: 20px; }
+  .skynet-field { margin-bottom: 18px; }
+  .skynet-field > label { font-size: 16px; margin-bottom: 8px; }
+  .skynet-field input { height: 48px; font-size: 16px; }
+  .skynet-options { font-size: 12px; margin-bottom: 22px; }
+  .skynet-options input { width: 20px; height: 20px; }
+  .skynet-submit { min-height: 50px; font-size: 18px; }
+  .skynet-switch { margin-top: 16px; }
+}
+
+@media (max-width: 1000px) {
+  .skynet-header > a { order: 0; }
+  .skynet-menu-toggle { order: 1; margin-left: auto; }
+  .skynet-header nav { order: 2; }
+  .skynet-main { display: block; width: min(100%, 480px); }
+}
+@media (min-width: 1001px) and (max-height: 720px) {
+  .skynet-page { padding-top: 16px; padding-bottom: 16px; row-gap: 18px; }
+  .skynet-offer { padding: 26px 34px; }
+  .skynet-offer-copy h2 { font-size: 32px; }
+  .skynet-offer ol { font-size: 18px; line-height: 1.45; }
+  .skynet-tagline { margin-top: 20px; }
+  .skynet-tagline p { font-size: 18px; margin-bottom: 8px; }
+  .skynet-tagline h2 { font-size: 36px; }
+  .skynet-login h1 { font-size: 38px; margin-bottom: 16px; }
+  .skynet-intro { font-size: 14px; line-height: 1.4; margin-bottom: 10px; }
+  .skynet-portals { min-height: 44px; margin-bottom: 16px; }
+  .skynet-portals label { min-height: 42px; font-size: 20px; }
+  .skynet-field { margin-bottom: 16px; }
+  .skynet-field > label { font-size: 17px; margin-bottom: 8px; }
+  .skynet-field input { height: 46px; padding: 10px 18px; }
+  .skynet-options { margin-bottom: 20px; }
+  .skynet-submit { min-height: 48px; }
+  .skynet-switch { margin-top: 12px; }
+}
+@media (max-width: 1000px) and (max-height: 560px) {
+  .skynet-page { padding: 12px 20px; row-gap: 16px; }
+  .skynet-login h1 { font-size: 26px; margin-bottom: 12px; }
+  .skynet-portals { min-height: 40px; margin-bottom: 12px; }
+  .skynet-portals label { min-height: 38px; font-size: 18px; }
+  .skynet-field { margin-bottom: 10px; }
+  .skynet-field > label { font-size: 14px; margin-bottom: 6px; }
+  .skynet-field input { height: 40px; padding: 8px 14px; }
+  .skynet-options { margin-bottom: 12px; }
+  .skynet-submit { min-height: 42px; font-size: 16px; }
+  .skynet-switch { margin-top: 12px; font-size: 12px; }
+  .skynet-role-note { margin: -4px 0 10px; font-size: 11px; }
+}
+
+@media (max-width: 1000px) and (max-height: 560px) {
+  .skynet-page { padding-top: 10px; padding-bottom: 10px; row-gap: 10px; }
+  .skynet-header img { width: 160px; }
+  .skynet-menu-toggle { width: 38px; height: 38px; }
+  .skynet-login h1 { font-size: 24px; margin-bottom: 8px; }
+  .skynet-intro { font-size: 12px; line-height: 1.35; margin-bottom: 10px; }
+  .skynet-portals { min-height: 36px; margin-bottom: 10px; }
+  .skynet-portals label { min-height: 34px; font-size: 17px; }
+  .skynet-field { margin-bottom: 8px; }
+  .skynet-field > label { margin-bottom: 4px; }
+  .skynet-field input { height: 36px; }
+  .skynet-options { margin-bottom: 10px; }
+  .skynet-submit { min-height: 38px; }
+  .skynet-switch { margin-top: 8px; }
+  .skynet-role-note { margin: -2px 0 6px; }
+}

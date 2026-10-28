@@ -9,14 +9,14 @@ import { getProtectedRouteRedirect } from "./roleRoutes";
  * just not authorized for this specific page).
  */
 export default function ProtectedRoute({ children, allowedRoles }) {
-  const { isLoading, user } = useAuth();
+  const { isLoading, user, workspace } = useAuth();
   const { pathname } = useLocation();
 
   if (isLoading) {
     return <p style={{ padding: "var(--space-8)" }}>Loading...</p>;
   }
 
-  const redirect = getProtectedRouteRedirect(user, allowedRoles, pathname);
+  const redirect = getProtectedRouteRedirect(user, allowedRoles, pathname, Boolean(workspace));
   if (redirect) return <Navigate to={redirect} replace />;
 
   return children;

@@ -1,3 +1,4 @@
+import FinalResults from './FinalResults';
 import { Link, useSearchParams } from "react-router-dom";
 import { useTeachingQuery } from "../teacher/teachingQueries";
 import { Empty, Field, PageHeading, QueryState } from "../teacher/TeachingUI";
@@ -10,12 +11,13 @@ export default function StudentCourseworkPage({ gradesOnly = false }) {
   const selected = params.get("subject") || "";
   const works = (assignments.data || []).filter(w => !selected || w.subject_id === selected);
   return <><PageHeading title={gradesOnly ? "Grades & feedback" : "Assignments & tasks"}>{gradesOnly ? "Your marks and teacher feedback for published assessments." : "Read instructions, save a draft, and submit your work."}</PageHeading>
+    {gradesOnly&&<FinalResults/>}
     <QueryState query={subjects} /><QueryState query={assignments} />
     <Field label="Filter subject" value={selected} onChange={e => setParams(e.target.value ? { subject: e.target.value } : {})}><option value="">All subjects</option>{subjects.data?.map(s => <option key={s.id} value={s.id}>{s.name} · {s.class_name}</option>)}</Field>
     {assignments.data && !works.length && <Empty>No published assessments for this selection.</Empty>}
     {works.map(w => <article className="teaching-panel" key={w.id}><div className="section-header"><h2>{w.title}</h2><span className="student-status">{assignmentStatus(w)}</span></div>
       <p className="teaching-muted">{w.subject_name} · {w.kind.toLowerCase()} · {formatDateTime(w.due_at)}</p>
-      {gradesOnly ? <><p className="teaching-notice">Score: {w.score === null ? "Not graded" : `${w.score} / ${w.max_score}`}</p>{w.feedback && <p className="teaching-instructions"><strong>Teacher feedback:</strong> {w.feedback}</p>}</> : <p className="teaching-muted">Maximum score: {w.max_score}</p>}
+      {gradesOnly ? <><p className="teaching-notice">Outcome: {w.competency_label || (w.score === null ? w.grades_released ? "Not graded" : "Results not released" : `${w.score} / ${w.max_score}${w.grade ? ` · ${w.grade}` : ""}`)}</p>{w.feedback && <p className="teaching-instructions"><strong>Teacher feedback:</strong> {w.feedback}</p>}</> : <p className="teaching-muted">{w.assessment_mode === "COMPETENCY" ? "Competency observation" : `Maximum score: ${w.max_score}`}</p>}
       <div className="teaching-actions"><Link to={`/student/assignments/${w.id}`}>{w.submission?.status === "SUBMITTED" ? "View submission" : "Open assessment"}</Link></div>
     </article>)}
   </>;

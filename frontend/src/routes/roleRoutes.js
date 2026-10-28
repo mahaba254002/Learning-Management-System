@@ -26,8 +26,9 @@ export function getRoleChangePasswordPath(role) {
   return "/change-password";
 }
 
-export function getProtectedRouteRedirect(user, allowedRoles, pathname) {
+export function getProtectedRouteRedirect(user, allowedRoles, pathname, workspace = false) {
   if (!user) return getRoleLoginPath(allowedRoles?.[0]);
+  if (workspace && pathname.endsWith("/change-password")) return getRoleHomePath(user.role);
   const passwordPath = getRoleChangePasswordPath(user.role);
   if (user.must_change_password && pathname !== passwordPath) return passwordPath;
   if (allowedRoles && !allowedRoles.includes(user.role)) return getRoleHomePath(user.role);

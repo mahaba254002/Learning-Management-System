@@ -2,7 +2,7 @@ import enum
 import uuid
 from datetime import datetime
 
-from sqlalchemy import Boolean, DateTime, Enum, ForeignKey, String, UniqueConstraint
+from sqlalchemy import Boolean, CheckConstraint, DateTime, Enum, ForeignKey, Index, String, UniqueConstraint, func
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -24,7 +24,12 @@ class UserStatus(str, enum.Enum):
 
 class User(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     __tablename__ = "users"
-    __table_args__ = (UniqueConstraint("institution_id", "id", name="uq_users_institution_id_id"),)
+    __table_args__ = (
+        UniqueConstraint("institution_id", "id", name="uq_users_institution_id_id"),
+        CheckConstraint("student_login_method IN ('EMAIL', 'STUDENT_ID')", name="ck_users_login_method"),
+        CheckConstraint("(student_login_method = 'EMAIL' AND email IS NOT NULL) OR (role = 'STUDENT' AND student_login_method = 'STUDENT_ID' AND student_login_id IS NOT NULL)", name="ck_users_login_identity"),
+        CheckConstraint("student_login_id IS NULL OR student_login_id = upper(student_login_id)", name="ck_users_login_id_upper"),
+    )
 
     # Nullable ONLY for PLATFORM_ADMIN — every other role must belong to an
     # institution. Enforced in application code (service layer, next steps),
@@ -42,9 +47,11 @@ class User(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     first_name: Mapped[str] = mapped_column(String(100), nullable=False)
     last_name: Mapped[str] = mapped_column(String(100), nullable=False)
 
-    # Optional. Used only for password-reset delivery and notifications —
-    # never for login.
-    email: Mapped[str] = mapped_column(String(255), nullable=False, unique=True, index=True)
+    # Staff require email. ID-only pupils may omit it; database checks below
+    # keep every account's configured sign-in identity valid.
+    email: Mapped[str | None] = mapped_column(String(255), nullable=True, unique=True, index=True)
+    student_login_method: Mapped[str] = mapped_column(String(20), nullable=False, default="EMAIL", server_default="EMAIL")
+    student_login_id: Mapped[str | None] = mapped_column(String(60), nullable=True, unique=True, index=True)
 
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
 
@@ -67,3 +74,6 @@ class User(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     password_changed_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
+
+
+Index("uq_users_email_lower", func.lower(User.email), unique=True)

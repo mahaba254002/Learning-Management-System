@@ -1,0 +1,6 @@
+.record-chart__bars { list-style: none; padding: 0; margin: 1.5rem 0; display: grid; gap: 1rem; }
+.record-chart__bars li { display: grid; grid-template-columns: minmax(5rem, 1fr) minmax(0, 2fr) auto; gap: .75rem; align-items: center; font-size: .875rem; }
+.record-chart__label { overflow-wrap: anywhere; }
+.record-chart__track { display: block; height: 1.25rem; background: #e3ebf2; border-radius: .2rem; }
+.record-chart__track > span { display: block; height: 100%; background: #026aa7; border-radius: .2rem; }
+.record-chart summary { cursor: pointer; padding: .5rem 0; }

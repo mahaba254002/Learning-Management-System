@@ -5,6 +5,7 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 
     DATABASE_URL: str
+    DATABASE_URL_UNPOOLED: str = ""
     JWT_SECRET_KEY: str
     JWT_ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 15
@@ -14,6 +15,12 @@ class Settings(BaseSettings):
     ALLOWED_ORIGINS: str = "http://localhost:5173,http://127.0.0.1:5173"
     RESEND_API_KEY: str = ""
     EMAIL_FROM_ADDRESS: str = "onboarding@resend.dev"
+    PRODUCT_ENQUIRY_EMAIL: str = ""
+    BILLING_SUPPORT_EMAIL: str = "mahaba955@gmail.com"
+    BACKUP_SIGNING_KEY: str = ""
+    PG_DUMP_PATH: str = ""
+    PG_RESTORE_PATH: str = ""
+    RESTORE_DATABASE_URL: str = ""
     FRONTEND_BASE_URL: str = "http://localhost:5173"
 
     @property

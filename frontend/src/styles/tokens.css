@@ -1,17 +1,17 @@
 :root {
-  /* Color — flat, solid values only. No gradients anywhere in this project. */
-  --color-ink: #1a2332;
-  --color-ink-soft: #4a5568;
-  --color-paper: #faf9f6;
-  --color-canvas: #f0eee7;
-  --color-accent: #2d5f4c;
-  --color-accent-hover: #234a3c;
+  /* Workspace colors. Public login pages use their supplied Skynet palette. */
+  --color-ink: #334155;
+  --color-ink-soft: #64748b;
+  --color-paper: #f4f7fa;
+  --color-canvas: #eef3f7;
+  --color-accent: #026aa7;
+  --color-accent-hover: #00598e;
   --color-accent-warm: #b8863e;
-  --color-line: #d8d4c8;
+  --color-line: #d7e0e8;
   --color-white: #ffffff;
 
   /* Type */
-  --font-display: "Source Serif 4", Georgia, serif;
+  --font-display: "Poppins", "Inter", sans-serif;
   --font-body: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
 
   /* Type scale */

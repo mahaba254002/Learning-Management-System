@@ -3,6 +3,8 @@ import uuid
 from pydantic import BaseModel, Field, field_validator
 
 from app.models.institution import InstitutionStatus, InstitutionType
+from app.services.academic_configuration import AcademicConfiguration
+from app.services.learning_settings import LearningSettings
 
 
 class InstitutionCreateRequest(BaseModel):
@@ -14,6 +16,8 @@ class InstitutionCreateRequest(BaseModel):
     official_email: str | None = None
     phone: str | None = None
     website: str | None = None
+    academic_configuration: AcademicConfiguration | None = None
+    learning_settings: LearningSettings | None = None
 
     @field_validator("code")
     @classmethod

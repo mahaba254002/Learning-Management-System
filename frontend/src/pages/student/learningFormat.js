@@ -1,4 +1,5 @@
 export function assignmentStatus(work, now = Date.now()) {
+  if (work.competency_label || work.graded) return 'Reviewed';
   if (work.score !== null && work.score !== undefined) return "Graded";
   if (work.submission?.status === "SUBMITTED") return work.submission.is_late ? "Submitted late" : "Submitted";
   if (work.kind === "EXAM") return "Examination";

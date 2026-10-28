@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 export const INSTITUTION_TYPES = [
+  "KINDERGARTEN",
   "UNIVERSITY",
   "COLLEGE",
   "HIGH_SCHOOL",

@@ -1,0 +1,15 @@
+.progression-fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); gap: 20px; }
+dl.progression-fields { margin: 20px 0; }
+.progression-fields dt { color: var(--text-secondary, #52647c); text-transform: capitalize; font-size: .85rem; }
+.progression-fields dd { margin: 4px 0 0; font-size: 1.2rem; font-weight: 600; }
+.progression-history small { display: block; margin-top: 4px; color: var(--text-secondary, #52647c); }
+.progression-history details p { max-width: 38ch; overflow-wrap: anywhere; }
+@media (max-width: 640px) {
+  .progression-history .table-wrapper { overflow: visible; }
+  .progression-history table, .progression-history tbody { display: block; width: 100%; }
+  .progression-history thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+  .progression-history tr { display: grid; gap: 14px; padding: 16px 0; border-bottom: 1px solid var(--border-color, #d4dfea); }
+  .progression-history tr:last-child { border-bottom: 0; }
+  .progression-history td { display: block; padding: 0; border: 0; white-space: normal; overflow-wrap: anywhere; }
+  .progression-history td::before { content: attr(data-label); display: block; margin-bottom: 4px; font-size: .75rem; font-weight: 600; color: var(--text-secondary, #52647c); text-transform: uppercase; }
+}

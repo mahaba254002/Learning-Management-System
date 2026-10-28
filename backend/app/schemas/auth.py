@@ -4,8 +4,24 @@ from pydantic import BaseModel, model_validator, Field
 
 
 class LoginRequest(BaseModel):
-    username: str
-    password: str
+    email: str = Field(min_length=3, max_length=255, pattern=r"^[^\s@]+@[^\s@]+\.[^\s@]+$")
+    password: str = Field(min_length=1, max_length=1024)
+    remember_me: bool = False
+
+
+class StudentLoginRequest(BaseModel):
+    email: str | None = Field(default=None, min_length=3, max_length=255, pattern=r"^[^\s@]+@[^\s@]+\.[^\s@]+$")
+    student_id: str | None = Field(default=None, min_length=1, max_length=60, pattern=r"^[A-Za-z0-9._/-]+$")
+    password: str = Field(min_length=1, max_length=1024)
+    remember_me: bool = False
+    model_config = {"extra": "forbid", "str_strip_whitespace": False}
+
+    @model_validator(mode="after")
+    def one_identity(self):
+        if bool(self.email) == bool(self.student_id):
+            raise ValueError("Provide either email or student ID")
+        return self
+
 
 class LoginResponse(BaseModel):
     must_change_password: bool
@@ -14,11 +30,14 @@ class LoginResponse(BaseModel):
 class UserSummary(BaseModel):
     id: uuid.UUID
     username: str
+    email: str | None = None
     first_name: str
     last_name: str
     role: str
     institution_id: uuid.UUID | None
     must_change_password: bool
+    student_login_method: str = 'EMAIL'
+    student_login_id: str | None = None
 
     # Concept note: `model_config` with from_attributes=True tells Pydantic
     # it's allowed to build this schema directly from a SQLAlchemy model

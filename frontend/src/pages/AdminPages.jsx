@@ -1,3 +1,5 @@
+import WorkspaceAccessButton from "../components/common/WorkspaceAccessButton";
+import LearningSettings from "./institution/LearningSettings";
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/useAuth';
@@ -5,6 +7,7 @@ import { useTeachingMutation, useTeachingQuery } from './teacher/teachingQueries
 import { Field, MutationState, PageHeading, QueryState } from './teacher/TeachingUI';
 import './teacher/TeachingWorkspace.css';
 import './platform/PlatformDashboardPage.css';
+import './platform/PlatformOperations.css';
 
 function Pages({ offset, total, setOffset }) {
   return <div className="teaching-actions"><button disabled={!offset} onClick={() => setOffset(Math.max(0, offset - 50))}>Previous</button><span>{total ? offset + 1 : 0}–{Math.min(offset + 50, total)} of {total}</span><button disabled={offset + 50 >= total} onClick={() => setOffset(offset + 50)}>Next</button></div>;
@@ -24,19 +27,21 @@ export function AdminUsersPage({ platform = false, studentsOnly = false }) {
   }
   return <><PageHeading title={studentsOnly ? 'Students' : 'User accounts'}>Search accounts and manage access. Suspending an account preserves its records.</PageHeading>
     {studentsOnly && <p><Link to="/institution/classes">Manage class enrollment and student details</Link></p>}
-    <div className="teaching-toolbar"><Field label="Search name or username" value={search} onChange={e => { setSearch(e.target.value); setOffset(0); }} />
+    <div className="teaching-toolbar"><Field label="Search name, username, email or student ID" value={search} onChange={e => { setSearch(e.target.value); setOffset(0); }} />
       {!studentsOnly && <Field label="Role" value={role} onChange={e => { setRole(e.target.value); setOffset(0); }}><option value="">All roles</option>{['INSTITUTION_ADMIN', 'TEACHER', 'STUDENT', ...(platform ? ['PLATFORM_ADMIN'] : [])].map(r => <option key={r} value={r}>{r.replaceAll('_', ' ')}</option>)}</Field>}</div>
     <QueryState query={query} /><MutationState mutation={mutation} message="Account access updated." />
     {selected && <section className="teaching-panel" aria-label="Confirm account access change"><h2>{selected.status === 'ACTIVE' ? 'Suspend' : 'Reactivate'} {selected.first_name} {selected.last_name}?</h2><p>Existing sessions will be invalidated. The person will need to sign in again after reactivation.</p><div className="teaching-actions"><button disabled={mutation.isPending} onClick={change}>Confirm change</button><button disabled={mutation.isPending} onClick={() => setSelected(null)}>Cancel</button></div></section>}
-    {query.data && <><div className="table-wrapper"><table className="data-table"><thead><tr><th>Name / username</th><th>Role</th><th>Status</th><th>Access</th></tr></thead><tbody>{query.data.items.map(u => <tr key={u.id}><td>{u.first_name} {u.last_name}<div className="teaching-muted">{u.username}</div></td><td>{u.role.replaceAll('_', ' ')}</td><td>{u.status}{u.must_change_password && <div className="teaching-muted">Password change required</div>}</td><td>{u.id !== user.id && u.role !== 'PLATFORM_ADMIN' && (platform || u.role !== 'INSTITUTION_ADMIN') && u.status !== 'INVITED' && <button disabled={mutation.isPending} onClick={() => { mutation.reset(); setSelected(u); }}>{u.status === 'ACTIVE' ? 'Suspend' : 'Reactivate'}</button>}</td></tr>)}</tbody></table></div>{!query.data.total && <p>No matching accounts.</p>}<Pages offset={offset} total={query.data.total} setOffset={setOffset} /></>}
+    {query.data && <><div className="table-wrapper"><table className="data-table"><thead><tr><th>Name / username</th><th>Role</th><th>Status</th><th>Access</th><th>Workspace</th></tr></thead><tbody>{query.data.items.map(u => <tr key={u.id}><td>{u.first_name} {u.last_name}<div className="teaching-muted">{u.username}</div></td><td>{u.role.replaceAll('_', ' ')}</td><td>{u.status}{u.must_change_password && <div className="teaching-muted">Password change required</div>}</td><td>{u.id !== user.id && u.role !== 'PLATFORM_ADMIN' && (platform || u.role !== 'INSTITUTION_ADMIN') && u.status !== 'INVITED' && <button disabled={mutation.isPending} onClick={() => { mutation.reset(); setSelected(u); }}>{u.status === 'ACTIVE' ? 'Suspend' : 'Reactivate'}</button>}</td><td><WorkspaceAccessButton userId={u.id} role={u.role} disabled={u.status !== 'ACTIVE'} /></td></tr>)}</tbody></table></div>{!query.data.total && <p>No matching accounts.</p>}<Pages offset={offset} total={query.data.total} setOffset={setOffset} /></>}
   </>;
 }
 
 export function AdminAuditPage({ platform = false }) {
   const [offset, setOffset] = useState(0);
-  const query = useTeachingQuery(`/api/${platform ? 'platform' : 'institution'}/audit-logs?offset=${offset}`);
+  const [action, setAction] = useState('');
+  const query = useTeachingQuery(`/api/${platform ? 'platform' : 'institution'}/audit-logs?${new URLSearchParams({ offset, ...(action ? { action } : {}) })}`);
   return <><PageHeading title="Administrative audit trail">Administrative changes recorded since audit logging was introduced. Times use your local timezone.</PageHeading><QueryState query={query} />
-    {query.data && <><div className="table-wrapper"><table className="data-table"><thead><tr><th>When</th><th>Action</th><th>Actor</th><th>Target</th><th>Details</th></tr></thead><tbody>{query.data.items.map(r => <tr key={r.id}><td>{new Date(r.created_at).toLocaleString()}</td><td>{r.action.replaceAll('_', ' ')}</td><td>{r.actor_id}</td><td>{r.target_id}</td><td>{r.detail || '—'}</td></tr>)}</tbody></table></div>{!query.data.total && <p>No administrative changes recorded yet.</p>}<Pages offset={offset} total={query.data.total} setOffset={setOffset} /></>}
+    <div className="teaching-toolbar"><Field label="Action type" value={action} onChange={e => { setAction(e.target.value); setOffset(0); }}><option value="">All actions</option>{query.data?.action_types?.map(type => <option key={type} value={type}>{type.replaceAll('_', ' ')}</option>)}</Field><button className="operations-secondary" onClick={() => { setAction(''); setOffset(0); }}>Clear filter</button></div>
+    {query.data && <section className="operations-card"><div className="table-wrapper"><table className="data-table"><thead><tr><th>When</th><th>Action</th><th>Actor</th><th>IP address</th><th>Details</th></tr></thead><tbody>{query.data.items.map(r => <tr key={r.id}><td>{new Date(r.created_at).toLocaleString()}</td><td>{r.action.replaceAll('_', ' ')}</td><td>{r.actor_name || r.actor_id}<small>{r.actor_email}</small></td><td>{r.ip_address || 'Not recorded'}</td><td><details><summary>View details</summary><dl className="audit-details"><dt>Event ID</dt><dd>{r.id}</dd><dt>Actor ID</dt><dd>{r.actor_id}</dd><dt>Target</dt><dd>{r.target_id}</dd><dt>Institution</dt><dd>{r.institution_id || 'Platform'}</dd><dt>Request</dt><dd>{r.request_method ? `${r.request_method} ${r.request_path}` : 'Not recorded'}</dd><dt>Detail</dt><dd>{r.detail || 'No additional detail'}</dd></dl></details></td></tr>)}</tbody></table></div>{!query.data.total && <p className="empty-state">No matching audit events.</p>}<Pages offset={offset} total={query.data.total} setOffset={setOffset} /></section>}
   </>;
 }
 
@@ -55,6 +60,7 @@ export function InstitutionSettingsPage() {
       <Field label="Address" name="address" maxLength={500} defaultValue={query.data.address || ''} /><Field label="Official email" name="official_email" type="email" maxLength={255} defaultValue={query.data.official_email || ''} />
       <Field label="Phone" name="phone" maxLength={50} defaultValue={query.data.phone || ''} /><Field label="Website" name="website" type="url" maxLength={255} defaultValue={query.data.website || ''} />
       <button className="btn btn--primary" disabled={mutation.isPending}>{mutation.isPending ? 'Saving…' : 'Save settings'}</button></form></section>}
+    <LearningSettings />
   </>;
 }
 

@@ -5,9 +5,11 @@ import { formatDateTime } from "./learningFormat";
 
 export default function StudentSubjectsPage() {
   const query = useTeachingQuery("/api/student/subjects");
-  return <><PageHeading title="My subjects">All courses and subjects in your current class enrollments.</PageHeading><QueryState query={query} />
+  const config = useTeachingQuery("/api/institution/academic-configuration");
+  const labels = config.data?.labels;
+  return <><PageHeading title={`My ${labels?.subject_label.toLowerCase() || "subject"}s`}>Your registered learning offerings and educator contacts.</PageHeading><QueryState query={query} />
     {query.data?.length === 0 && <Empty>No subjects assigned yet.</Empty>}
-    <div className="teaching-grid">{query.data?.map(s => <article key={s.id} className="teaching-panel"><h2>{s.name}</h2><p>{s.class_name} · {s.academic_year}</p><p className="teaching-muted">Teacher: {s.teacher_name}</p><div className="teaching-actions"><Link to={`/student/subjects/${s.id}`}>Materials & learning</Link><Link to={`/student/attendance?subject=${s.id}`}>My attendance</Link></div></article>)}</div>
+    <div className="teaching-grid">{query.data?.map(s => <article key={s.id} className="teaching-panel"><h2>{s.name}</h2><p>{s.class_name} · {s.academic_year}</p><p className="teaching-muted">{labels?.teacher_label || "Educator"}: {s.teacher_name}</p><div className="teaching-actions"><Link to={`/student/subjects/${s.id}`}>Materials & learning</Link><Link to={`/student/attendance?subject=${s.id}`}>My attendance</Link></div></article>)}</div>
   </>;
 }
 

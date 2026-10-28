@@ -2,9 +2,11 @@ import { Outlet } from "react-router-dom";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import "../LandingPage.css";
 import "./TeachingWorkspace.css";
+import { useAcademicNavigation } from '../../hooks/useAcademicNavigation';
 
 const navItems = [
   { label: "Dashboard", path: "/teacher/dashboard" },
+  { label: "Report cards & transcripts", path: "/teacher/reports" },
   { label: "My classes", path: "/teacher/classes" },
   { label: "Attendance", path: "/teacher/attendance" },
   { label: "Coursework", path: "/teacher/coursework" },
@@ -14,5 +16,6 @@ const navItems = [
 ];
 
 export default function TeacherLayout() {
-  return <DashboardLayout navItems={navItems} brandLabel="Teacher portal"><Outlet /></DashboardLayout>;
+  const nav = useAcademicNavigation(navItems);
+  return <DashboardLayout navItems={nav} brandLabel="Educator portal"><Outlet /></DashboardLayout>;
 }

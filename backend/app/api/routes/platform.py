@@ -120,8 +120,12 @@ def confirm_create_institution(
         official_email=stored_payload.get("official_email"),
         phone=stored_payload.get("phone"),
         website=stored_payload.get("website"),
+        academic_configuration=stored_payload.get('academic_configuration') or {},
+        learning_settings=stored_payload.get('learning_settings') or {},
     )
     db.add(institution)
+    from app.services.academic_configuration import academic_configuration
+    institution.academic_configuration = academic_configuration(institution)
 
     try:
         db.flush()

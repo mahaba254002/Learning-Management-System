@@ -146,6 +146,6 @@ def test_orphan_student_cannot_receive_a_session_or_enter_portal(env, monkeypatc
     env['db'].commit()
     monkeypatch.setattr(auth, 'verify_password', lambda *args: True)
     with pytest.raises(HTTPException) as error:
-        auth._authenticate(LoginRequest(username='pupil', password='Test-password1!'), Response(), env['db'], allowed_roles=auth.STUDENT_ROLES)
+        auth._authenticate(LoginRequest(email=env['pupil'].email, password='Test-password1!'), Response(), env['db'], allowed_roles=auth.STUDENT_ROLES)
     assert error.value.status_code == 403
     assert env['as_user'](env['pupil']).get('/api/me').status_code == 401

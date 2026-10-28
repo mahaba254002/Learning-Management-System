@@ -4,6 +4,8 @@ from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
+from sqlalchemy import or_
+from app.models.curriculum import CourseRegistration
 
 from app.api.routes.teaching import commit, enrolled_students, get_coursework, get_subject, missing, scoped, staff
 from app.core.deps import AuthContext, require_role
@@ -12,6 +14,8 @@ from app.models.academic import AcademicClass, Attendance, Coursework, Enrollmen
 from app.models.learning import CourseMaterial, Submission
 from app.models.user import User, UserRole
 from app.schemas.learning import MaterialInput, SubmissionInput
+from app.models.institution import Institution
+from app.services.learning_settings import learning_settings, grade_label
 
 router = APIRouter(prefix="/api", tags=["Student learning"])
 student_role = require_role(UserRole.STUDENT)
@@ -26,7 +30,8 @@ def own_student(db, ctx):
 
 def student_subjects(db, student, ctx):
     enrolled = scoped(db, Enrollment, ctx).filter(Enrollment.student_id == student.id, Enrollment.active.is_(True)).with_entities(Enrollment.class_id)
-    return scoped(db, Subject, ctx).filter(Subject.class_id.in_(enrolled))
+    registered = scoped(db, CourseRegistration, ctx).filter_by(student_id=student.id, active=True).with_entities(CourseRegistration.subject_id)
+    return scoped(db, Subject, ctx).filter(Subject.class_id.in_(enrolled), or_(Subject.registration_mode == 'COHORT', Subject.id.in_(registered)))
 
 
 def student_subject(db, subject_id, student, ctx):
@@ -42,6 +47,10 @@ def student_work(db, work_id, student, ctx, *, lock=False):
     if not work:
         missing()
     subject = student_subject(db, work.subject_id, student, ctx)
+    if lock:
+        from app.services.academic_calendar import writable_year
+        cls = db.get(AcademicClass, subject.class_id)
+        writable_year(db, ctx.institution_id, cls.academic_year)
     # Lock the enrollment during writes so removal cannot race a submission.
     if lock:
         enrollment = scoped(db, Enrollment, ctx).filter(Enrollment.class_id == subject.class_id,
@@ -75,6 +84,7 @@ def profile(db: Session = Depends(get_db), ctx: AuthContext = Depends(student_ro
     classes = scoped(db, AcademicClass, ctx).join(Enrollment, Enrollment.class_id == AcademicClass.id).filter(
         Enrollment.institution_id == ctx.institution_id, Enrollment.student_id == student.id, Enrollment.active.is_(True)).all()
     return dict(first_name=user.first_name, last_name=user.last_name, username=user.username, email=user.email,
+                login_method=user.student_login_method, login_identity=user.email if user.student_login_method == "EMAIL" else user.student_login_id,
                 admission_number=student.admission_number, phone=student.phone,
                 classes=[dict(id=c.id, name=c.name, academic_year=c.academic_year) for c in classes])
 
@@ -121,9 +131,18 @@ def assignments(subject_id: uuid.UUID | None = None, db: Session = Depends(get_d
     ids = [w.id for w, _ in rows]
     marks = {r.coursework_id: r for r in scoped(db, Score, ctx).filter(Score.student_id == student.id, Score.coursework_id.in_(ids)).all()}
     submissions = {r.coursework_id: r for r in scoped(db, Submission, ctx).filter(Submission.student_id == student.id, Submission.coursework_id.in_(ids)).all()}
+    settings = learning_settings(db.get(Institution, ctx.institution_id))
+    from app.models.pilot import AcademicYear
+    closed_years = {y.name for y in scoped(db, AcademicYear, ctx).filter_by(status='CLOSED').all()}
+    closed_classes = {c.id for c in scoped(db, AcademicClass, ctx).filter(AcademicClass.academic_year.in_(closed_years)).all()}
     return [dict(id=w.id, subject_id=s.id, subject_name=s.name, class_id=s.class_id, title=w.title, instructions=w.instructions,
                  kind=w.kind, due_at=as_utc(w.due_at), max_score=w.max_score, allow_late_submissions=w.allow_late_submissions,
-                 score=marks[w.id].score if w.id in marks else None, feedback=marks[w.id].feedback if w.id in marks else "",
+                 grades_released=w.grades_released, submission_locked=w.id in marks or s.class_id in closed_classes,
+                 academic_year_closed=s.class_id in closed_classes,
+                 assessment_mode=w.assessment_mode, graded=w.grades_released and w.id in marks,
+                 competency_label=marks[w.id].competency_label if w.grades_released and w.id in marks else None,
+                 grade=grade_label(marks[w.id].score, w.max_score, settings, w.grading_bands) if w.grades_released and w.id in marks else None,
+                 score=marks[w.id].score if w.grades_released and w.id in marks else None, feedback=marks[w.id].feedback if w.grades_released and w.id in marks else "",
                  submission=submission_view(submissions.get(w.id))) for w, s in rows]
 
 
@@ -191,6 +210,14 @@ def review_submissions(work_id: uuid.UUID, db: Session = Depends(get_db), ctx: A
     work, subject = get_coursework(db, work_id, ctx)
     # Draft text is private to the student. Only final submissions reach staff.
     rows = scoped(db, Submission, ctx).filter(Submission.coursework_id == work.id, Submission.status == "SUBMITTED").all()
-    roster = {s.id: u for s, u in enrolled_students(db, subject.class_id, ctx).all()}
+    from app.api.routes.teaching import subject_students
+    roster = {s.id: u for s, u in subject_students(db, subject, ctx).all()}
     return [dict(**submission_view(row), student_id=row.student_id, student_name=f"{roster[row.student_id].first_name} {roster[row.student_id].last_name}")
             for row in rows if row.student_id in roster]
+
+
+@router.get('/student/final-grades')
+def final_results(db: Session = Depends(get_db), ctx: AuthContext = Depends(student_role)):
+    from app.services.final_grades import academic_results
+    student=own_student(db,ctx)
+    return academic_results(db,ctx.institution_id,student.id)

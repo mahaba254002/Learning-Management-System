@@ -55,14 +55,17 @@ def save_settings(body: InstitutionSettings, db: Session = Depends(get_db), ctx:
 
 @router.get('/institution/overview')
 def overview(db: Session = Depends(get_db), ctx: AuthContext = Depends(institution_admin)):
+    from app.models.pilot import AcademicYear
+    closed_years = db.query(AcademicYear.name).filter_by(institution_id=ctx.institution_id, status='CLOSED')
+    open_classes = db.query(AcademicClass.id).filter(AcademicClass.institution_id == ctx.institution_id, AcademicClass.academic_year.not_in(closed_years))
     def count(model): return db.query(model).filter(model.institution_id == ctx.institution_id).count()
     role_counts = dict(db.query(User.role, func.count(User.id)).filter(User.institution_id == ctx.institution_id).group_by(User.role).all())
     pending = db.query(Invitation).filter(Invitation.institution_id == ctx.institution_id, Invitation.status == InvitationStatus.SUBMITTED).count()
-    attendance = dict(db.query(Attendance.status, func.count(Attendance.id)).filter(Attendance.institution_id == ctx.institution_id).group_by(Attendance.status).all())
+    attendance = dict(db.query(Attendance.status, func.count(Attendance.id)).filter(Attendance.institution_id == ctx.institution_id, Attendance.scope_key == "class").group_by(Attendance.status).all())
     return dict(institution=institution_view(db.get(Institution, ctx.institution_id)), users_by_role=role_counts,
         classes=count(AcademicClass), subjects=count(Subject), students=count(Student), assessments=count(Coursework),
         pending_invitations=pending, attendance=attendance,
-        active_enrollments=db.query(Enrollment).filter(Enrollment.institution_id == ctx.institution_id, Enrollment.active.is_(True)).count(),
+        active_enrollments=db.query(Enrollment).filter(Enrollment.institution_id == ctx.institution_id, Enrollment.active.is_(True), Enrollment.class_id.in_(open_classes)).count(),
         final_submissions=db.query(Submission).filter(Submission.institution_id == ctx.institution_id, Submission.status == 'SUBMITTED').count(),
         scores_recorded=count(Score))
 
@@ -73,11 +76,12 @@ def user_page(db, tenant=None, search='', role=None, offset=0, limit=50):
     if role is not None: q = q.filter(User.role == role)
     if search:
         term = '%' + search.replace('\\', '\\\\').replace('%', '\\%').replace('_', '\\_') + '%'
-        q = q.filter(or_(User.first_name.ilike(term, escape='\\'), User.last_name.ilike(term, escape='\\'), User.username.ilike(term, escape='\\')))
+        q = q.filter(or_(User.first_name.ilike(term, escape='\\'), User.last_name.ilike(term, escape='\\'), User.username.ilike(term, escape='\\'), User.email.ilike(term, escape='\\'), User.student_login_id.ilike(term, escape='\\')))
     total = q.count()
     rows = q.order_by(User.created_at.desc(), User.id).offset(offset).limit(limit).all()
     return dict(total=total, items=[dict(id=u.id, institution_id=u.institution_id, first_name=u.first_name, last_name=u.last_name,
-        username=u.username, email=u.email, role=u.role, status=u.status, must_change_password=u.must_change_password) for u in rows])
+        username=u.username, email=u.email, student_login_method=u.student_login_method, student_login_id=u.student_login_id,
+        role=u.role, status=u.status, must_change_password=u.must_change_password) for u in rows])
 
 
 @router.get('/institution/users')
@@ -131,22 +135,26 @@ def institution_status(institution_id: uuid.UUID, body: StatusInput, db: Session
     return institution_view(row)
 
 
-def audit_page(db, tenant=None, offset=0, limit=50):
+def audit_page(db, tenant=None, offset=0, limit=50, action=None):
     q = db.query(AuditEvent)
     if tenant is not None: q = q.filter(AuditEvent.institution_id == tenant)
-    return dict(total=q.count(), items=[dict(id=r.id, actor_id=r.actor_id, institution_id=r.institution_id,
-        action=r.action, target_id=r.target_id, detail=r.detail, created_at=r.created_at)
-        for r in q.order_by(AuditEvent.created_at.desc(), AuditEvent.id).offset(offset).limit(limit).all()])
+    action_types = [row[0] for row in q.with_entities(AuditEvent.action).distinct().order_by(AuditEvent.action).all()]
+    if action: q = q.filter(AuditEvent.action == action)
+    return dict(total=q.count(), items=[dict(id=r.id, actor_id=r.actor_id, actor_name=f"{actor.first_name} {actor.last_name}" if actor else None,
+        actor_email=actor.email if actor else None, institution_id=r.institution_id,
+        action=r.action, target_id=r.target_id, detail=r.detail, created_at=r.created_at,
+        ip_address=r.ip_address, request_method=r.request_method, request_path=r.request_path)
+        for r, actor in q.outerjoin(User, User.id == AuditEvent.actor_id).with_entities(AuditEvent, User).order_by(AuditEvent.created_at.desc(), AuditEvent.id).offset(offset).limit(limit).all()], action_types=action_types)
 
 
 @router.get('/institution/audit-logs')
-def institution_audit(offset: int = Query(0, ge=0), limit: int = Query(50, ge=1, le=100), db: Session = Depends(get_db), ctx: AuthContext = Depends(institution_admin)):
-    return audit_page(db, ctx.institution_id, offset, limit)
+def institution_audit(offset: int = Query(0, ge=0), limit: int = Query(50, ge=1, le=100), action: str | None = Query(None, max_length=100), db: Session = Depends(get_db), ctx: AuthContext = Depends(institution_admin)):
+    return audit_page(db, ctx.institution_id, offset, limit, action)
 
 
 @router.get('/platform/audit-logs')
-def platform_audit(offset: int = Query(0, ge=0), limit: int = Query(50, ge=1, le=100), db: Session = Depends(get_db), ctx: AuthContext = Depends(require_platform_admin)):
-    return audit_page(db, offset=offset, limit=limit)
+def platform_audit(offset: int = Query(0, ge=0), limit: int = Query(50, ge=1, le=100), action: str | None = Query(None, max_length=100), db: Session = Depends(get_db), ctx: AuthContext = Depends(require_platform_admin)):
+    return audit_page(db, offset=offset, limit=limit, action=action)
 
 
 @router.get('/platform/usage')

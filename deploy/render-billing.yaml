@@ -1,0 +1,23 @@
+# Optional scheduled service. Deploy after the API migration succeeds.
+# This file does not create a service until explicitly deployed in Render.
+services:
+  - type: cron
+    name: skynet-subscription-notices
+    runtime: python
+    rootDir: backend
+    schedule: "0 * * * *"
+    buildCommand: pip install -r requirements.txt
+    startCommand: python billing_reminders.py --send
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_SECRET_KEY
+        sync: false
+      - key: RESEND_API_KEY
+        sync: false
+      - key: EMAIL_FROM_ADDRESS
+        sync: false
+      - key: BILLING_SUPPORT_EMAIL
+        value: mahaba955@gmail.com
+      - key: ENVIRONMENT
+        value: production
