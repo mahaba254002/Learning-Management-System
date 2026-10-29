@@ -1,5 +1,7 @@
 # Upgrade the existing live deployment
 
+For the actual 29 October 2026 cutover, backup location, deployed services and remaining checks, read [the production release record](RELEASE_2026-10-29.md). The baseline below describes the earlier deployment and must not override that record.
+
 Prepared 28 October 2026 from repository configuration. This document is a release procedure, not evidence that an upgrade has happened. The original project is live; the current working tree's feature tests were local. Hosting dashboards, deployed commit, database revision, restore retention and actual secret values have not been inspected for this handover.
 
 For the ordered command checklist, use [Deployment and migration process](DEPLOYMENT_MIGRATION_PROCESS.md).

@@ -66,7 +66,7 @@ const TeacherResetPasswordPage = lazy(() => import("./pages/teacher/TeacherReset
 function App() {
   return (
     <BrowserRouter>
-      <Suspense fallback={<div role="status" className="route-loading">Opening your workspaceâ€¦</div>}>
+      <Suspense fallback={<div role="status" className="route-loading">Opening your workspace...</div>}>
       <Routes>
         <Route path="/" element={<LoginPage key="staff-home" />} />
         <Route path="/sign-in" element={<LoginPage key="staff-sign-in" />} />
