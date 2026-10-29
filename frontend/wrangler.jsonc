@@ -1,6 +1,6 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "rollback",
+  "name": "skynet",
   "main": "worker.js",
   "compatibility_date": "2026-09-30",
   "assets": {
@@ -10,5 +10,16 @@
       "/api/*"
     ]
   },
-  "previews": {}
+  "previews": {
+    "vars": {
+      "API_ORIGIN": "",
+      "PUBLIC_SITE_ORIGIN": "https://skynet.mahaba955.workers.dev",
+      "INDEX_PUBLIC_SITE": false
+    }
+  },
+  "vars": {
+    "API_ORIGIN": "https://learning-management-system-5nws.onrender.com",
+    "PUBLIC_SITE_ORIGIN": "https://skynet.mahaba955.workers.dev",
+    "INDEX_PUBLIC_SITE": true
+  }
 }

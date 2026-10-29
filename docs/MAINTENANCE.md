@@ -12,6 +12,7 @@ Reviewed against the working tree on 28 October 2026. The original product is al
 | Upgrade the existing live site | [Live deployment runbook](DEPLOYMENT.md) |
 | What is missing or needs improvement? | [Prioritised roadmap](ROADMAP.md) |
 | Record a release, incident or production configuration | [Operations records](OPERATIONS_RECORDS.md) |
+| Public name, metadata and indexing | [SEO configuration](SEO.md) |
 | Academic structure and institution types | [Academic configuration](ACADEMIC_CONFIGURATION.md) |
 | Sessions, drafts, imports and academic years | [Pilot workflows](PILOT_WORKFLOWS.md) |
 | Reports, final grading, GPA and progression | [Reports](ACADEMIC_REPORTS.md), [grading](GRADING_RULES.md), [progression](STUDENT_PROGRESSION.md) |
