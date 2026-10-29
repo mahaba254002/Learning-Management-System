@@ -1,56 +1,20 @@
-.modal-overlay {
-  position: fixed;
-  inset: 0;
-  background-color: rgba(26, 35, 50, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: var(--space-6);
-  z-index: 100;
-}
-
-.modal-content {
-  background-color: var(--color-paper);
-  border-radius: 8px;
-  width: 100%;
-  max-width: 480px;
-  max-height: 90vh;
-  overflow-y: auto;
-}
-.modal-content--wide { max-width: 860px; }
-.institution-onboarding { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 16px; }
-.institution-onboarding>.academic-config,.institution-onboarding>.form-error,.institution-onboarding>button { grid-column: 1/-1; }
-.institution-onboarding>.form-field { margin-bottom: 0; }
-@media(max-width:600px) { .institution-onboarding { grid-template-columns: 1fr; } }
-
-.modal-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: var(--space-6) var(--space-6) var(--space-4);
-  border-bottom: 1px solid var(--color-line);
-}
-
-.modal-title {
-  font-size: var(--text-xl);
-  font-weight: 600;
-  margin: 0;
-}
-
-.modal-close {
-  background: none;
-  border: none;
-  font-size: var(--text-2xl);
-  line-height: 1;
-  cursor: pointer;
-  color: var(--color-ink-soft);
-  padding: 0;
-}
-
-.modal-close:hover {
-  color: var(--color-ink);
-}
-
-.modal-body {
-  padding: var(--space-6);
+.modal-overlay { position: fixed; inset: 0; z-index: 1000; display: grid; place-items: center; padding: 24px; background: #14283b85; }
+.modal-content { display: flex; flex-direction: column; min-width: 0; min-height: 0; width: 100%; max-width: 560px; max-height: calc(100vh - 48px); max-height: calc(100dvh - 48px); border: 1px solid #d1dbe4; border-radius: 10px; background: #fff; box-shadow: 0 24px 80px #14283b26; overflow: hidden; }
+.modal-content--wide { max-width: 980px; }
+.modal-header { flex-shrink: 0; display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 18px 24px; border-bottom: 1px solid #e1e7ed; background: #fff; }
+.modal-title { min-width: 0; font: 600 20px/1.35 var(--font-body); color: #172c3e; margin: 0; overflow-wrap: anywhere; }
+.modal-close { flex-shrink: 0; display: grid; place-items: center; width: 40px; height: 40px; padding: 0; border: 1px solid #d9e2ea; border-radius: 6px; background: #fff; color: #526678; font-size: 25px; line-height: 1; cursor: pointer; }
+.modal-close:hover { color: #172c3e; background: #f1f5f8; }
+.modal-body { min-height: 0; min-width: 0; overflow: auto; overscroll-behavior: contain; scrollbar-gutter: stable; padding: 24px; container: form-panel / inline-size; }
+.institution-onboarding { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 20px; }
+.institution-onboarding > :is(.academic-config,.form-error,button) { grid-column: 1/-1; }
+.institution-onboarding > .form-field { margin-bottom: 0; }
+@container form-panel (max-width: 580px) { .institution-onboarding { grid-template-columns: 1fr; } }
+@media (max-width: 600px) {
+  .modal-overlay { padding: 12px; }
+  .modal-content { max-height: calc(100dvh - 24px); border-radius: 8px; }
+  .modal-header { padding: 14px 16px; gap: 12px; }
+  .modal-title { font-size: 18px; }
+  .modal-body { padding: 20px 16px; }
+  .institution-onboarding { grid-template-columns: 1fr; }
 }

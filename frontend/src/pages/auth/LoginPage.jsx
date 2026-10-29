@@ -73,12 +73,12 @@ export default function LoginPage({ student = false }) {
       {enquirySector && <ProductEnquiryDialog sector={enquirySector} onClose={() => setEnquirySector(null)} />}
       <main className="skynet-main">
         <aside className="skynet-offer" aria-label="Your digital workspace">
-          <div className="skynet-offer-copy"><h2>What we offer:</h2><ol>
-            <li>Secure Institutional Control: Manage accounts and academic records in one workspace.</li>
-            <li>Connected Learning: Access coursework, attendance, and results.</li>
-            <li>Tools for Every Day: Keep classes, teaching materials, and assignments organised.</li>
+          <div className="skynet-offer-copy"><p>Skynet for education</p><h2>One workspace.<br />Every school day.</h2><ol>
+            <li><strong>Classes & people</strong>Keep your institution, staff and learners organised.</li>
+            <li><strong>Teaching & coursework</strong>Share materials, set assignments and review work.</li>
+            <li><strong>Attendance & results</strong>Follow progress with connected academic records.</li>
           </ol></div>
-          <div className="skynet-tagline"><p>Your Digital Workspace</p><h2>Smart Tools for<br /><span className="skynet-arrow" aria-hidden="true">↗</span> Smarter Work</h2></div>
+          <p className="skynet-tagline">For schools, colleges and universities.</p>
         </aside>
         <section className="skynet-login" aria-labelledby="login-title">
           <h1 id="login-title">Welcome Back!</h1>
@@ -91,7 +91,7 @@ export default function LoginPage({ student = false }) {
                   {role === "teacher" ? "Teacher" : "Admin"}
                 </label>)}
               </fieldset>}
-            {!student && portal === "admin" && <p className="skynet-role-note">For platform and institution administrators.</p>}
+            {!student && <p className="skynet-role-note">{portal === 'admin' ? 'For platform and institution administrators.' : 'For teachers and lecturers.'}</p>}
             {state?.passwordChanged && <p className="skynet-notice" role="status">Your password has been changed. Sign in with your new password.</p>}
             <div className="skynet-field"><label htmlFor="identity">{student ? "Email or Student ID" : "Email Address"}</label>
               <input id="identity" type={student ? "text" : "email"} placeholder={student ? "Enter the email or ID your institution assigned" : "Enter your email"} autoComplete="username" autoCapitalize="none" spellCheck={false} aria-invalid={!!errors.email} aria-describedby={errors.email ? "identity-error" : undefined} {...register("email")} />

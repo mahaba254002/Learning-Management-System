@@ -82,7 +82,7 @@ export default function InstitutionTeacherDetailPage() {
                         </div>
                     </div>
 
-                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "1.25rem" }}>
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 300px), 1fr))", gap: "1.25rem" }}>
                         {/* Personal Info */}
                         <div className="recent-institutions" style={{ padding: "1.5rem" }}>
                             <h2 style={{ fontSize: "0.875rem", fontWeight: 600, marginBottom: "0.25rem", textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--color-ink-soft)" }}>

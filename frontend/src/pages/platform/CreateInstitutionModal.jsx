@@ -151,7 +151,6 @@ export default function CreateInstitutionModal({ onClose }) {
         </div>
 
         {templates.isError && <p role="alert">Academic templates could not load. Close this dialog and try again.</p>}
-        {academic && <AcademicConfigurationEditor key={type} value={academic} onChange={value=>setSetup({type,value})} disabled={requestMutation.isPending} />}
         <div className="form-field">
           <label htmlFor="country">Country</label>
           <input id="country" type="text" {...detailsForm.register("country")} />
@@ -182,6 +181,8 @@ export default function CreateInstitutionModal({ onClose }) {
           <label htmlFor="website">Website (optional)</label>
           <input id="website" type="text" {...detailsForm.register("website")} />
         </div>
+
+        {academic && <AcademicConfigurationEditor key={type} value={academic} onChange={value=>setSetup({type,value})} disabled={requestMutation.isPending} />}
 
         {serverError && <p className="form-error" role="alert">{serverError}</p>}
 

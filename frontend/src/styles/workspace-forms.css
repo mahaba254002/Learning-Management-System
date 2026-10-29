@@ -1,0 +1,48 @@
+/* Shared workspace forms: one control scale and readable, bounded columns. */
+:where(.dashboard-content,.modal-body) form,
+:where(.dashboard-content,.modal-body) fieldset { min-inline-size: 0; }
+:is(.dashboard-content,.modal-body) .form-field { min-width: 0; margin-bottom: 20px; }
+:is(.dashboard-content,.modal-body) .form-field > label { display: block; margin-bottom: 7px; font: 600 13px/1.5 var(--font-body); color: #253d50; overflow-wrap: anywhere; }
+:is(.dashboard-content,.modal-body) .form-field :is(input:not([type=checkbox]):not([type=radio]),select,textarea) { display: block; box-sizing: border-box; min-width: 0; width: 100%; max-width: 100%; min-height: 44px; border: 1px solid #becbd7; border-radius: 6px; padding: 10px 12px; background: #fff; color: #20394d; font: 14px/1.5 var(--font-body); transition: border-color 140ms ease,box-shadow 140ms ease; }
+:is(.dashboard-content,.modal-body) .form-field select { padding-right: 30px; text-overflow: ellipsis; }
+:is(.dashboard-content,.modal-body) .form-field textarea { min-height: 112px; resize: vertical; }
+:is(.dashboard-content,.modal-body) .form-field :is(input,select,textarea):hover:not(:disabled) { border-color: #879eaf; }
+:is(.dashboard-content,.modal-body) .form-field :is(input,select,textarea):focus { outline: 2px solid #026aa7; outline-offset: 2px; border-color: #026aa7; box-shadow: none; }
+:is(.dashboard-content,.modal-body) .form-field :is(input,textarea)::placeholder { color: #7a8b99; }
+:is(.dashboard-content,.modal-body) .form-field :is(input,select,textarea):disabled { background: #f2f5f8; color: #617284; cursor: not-allowed; }
+:is(.dashboard-content,.modal-body) .form-field :is(small,.field-error) { display: block; margin-top: 6px; line-height: 1.5; }
+:is(.dashboard-content,.modal-body) .form-error { overflow-wrap: anywhere; }
+.dashboard-content .teaching-grid { align-items: start; }
+.dashboard-content .teaching-grid > * { min-width: 0; }
+.dashboard-content .teaching-panel { min-width: 0; padding: 24px; background: #fff; border-color: #dce4eb; border-radius: 8px; container: form-panel / inline-size; }
+.dashboard-content .teaching-form { width: 100%; min-width: 0; max-width: 880px; }
+.dashboard-content .teaching-form > a { display: inline-block; margin-bottom: 18px; color: #026aa7; font-size: 13px; text-underline-offset: 3px; }
+.dashboard-content .teaching-toolbar { gap: 16px; }
+.dashboard-content .teaching-toolbar .form-field { margin-bottom: 0; }
+.dashboard-content .teaching-actions { gap: 10px; padding-top: 8px; }
+:is(.dashboard-content,.modal-body) .academic-config { margin: 24px 0; padding: 22px; border: 1px solid #d6e0e8; border-radius: 6px; min-width: 0; background: #fff; }
+:is(.dashboard-content,.modal-body) .academic-config legend { padding-inline: 8px; font: 600 15px/1.5 var(--font-body); color: #253d50; }
+:is(.dashboard-content,.modal-body) .academic-config-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 18px 20px; margin-top: 18px; align-items: start; }
+:is(.dashboard-content,.modal-body) .academic-config-grid > .form-field { margin: 0; }
+:is(.dashboard-content,.modal-body) .academic-config :is(p,small) { font-size: 13px; line-height: 1.65; color: #5c7081; }
+:is(.dashboard-content,.modal-body) .academic-config summary { padding: 16px 0; font-size: 14px; color: #253d50; }
+:is(.dashboard-content,.modal-body) .academic-config details { border-top: 1px solid #e2e8ef; margin-top: 20px; }
+:is(.dashboard-content,.modal-body) .academic-check { gap: 10px; font-size: 13px; line-height: 1.6; margin: 12px 0; color: #384f61; }
+:is(.dashboard-content,.modal-body) .academic-check input { width: 16px!important; height: 16px; flex-shrink: 0; accent-color: #026aa7; }
+:is(.dashboard-content,.modal-body) :is(.grading-policy-editor,.progression-rules-editor) { margin-top: 24px; border-top: 1px solid #e2e8ef; padding-top: 22px; min-width: 0; }
+:is(.dashboard-content,.modal-body) .grading-policy-editor :is(h3,h4) { font: 600 15px/1.5 var(--font-body); margin: 0 0 10px; }
+:is(.dashboard-content,.modal-body) .grading-policy-editor > p { margin: 12px 0; }
+:is(.dashboard-content,.modal-body) .grading-band-row { padding: 16px; border: 1px solid #dce4eb; border-radius: 6px; background: #f8fafb; }
+:is(.dashboard-content,.modal-body) .grading-band-row > button { grid-column: 1/-1; justify-self: start; }
+:is(.dashboard-content,.modal-body) .academic-config button { min-height: 38px; border: 1px solid #c7d3de; border-radius: 5px; padding: 7px 12px; font: 500 13px/1.5 var(--font-body); color: #37566d; background: #fff; cursor: pointer; }
+:is(.dashboard-content,.modal-body) .institution-onboarding > .form-field { margin: 0; }
+:is(.dashboard-content,.modal-body) .table-wrapper { max-width: 100%; min-width: 0; }
+@container form-panel (max-width: 580px) {
+  :is(.dashboard-content,.modal-body) .academic-config-grid { grid-template-columns: 1fr; }
+  :is(.dashboard-content,.modal-body) .academic-config { padding: 16px; }
+}
+@media (max-width: 600px) {
+  :is(.dashboard-content,.modal-body) .form-field :is(input:not([type=checkbox]):not([type=radio]),select,textarea) { font-size: 16px; }
+  .dashboard-content .teaching-panel { padding: 20px 16px; }
+  :is(.dashboard-content,.modal-body) .academic-config-grid { grid-template-columns: 1fr; }
+}

@@ -11,7 +11,7 @@
   --color-white: #ffffff;
 
   /* Type */
-  --font-display: "Poppins", "Inter", sans-serif;
+  --font-display: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
   --font-body: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
 
   /* Type scale */

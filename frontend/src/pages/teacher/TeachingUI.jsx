@@ -4,11 +4,12 @@ import "../auth/LoginPage.css";
 import "../platform/PlatformDashboardPage.css";
 import "./TeachingWorkspace.css";
 
-export function Field({ label, children, ...props }) {
+export function Field({ label, description, children, ...props }) {
   const id = useId();
+  const describedBy = [props['aria-describedby'], description ? `${id}-help` : null].filter(Boolean).join(' ') || undefined;
   return <div className="form-field"><label htmlFor={id}>{label}</label>{children
-    ? <select id={id} {...props}>{children}</select>
-    : <input id={id} {...props} />}</div>;
+    ? <select id={id} {...props} aria-describedby={describedBy}>{children}</select>
+    : <input id={id} {...props} aria-describedby={describedBy} />}{description && <small id={`${id}-help`}>{description}</small>}</div>;
 }
 
 export function QueryState({ query }) {
