@@ -9,6 +9,8 @@ const paths = {
   settings: "M12 8a4 4 0 1 1 0 8 4 4 0 0 1 0-8M9 3h6l1 3 3 1 2 5-2 5-3 1-1 3H9l-1-3-3-1-2-5 2-5 3-1z",
   usage: "M4 20V10m8 10V4m8 16v-8M2 21h20",
   menu: "M4 5h16v14H4zM9 5v14",
+  'collapse-sidebar': 'M14 6l-6 6 6 6',
+  'expand-sidebar': 'M10 6l6 6-6 6',
   logout: "M9 4H4v16h5M9 12h12m-4-4 4 4-4 4",
   'academic-years': 'M4 5h16v16H4zM8 2v6m8-6v6M4 10h16M8 14h2m4 0h2M8 18h2',
   'academic-structure': 'M9 3h6v5H9zM3 16h6v5H3zM15 16h6v5h-6zM12 8v4M6 16v-4h12v4',

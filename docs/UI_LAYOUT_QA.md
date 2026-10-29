@@ -27,3 +27,11 @@ Visual interaction checks ran against the local frontend with a read-only layout
 | Class and subject forms at 1280×720 and 390×844 | No overflowing field containers or horizontal page overflow |
 
 When diagnosing future clipping, first inspect the nearest `.modal-body`, `.teaching-panel`, `.academic-config-grid` and `.form-field`. Long documents should scroll vertically; avoid imposing fixed form heights or hiding overflowing inputs. Tables have their own horizontal scroll containers. A highly zoomed page or many validation messages may need vertical scrolling so content stays readable rather than being cropped.
+
+## Sidebar and workspace overflow follow-up
+
+The desktop collapse control now belongs to the sidebar logo row. The shell uses a bounded two-column grid, with independent navigation and workspace scrolling. At 900px and below it switches to the right-hand mobile menu. Collapsed navigation retains accessible names and a visible expand control.
+
+Two specific defects were found: the first dashboard metric had zero left padding, and the billing chart's expanded data table inherited a 500px minimum width without a scroll wrapper. Before the fix, at 760px the workspace measured 497px wide with 553px of content. The chart table now fits its card; recovery-preview tables scroll within their own region. Dashboard columns respond to their container's available width beside the sidebar.
+
+Verified with read-only local snapshots: desktop at 1280px, narrow desktop at 901px, mobile at 760px and 390px; workspace scroll width equals client width. Collapse reduces the sidebar from 248px to 76px and expand restores it. At 390px all eleven class/teaching fields remain between x=33 and x=342, with no horizontal workspace overflow. No forms were submitted. Billing data-table disclosure and mobile menu opening/closing were exercised.

@@ -25,7 +25,13 @@ export default function DashboardLayout({ navItems, children, brandLabel }) {
       <div className="dashboard-sidebar__primary">
         <div className="dashboard-sidebar__brand">
           <img className="dashboard-brand-image" src={logo} alt="Skynet" />
-          <span className="dashboard-brand-mark" aria-hidden="true">S</span>
+          <button type="button" className="dashboard-sidebar-toggle"
+            aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            aria-expanded={!collapsed} aria-controls="dashboard-desktop-sidebar"
+            onClick={() => setCollapsed(value => !value)}>
+            <NavIcon name={collapsed ? 'expand-sidebar' : 'collapse-sidebar'} />
+          </button>
         </div>
 
         {brandLabel && <p className="dashboard-sidebar__context">{labels ? brandLabel.replace("Teacher", labels.teacher_label).replace("Student", labels.student_label) : brandLabel}</p>}
@@ -66,13 +72,12 @@ export default function DashboardLayout({ navItems, children, brandLabel }) {
   return (
     <div className={`dashboard-shell ${collapsed ? 'dashboard-shell--collapsed' : ''}`} onKeyDown={event => { if (event.key === 'Escape') { setMobileNavOpen(false); document.querySelector('.dashboard-topbar__menu-btn')?.focus(); } }}>
       <a className="dashboard-skip-link" href="#workspace-main">Skip to workspace</a>
-      <aside className="dashboard-sidebar dashboard-sidebar--desktop">
+      <aside id="dashboard-desktop-sidebar" className="dashboard-sidebar dashboard-sidebar--desktop">
         {sidebarContent}
       </aside>
 
       <div className="dashboard-main">
         <header className="dashboard-topbar">
-          <button type="button" className="dashboard-desktop-toggle" aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'} aria-expanded={!collapsed} onClick={() => setCollapsed(value => !value)}><NavIcon name="menu" /></button>
           <span className="dashboard-topbar__context">{user.role.replaceAll('_', ' ').toLowerCase()}</span>
           <button
             className="dashboard-topbar__menu-btn"

@@ -4,3 +4,5 @@
 .record-chart__track { display: block; height: 1.25rem; background: #e3ebf2; border-radius: .2rem; }
 .record-chart__track > span { display: block; height: 100%; background: #026aa7; border-radius: .2rem; }
 .record-chart summary { cursor: pointer; padding: .5rem 0; }
+.record-chart .record-chart__table { min-width: 0; width: 100%; table-layout: fixed; }
+.record-chart .record-chart__table :is(th,td) { white-space: normal; overflow-wrap: anywhere; }
