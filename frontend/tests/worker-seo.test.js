@@ -8,6 +8,7 @@ const env={PUBLIC_SITE_ORIGIN:site,INDEX_PUBLIC_SITE:true,API_ORIGIN:'https://ap
 test('deployment routes HTML through the Worker before SPA assets',()=>{
   const config=JSON.parse(readFileSync(new URL('../wrangler.jsonc',import.meta.url),'utf8'));
   assert.equal(config.assets.run_worker_first,true,'Private HTML must receive Worker indexing and caching headers');
+  assert.equal(config.assets.binding,'ASSETS','Worker asset responses require the named ASSETS binding');
 });
 test('public homepage has canonical header and preserves HTML',async()=>{const r=await worker.fetch(new Request(site+'/'),env);assert.equal(await r.text(),'<html>Skynet</html>');assert.equal(r.headers.get('X-Robots-Tag'),null);assert.equal(r.headers.get('Link'),`<${site}/>; rel="canonical"`);});
 test('private pages prohibit indexing and cached HTML',async()=>{for(const path of ['/platform/dashboard','/student/login','/invite/private-token']){const r=await worker.fetch(new Request(site+path),env);assert.equal(r.headers.get('X-Robots-Tag'),'noindex, nofollow');assert.equal(r.headers.get('Cache-Control'),'no-store');}});
