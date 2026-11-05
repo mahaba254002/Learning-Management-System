@@ -37,16 +37,22 @@ from app.models.curriculum import Department, Programme, StudyLevel, CatalogueUn
 from app.models.academic_document import AcademicDocument
 from app.models.final_grade import FinalGrade
 from app.models.progression import Prerequisite, ProgressionDecision
-from app.models.management import StaffMember, StaffAllocation, StaffAttendance
+from app.models.management import StaffMember, StaffAttendance
+from app.models.structure import CurriculumStrand, InstitutionLevel, OfferingTeacher
 
 MAX_ARCHIVE = 512 * 1024 * 1024
 MAX_INSTITUTION = 50 * 1024 * 1024
-GROUPS = {"people": [User, Teacher, Student, StaffMember], "academics": [Department, Programme, StudyLevel, CatalogueUnit, StaffAllocation, Prerequisite, AcademicYear, AcademicPeriod, AcademicClass, Subject, Enrollment, CourseRegistration, CourseCompletion, ProgressionDecision],
+GROUPS = {"people": [User, Student, StaffMember], "academics": [InstitutionLevel, Department, Programme, StudyLevel, CatalogueUnit, CurriculumStrand, Prerequisite, AcademicYear, AcademicPeriod, AcademicClass, Subject, OfferingTeacher, Enrollment, CourseRegistration, CourseCompletion, ProgressionDecision],
           "learning": [Coursework, CourseMaterial, Score, Submission, FinalGrade, AcademicDocument], "attendance": [Attendance, StaffAttendance],
           "billing": [Subscription, SubscriptionPayment, BillingNotice]}
-ORDER = [User, Teacher, Student, Department, StaffMember, Programme, StudyLevel, CatalogueUnit, StaffAllocation, StaffAttendance, Prerequisite, AcademicYear, AcademicPeriod, AcademicClass, Subject, Enrollment, CourseRegistration, CourseCompletion, ProgressionDecision, Coursework, CourseMaterial,
+ORDER = [User, Student, Department, StaffMember, InstitutionLevel, Programme, StudyLevel, CatalogueUnit, CurriculumStrand, StaffAttendance, Prerequisite, AcademicYear, AcademicPeriod, AcademicClass, Subject, OfferingTeacher, Enrollment, CourseRegistration, CourseCompletion, ProgressionDecision, Coursework, CourseMaterial,
          Score, Submission, FinalGrade, AcademicDocument, Attendance, Subscription, SubscriptionPayment, BillingNotice]
 MODELS = {model.__tablename__: model for model in ORDER}
+# Tables that older backups contain. Teachers become staff records on restore;
+# the short-lived allocation table never held production data and is skipped.
+LEGACY = {"teachers": Teacher, "staff_course_allocations": None}
+# Rows that point at a parent row in the same table are inserted parents first.
+SELF_PARENT = {Department: "parent_id", CurriculumStrand: "parent_id"}
 
 
 def signing_key():
@@ -204,8 +210,10 @@ def institution_payload(manifest, payload):
         if str(institution["id"]) != manifest["institution_id"] or institution["code"] != manifest["institution_code"]: raise ValueError()
         tables = {}
         for table, rows in data["tables"].items():
-            if table not in MODELS or not isinstance(rows, list) or len(rows) > 200000: raise ValueError()
-            values = [convert(MODELS[table], row) for row in rows]
+            model = MODELS.get(table) or LEGACY.get(table)
+            if table not in MODELS and table not in LEGACY or not isinstance(rows, list) or len(rows) > 200000: raise ValueError()
+            if model is None: continue
+            values = [convert(model, row) for row in rows]
             if len({row["id"] for row in values}) != len(values): raise ValueError()
             if any(row["institution_id"] != institution["id"] for row in values): raise ValueError()
             tables[table] = values
@@ -242,10 +250,13 @@ def merge_institution(db, manifest, payload, expected_fingerprint):
             if key in institution: setattr(current, key, institution[key])
     db.flush()
     for model in ORDER:
-        for values in tables.get(model.__tablename__, []):
-            if model == Teacher and values.get("invited_from"):
-                invitation = db.query(Invitation).filter(Invitation.id == values["invited_from"], Invitation.institution_id == tenant).first()
-                if invitation is None: values["invited_from"] = None
+        rows = tables.get(model.__tablename__, [])
+        if model in SELF_PARENT:
+            rows = sorted(rows, key=lambda values: values.get(SELF_PARENT[model]) is not None)
+        for values in rows:
+            if model == StaffMember and values.get("invitation_id"):
+                invitation = db.query(Invitation).filter(Invitation.id == values["invitation_id"], Invitation.institution_id == tenant).first()
+                if invitation is None: values["invitation_id"] = None
             row = db.get(model, values["id"])
             if row and row.institution_id != tenant:
                 raise HTTPException(409, "Backup record conflicts with another institution.")
@@ -269,9 +280,30 @@ def merge_institution(db, manifest, payload, expected_fingerprint):
                 for key, value in values.items():
                     if key not in {"id", "institution_id"}: setattr(row, key, value)
         db.flush()
+        if model == StaffMember:
+            restore_legacy_teachers(db, tenant, tables.get("teachers", []))
     revoke_recovered_access(db, tenant)
     # Caller commits the merge and its real-actor audit event together.
     return tenant
+
+
+def restore_legacy_teachers(db, tenant, teachers):
+    """Give each teacher from an older backup a staff record if they have none."""
+    from app.services.staff import next_staff_number
+    for values in teachers:
+        user = db.get(User, values["user_id"])
+        if user is None or user.institution_id != tenant: continue
+        if db.query(StaffMember.id).filter_by(institution_id=tenant, user_id=user.id).first(): continue
+        employment = getattr(values.get("employment_type"), "value", values.get("employment_type"))
+        status = getattr(values.get("status"), "value", values.get("status"))
+        db.add(StaffMember(institution_id=tenant, user_id=user.id, staff_number=next_staff_number(db, tenant),
+            first_name=user.first_name, last_name=user.last_name, category="TEACHING", job_title="Teacher",
+            email=user.email, phone=values.get("phone"), gender=getattr(values.get("gender"), "value", values.get("gender")),
+            date_of_birth=values.get("date_of_birth"), qualification=values.get("qualification"),
+            specialization=values.get("specialization"),
+            employment_type="CONTRACT" if employment == "VISITING" else employment or "FULL_TIME",
+            status="ACTIVE" if status == "ACTIVE" else "ON_LEAVE" if status == "ON_LEAVE" else "INACTIVE"))
+        db.flush()
 
 
 def revoke_recovered_access(connection, tenant=None):

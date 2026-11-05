@@ -7,7 +7,7 @@ export default function TeacherProfilePage() {
   const { workspace } = useAuth();
   const query = useTeachingQuery("/api/teacher/profile");
   const p = query.data;
-  const fields = p ? { Name: `${p.first_name} ${p.last_name}`, Username: p.username, Email: p.email, Phone: p.phone,
+  const fields = p ? { Name: `${p.first_name} ${p.last_name}`, "Staff number": p.staff_number, "Job title": p.job_title, Username: p.username, Email: p.email, Phone: p.phone,
     Qualification: p.qualification, Specialization: p.specialization, Employment: p.employment_type.replaceAll("_", " "), Status: p.status,
     "Date of birth": p.date_of_birth, "Joined on": new Date(p.joined_at).toLocaleDateString() } : {};
   return <><PageHeading title="My profile">Your institution’s record of your teaching appointment.</PageHeading><QueryState query={query} />

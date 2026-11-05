@@ -14,12 +14,15 @@ class UserRole(str, enum.Enum):
     INSTITUTION_ADMIN = "INSTITUTION_ADMIN"
     TEACHER = "TEACHER"
     STUDENT = "STUDENT"
+    STAFF = "STAFF"  # non-teaching staff; rights come from staff_permissions
 
 
 class UserStatus(str, enum.Enum):
     ACTIVE = "ACTIVE"
-    SUSPENDED = "SUSPENDED"
+    SUSPENDED = "SUSPENDED"  # temporary; sign-in blocked
     INVITED = "INVITED"
+    DEACTIVATED = "DEACTIVATED"  # left the institution; record kept
+    ARCHIVED = "ARCHIVED"  # hidden from lists; read-only
 
 
 class User(UUIDPrimaryKeyMixin, TimestampMixin, Base):
@@ -75,6 +78,9 @@ class User(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     password_changed_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
+
+    # A temporary password set by an administrator stops working after this time.
+    temporary_password_expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
 
 Index("uq_users_email_lower", func.lower(User.email), unique=True)

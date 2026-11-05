@@ -7,6 +7,8 @@ const portals = [
   ["INSTITUTION_ADMIN", "/login", "/change-password", "/institution/dashboard"],
   ["TEACHER", "/teacher/login", "/teacher/change-password", "/teacher/dashboard"],
   ["STUDENT", "/student/login", "/student/change-password", "/student/dashboard"],
+  // Non-teaching staff sign in through the staff door and have their own portal.
+  ["STAFF", "/teacher/login", "/teacher/change-password", "/staff/dashboard"],
 ];
 
 for (const [role, login, password, home] of portals) {

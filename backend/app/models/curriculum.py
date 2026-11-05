@@ -7,17 +7,25 @@ from app.db.base import Base, TenantMixin, TimestampMixin, UUIDPrimaryKeyMixin
 
 
 class Department(UUIDPrimaryKeyMixin, TimestampMixin, TenantMixin, Base):
+    """Faculties and schools group departments. Only a DEPARTMENT can have a parent."""
     __tablename__ = 'academic_departments'
-    __table_args__ = (UniqueConstraint('institution_id', 'id'), UniqueConstraint('institution_id', 'code'))
+    __table_args__ = (UniqueConstraint('institution_id', 'id'), UniqueConstraint('institution_id', 'code'),
+        ForeignKeyConstraint(['institution_id', 'parent_id'], ['academic_departments.institution_id', 'academic_departments.id']),
+        CheckConstraint("kind IN ('FACULTY','SCHOOL','DEPARTMENT')", name='ck_academic_departments_kind'),
+        CheckConstraint("parent_id IS NULL OR kind = 'DEPARTMENT'", name='ck_academic_departments_parent'))
     code: Mapped[str] = mapped_column(String(30))
     name: Mapped[str] = mapped_column(String(160))
+    kind: Mapped[str] = mapped_column(String(12), default='DEPARTMENT', server_default='DEPARTMENT')
+    parent_id: Mapped[uuid.UUID | None] = mapped_column(nullable=True, index=True)
 
 
 class Programme(UUIDPrimaryKeyMixin, TimestampMixin, TenantMixin, Base):
     __tablename__ = 'academic_programmes'
     __table_args__ = (UniqueConstraint('institution_id', 'id'), UniqueConstraint('institution_id', 'code'),
-        ForeignKeyConstraint(['institution_id', 'department_id'], ['academic_departments.institution_id', 'academic_departments.id']))
+        ForeignKeyConstraint(['institution_id', 'department_id'], ['academic_departments.institution_id', 'academic_departments.id']),
+        ForeignKeyConstraint(['institution_id', 'education_level_id'], ['institution_levels.institution_id', 'institution_levels.id']))
     department_id: Mapped[uuid.UUID | None] = mapped_column(nullable=True)
+    education_level_id: Mapped[uuid.UUID | None] = mapped_column(nullable=True, index=True)
     code: Mapped[str] = mapped_column(String(30))
     name: Mapped[str] = mapped_column(String(160))
     award: Mapped[str | None] = mapped_column(String(100), nullable=True)
@@ -27,8 +35,10 @@ class StudyLevel(UUIDPrimaryKeyMixin, TimestampMixin, TenantMixin, Base):
     __tablename__ = 'academic_levels'
     __table_args__ = (UniqueConstraint('institution_id', 'id'), UniqueConstraint('institution_id', 'code'),
         ForeignKeyConstraint(['institution_id', 'programme_id'], ['academic_programmes.institution_id', 'academic_programmes.id']),
+        ForeignKeyConstraint(['institution_id', 'education_level_id'], ['institution_levels.institution_id', 'institution_levels.id']),
         CheckConstraint('position >= 1 AND position <= 100'))
     programme_id: Mapped[uuid.UUID | None] = mapped_column(nullable=True)
+    education_level_id: Mapped[uuid.UUID | None] = mapped_column(nullable=True, index=True)
     code: Mapped[str] = mapped_column(String(30))
     name: Mapped[str] = mapped_column(String(100))
     position: Mapped[int] = mapped_column(default=1)
@@ -39,8 +49,10 @@ class CatalogueUnit(UUIDPrimaryKeyMixin, TimestampMixin, TenantMixin, Base):
     __table_args__ = (UniqueConstraint('institution_id', 'id'), UniqueConstraint('institution_id', 'code'),
         ForeignKeyConstraint(['institution_id', 'programme_id'], ['academic_programmes.institution_id', 'academic_programmes.id']),
         ForeignKeyConstraint(['institution_id', 'level_id'], ['academic_levels.institution_id', 'academic_levels.id']),
+        ForeignKeyConstraint(['institution_id', 'education_level_id'], ['institution_levels.institution_id', 'institution_levels.id']),
         CheckConstraint('credits IS NULL OR (credits >= 0 AND credits <= 1000)'))
     programme_id: Mapped[uuid.UUID | None] = mapped_column(nullable=True)
+    education_level_id: Mapped[uuid.UUID | None] = mapped_column(nullable=True, index=True)
     level_id: Mapped[uuid.UUID | None] = mapped_column(nullable=True)
     code: Mapped[str] = mapped_column(String(30))
     name: Mapped[str] = mapped_column(String(160))

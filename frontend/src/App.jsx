@@ -41,6 +41,11 @@ const PlatformBackupPage = lazy(() => import("./pages/platform/PlatformBackupPag
 const PlatformRestorePage = lazy(() => import("./pages/platform/PlatformRestorePage"));
 
 const InvitePage = lazy(() => import("./pages/invite/InvitePage"));
+const SetPasswordPage = lazy(() => import("./pages/auth/SetPasswordPage"));
+const StaffLayout = lazy(() => import("./pages/staff/StaffLayout"));
+const StaffDashboardPage = lazy(() => import("./pages/staff/StaffLayout").then(module => ({ default: module.StaffDashboardPage })));
+const StaffPermissionGate = lazy(() => import("./pages/staff/StaffLayout").then(module => ({ default: module.RequirePermission })));
+const StaffStudentsPage = lazy(() => import("./pages/staff/StaffStudentsPage"));
 const InstitutionLayout = lazy(() => import("./pages/institution/InstitutionLayout"));
 const AcademicStructurePage = lazy(() => import('./pages/institution/AcademicStructurePage'));
 const CourseRegistrationsPage = lazy(() => import('./pages/institution/CourseRegistrationsPage'));
@@ -80,6 +85,7 @@ function App() {
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />
         <Route path="/invite/:token" element={<InvitePage />} />
+        <Route path="/set-password" element={<SetPasswordPage />} />
         <Route path="/student/login" element={<StudentLoginPage />} />
         <Route path="/student/forgot-password" element={<StudentForgotPasswordPage />} />
         <Route path="/student/reset-password" element={<StudentResetPasswordPage />} />
@@ -89,7 +95,7 @@ function App() {
         />
         <Route
           path="/teacher/change-password"
-          element={<ProtectedRoute allowedRoles={["TEACHER"]}><ChangePasswordPage /></ProtectedRoute>}
+          element={<ProtectedRoute allowedRoles={["TEACHER", "STAFF"]}><ChangePasswordPage /></ProtectedRoute>}
         />
 
         <Route
@@ -177,6 +183,20 @@ function App() {
           <Route path="profile" element={<StudentProfilePage />} />
           <Route path="progression" element={<StudentProgressionPage />} />
           <Route path="academic-record" element={<AcademicRecordPage />} />
+        </Route>
+        <Route
+          path="/staff"
+          element={
+            <ProtectedRoute allowedRoles={["STAFF"]}>
+              <StaffLayout />
+            </ProtectedRoute>
+          }
+        >
+          <Route index element={<Navigate to="dashboard" replace />} />
+          <Route path="dashboard" element={<StaffDashboardPage />} />
+          <Route path="staff" element={<StaffPermissionGate permission="staff.view"><StaffDirectoryPage readOnly /></StaffPermissionGate>} />
+          <Route path="staff-attendance" element={<StaffPermissionGate permission="staff_attendance.manage"><StaffAttendancePage /></StaffPermissionGate>} />
+          <Route path="students" element={<StaffPermissionGate permission="students.view"><StaffStudentsPage /></StaffPermissionGate>} />
         </Route>
         <Route path="/teacher/login" element={<TeacherLoginPage />} />
         <Route path="/teacher/forgot-password" element={<TeacherForgotPasswordPage />} />

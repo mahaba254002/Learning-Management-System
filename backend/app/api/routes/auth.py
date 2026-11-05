@@ -23,6 +23,7 @@ import uuid
 import jwt
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
+from pydantic import BaseModel, Field
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
@@ -46,6 +47,7 @@ from app.schemas.auth import (
     ForgotPasswordRequest,
     ForgotPasswordResponse,
     LoginRequest,
+    PASSWORD_MAX_LENGTH,
     StudentLoginRequest,
     LoginResponse,
     ResetPasswordRequest,
@@ -64,7 +66,8 @@ _DUMMY_PASSWORD_HASH = hash_password("not-a-real-password")
 # Three portals, three doors. Each set is disjoint from the others, and
 # every user's role belongs to exactly one of them.
 ADMIN_ROLES = frozenset({UserRole.PLATFORM_ADMIN, UserRole.INSTITUTION_ADMIN})
-TEACHER_ROLES = frozenset({UserRole.TEACHER})
+# Teachers and non-teaching staff share the staff door.
+TEACHER_ROLES = frozenset({UserRole.TEACHER, UserRole.STAFF})
 STUDENT_ROLES = frozenset({UserRole.STUDENT})
 
 
@@ -199,9 +202,15 @@ def _authenticate(
         if user.role == UserRole.STUDENT:
             from app.services.modules import require_enabled
             require_enabled(institution, 'student_portal')
-        elif user.role == UserRole.TEACHER:
+        elif user.role in {UserRole.TEACHER, UserRole.STAFF}:
             from app.services.modules import require_enabled
             require_enabled(institution, 'staff_directory')
+
+    if user.must_change_password and user.temporary_password_expires_at is not None:
+        expires = user.temporary_password_expires_at
+        expires = expires if expires.tzinfo else expires.replace(tzinfo=timezone.utc)
+        if expires <= datetime.now(timezone.utc):
+            raise HTTPException(status_code=403, detail="This temporary password has expired. Ask your administrator for a new one.")
 
     session = AuthSession(id=uuid.uuid4(), user_id=user.id,
         expires_at=datetime.now(timezone.utc) + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS),
@@ -294,7 +303,7 @@ def refresh(request: Request, response: Response, db: Session = Depends(get_db))
         if user.role == UserRole.STUDENT:
             from app.services.modules import require_enabled
             require_enabled(institution, 'student_portal')
-        elif user.role == UserRole.TEACHER:
+        elif user.role in {UserRole.TEACHER, UserRole.STAFF}:
             from app.services.modules import require_enabled
             require_enabled(institution, 'staff_directory')
     renewed = create_refresh_token(user_id=user.id, session_id=session.id, expires_at=expiry)
@@ -368,6 +377,7 @@ def change_password(
 
     user.password_hash = hash_password(payload.new_password)
     user.must_change_password = False
+    user.temporary_password_expires_at = None
     _bump_password_changed_at(user)
     _auth_audit(db, request, user, "auth.password_changed")
     db.commit()
@@ -491,6 +501,7 @@ def _reset_password(payload: ResetPasswordRequest, request: Request, db: Session
 
     user.password_hash = hash_password(payload.new_password)
     user.must_change_password = False
+    user.temporary_password_expires_at = None
     _bump_password_changed_at(user)
     _retire_reset_codes(db, user.id)
     record.consumed_at = datetime.now(timezone.utc)
@@ -525,3 +536,57 @@ def teacher_reset_password(payload: ResetPasswordRequest, request: Request, db: 
 )
 def student_reset_password(payload: ResetPasswordRequest, request: Request, db: Session = Depends(get_db)) -> ResetPasswordResponse:
     return _reset_password(payload, request, db, allowed_roles=STUDENT_ROLES)
+
+
+# ---------------------------------------------------------------------------
+# Set-password links for accounts an administrator created
+# ---------------------------------------------------------------------------
+
+class SetupTokenRequest(BaseModel):
+    token: str = Field(min_length=20, max_length=200)
+
+
+class SetPasswordRequest(SetupTokenRequest):
+    new_password: str = Field(max_length=PASSWORD_MAX_LENGTH)
+    confirm_password: str = Field(max_length=PASSWORD_MAX_LENGTH)
+
+
+INVALID_SETUP_LINK = "This link is invalid, already used or expired. Ask your administrator for a new one."
+
+
+@router.post("/set-password/check",
+             dependencies=[Depends(rate_limit(max_requests=20, window_seconds=600, key_prefix="setup-check"))])
+def check_setup_link(payload: SetupTokenRequest, db: Session = Depends(get_db)):
+    from app.services.staff import find_setup_token, login_path
+    found = find_setup_token(db, payload.token)
+    if found is None:
+        raise HTTPException(status_code=400, detail=INVALID_SETUP_LINK)
+    _, user = found
+    institution = db.get(Institution, user.institution_id) if user.institution_id else None
+    return dict(first_name=user.first_name, username=user.username,
+                institution_name=institution.name if institution else None, login_path=login_path(user.role))
+
+
+@router.post("/set-password",
+             dependencies=[Depends(rate_limit(max_requests=10, window_seconds=600, key_prefix="setup-password"))])
+def set_password(payload: SetPasswordRequest, request: Request, db: Session = Depends(get_db)):
+    from app.services.staff import find_setup_token, login_path
+    if payload.new_password != payload.confirm_password:
+        raise HTTPException(status_code=400, detail="Passwords do not match")
+    found = find_setup_token(db, payload.token, lock=True)
+    if found is None:
+        raise HTTPException(status_code=400, detail=INVALID_SETUP_LINK)
+    token, user = found
+    try:
+        validate_password_policy(payload.new_password)
+    except PasswordPolicyError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    user.password_hash = hash_password(payload.new_password)
+    user.must_change_password = False
+    user.temporary_password_expires_at = None
+    _bump_password_changed_at(user)
+    token.used_at = datetime.now(timezone.utc)
+    _retire_reset_codes(db, user.id)
+    _auth_audit(db, request, user, "auth.password_set", "Account setup link")
+    db.commit()
+    return dict(login_path=login_path(user.role))

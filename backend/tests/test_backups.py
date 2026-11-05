@@ -60,7 +60,8 @@ def test_export_is_scoped_and_signed_without_active_invitation_tokens(env):
     assert manifest['kind'] == 'institution' and manifest['groups'] == ['academics', 'attendance', 'learning', 'people']
     assert all(user['role'] != 'PLATFORM_ADMIN' for user in data['tables']['users'])
     assert all(user['institution_id'] == str(env['cls'].institution_id) for user in data['tables']['users'])
-    assert all(teacher['invited_from'] is None for teacher in data['tables']['teachers'])
+    assert 'teachers' not in data['tables']
+    assert all(staff['invitation_id'] is None for staff in data['tables']['staff_members'])
     assert str(env['other_cls'].id) not in payload.decode()
     assert c.post('/api/platform/backups/institution', json={'institution_id': str(env['cls'].institution_id), 'groups': ['secrets']}).status_code == 422
 

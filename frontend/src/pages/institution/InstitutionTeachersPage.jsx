@@ -105,7 +105,7 @@ export default function InstitutionTeachersPage() {
                                             </Link>
                                         </td>
                                         <td>{t.email}</td>
-                                        <td>{t.qualification}</td>
+                                        <td>{t.qualification || "—"}</td>
                                         <td>{t.specialization || <span style={{ color: "var(--color-ink-soft)" }}>—</span>}</td>
                                         <td>{EMPLOYMENT_LABELS[t.employment_type] ?? t.employment_type}</td>
                                         <td>
@@ -114,7 +114,7 @@ export default function InstitutionTeachersPage() {
                                             </span>
                                         </td>
                                         <td>{new Date(t.joined_at).toLocaleDateString()}</td>
-                                        <td><WorkspaceAccessButton userId={t.user_id} role="TEACHER" disabled={t.status !== "ACTIVE"} /></td>
+                                        <td><WorkspaceAccessButton userId={t.user_id} role="TEACHER" disabled={t.account_status !== "ACTIVE"} /></td>
                                     </tr>
                                 ))}
                             </tbody>

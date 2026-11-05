@@ -13,6 +13,7 @@ export default function AssessmentEditor({ subject, editing, pending, save, canc
   const draft = useWorkDraft('assessment', `${subject.id}:${editing?.id || 'new'}`);
   const periods = useTeachingQuery(`/api/teaching/subjects/${subject.id}/periods`);
   const config = useTeachingQuery('/api/institution/academic-configuration');
+  const strands = useTeachingQuery(`/api/teaching/subjects/${subject.id}/strands`);
   const method = draft.value.assessment_mode ?? editing?.assessment_mode ?? (config.data?.assessment_policy === 'COMPETENCY' ? 'COMPETENCY' : 'NUMERIC');
   const value = (field, fallback = '') => draft.value[field] ?? editing?.[field] ?? fallback;
   const change = (field, next) => draft.change(old => ({ ...old, __base_updated_at: old.__base_updated_at ?? editing?.updated_at, [field]: next }));
@@ -26,6 +27,7 @@ export default function AssessmentEditor({ subject, editing, pending, save, canc
         {config.data?.assessment_policy !== 'COMPETENCY' && <option value="NUMERIC">Numeric marks</option>}{config.data?.assessment_policy !== 'NUMERIC' && <option value="COMPETENCY">Competency observation</option>}
       </Field>
       <Field label="Reporting term / semester" name="period_id" value={value('period_id', '') || ''} onChange={e=>change('period_id',e.target.value)}><option value="">Offering period / not assigned</option>{periods.data?.map(p=><option key={p.id} value={p.id}>{p.name}</option>)}</Field>
+      {strands.data?.length > 0 && <Field label="Strand (optional)" name="strand_id" value={value('strand_id', '') || ''} onChange={e => change('strand_id', e.target.value)}><option value="">Whole learning area</option>{strands.data.map(s => <option key={s.id} value={s.id}>{s.parent_id ? '— ' : ''}{s.code} · {s.name}</option>)}</Field>}
       <Field label="Title" name="title" required maxLength={200} value={value('title')} onChange={e => change('title', e.target.value)} />
       <Field label="Type" name="kind" value={value('kind', 'ASSIGNMENT')} onChange={e => change('kind', e.target.value)}><option value="ASSIGNMENT">Assignment</option><option value="COURSEWORK">Coursework</option><option value="EXAM">Examination</option></Field>
       <div className="form-field"><label htmlFor="coursework-instructions">Instructions</label><textarea id="coursework-instructions" name="instructions" required maxLength={20000} value={value('instructions')} onChange={e => change('instructions', e.target.value)} /></div>

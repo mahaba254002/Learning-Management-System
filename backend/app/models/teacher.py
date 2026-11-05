@@ -31,6 +31,8 @@ class TeacherStatus(str, enum.Enum):
 
 
 class Teacher(UUIDPrimaryKeyMixin, TimestampMixin, TenantMixin, Base):
+    """Retired. staff_members holds these details now. The table stays for one
+    release so the change can be rolled back, and nothing reads or writes it."""
     __tablename__ = "teachers"
 
     user_id: Mapped[uuid.UUID] = mapped_column(

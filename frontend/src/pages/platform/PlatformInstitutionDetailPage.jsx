@@ -7,6 +7,7 @@ import { Field, MutationState, PageHeading, QueryState } from "../teacher/Teachi
 import "../teacher/TeachingWorkspace.css";
 import InstitutionAcademicSetup from './InstitutionAcademicSetup';
 import InstitutionModules from './InstitutionModules';
+import InstitutionLevels from './InstitutionLevels';
 
 export default function PlatformInstitutionDetailPage() {
   const { institutionId } = useParams();
@@ -25,9 +26,10 @@ function InstitutionDetail({ institutionId }) {
       <div className="teaching-grid"><RecordChart title="Institution accounts" entries={Object.entries(data.users_by_role)} /><RecordChart title="Daily attendance records" entries={Object.entries(data.attendance)} /></div>
       <Billing root={root} initial={data.billing} />
       <InstitutionModules root={root} />
+      <InstitutionLevels root={root} institutionId={institutionId} />
       <InstitutionAcademicSetup root={root} />
       <section className="teaching-panel"><h2>Students, teachers and administrators</h2>
-        <div className="teaching-toolbar"><Field label="Search institution accounts" value={search} onChange={e => { setSearch(e.target.value); setOffset(0); }} /><Field label="Role" value={role} onChange={e => { setRole(e.target.value); setOffset(0); }}><option value="">All roles</option>{["STUDENT", "TEACHER", "INSTITUTION_ADMIN"].map(r => <option key={r} value={r}>{r.replaceAll("_", " ")}</option>)}</Field></div>
+        <div className="teaching-toolbar"><Field label="Search institution accounts" value={search} onChange={e => { setSearch(e.target.value); setOffset(0); }} /><Field label="Role" value={role} onChange={e => { setRole(e.target.value); setOffset(0); }}><option value="">All roles</option>{["STUDENT", "TEACHER", "STAFF", "INSTITUTION_ADMIN"].map(r => <option key={r} value={r}>{r.replaceAll("_", " ")}</option>)}</Field></div>
         <div className="table-wrapper"><table className="data-table"><thead><tr><th>Name</th><th>Role</th><th>Email</th><th>Status</th><th>Workspace</th></tr></thead><tbody>{data.users.items.map(user => <tr key={user.id}><td>{user.first_name} {user.last_name}</td><td>{user.role.replaceAll("_", " ")}</td><td>{user.email || "No email"}</td><td>{user.status}</td><td><WorkspaceAccessButton userId={user.id} role={user.role} /></td></tr>)}</tbody></table></div>
         {!data.users.total && <p>No matching accounts.</p>}<div className="teaching-actions"><button disabled={!offset} onClick={() => setOffset(offset - 50)}>Previous</button><span>{data.users.total ? offset + 1 : 0}–{Math.min(offset + 50, data.users.total)} of {data.users.total}</span><button disabled={offset + 50 >= data.users.total} onClick={() => setOffset(offset + 50)}>Next</button></div>
       </section>

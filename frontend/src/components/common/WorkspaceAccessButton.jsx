@@ -16,8 +16,8 @@ export default function WorkspaceAccessButton({ userId, role, disabled = false }
   const [reason, setReason] = useState("");
   const actor = workspace?.actor || user;
   const fullAccess = actor.role === "PLATFORM_ADMIN";
-  const permitted = fullAccess ? ["INSTITUTION_ADMIN", "TEACHER", "STUDENT"].includes(role)
-    : actor.role === "INSTITUTION_ADMIN" ? ["TEACHER", "STUDENT"].includes(role)
+  const permitted = fullAccess ? ["INSTITUTION_ADMIN", "TEACHER", "STUDENT", "STAFF"].includes(role)
+    : actor.role === "INSTITUTION_ADMIN" ? ["TEACHER", "STUDENT", "STAFF"].includes(role)
     : actor.role === "TEACHER" && role === "STUDENT";
   if (!permitted || actor.id === userId) return null;
 

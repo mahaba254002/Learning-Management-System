@@ -19,7 +19,7 @@ from app.db.session import get_db
 from app.main import app
 from app.models.academic import AcademicClass, Attendance, Coursework, Enrollment, Score, Student, Subject
 from app.models.institution import Institution, InstitutionType
-from app.models.teacher import Teacher, Gender, EmploymentType, TeacherStatus
+from app.models.management import StaffMember
 from app.models.user import User, UserRole
 
 
@@ -41,8 +41,9 @@ def env():
         db.add(row)
         db.flush()
         if role == UserRole.TEACHER:
-            db.add(Teacher(institution_id=row.institution_id, user_id=row.id, gender=Gender.OTHER,
-                           date_of_birth=date(1990, 1, 1), qualification="Test", employment_type=EmploymentType.FULL_TIME))
+            db.add(StaffMember(institution_id=row.institution_id, user_id=row.id, staff_number=f"T-{name}", first_name=name,
+                               last_name="Test", category="TEACHING", job_title="Teacher", email=row.email,
+                               gender="OTHER", date_of_birth=date(1990, 1, 1), qualification="Test"))
         return row
 
     supervisor, teacher, unrelated, outsider = user("supervisor"), user("teacher"), user("unrelated"), user("outsider", tenant=1)
@@ -216,8 +217,8 @@ def test_auth_role_csrf_and_forced_change_still_apply(env):
 
 
 def test_inactive_teacher_loses_teaching_access(env):
-    row = env["db"].query(Teacher).filter(Teacher.user_id == env["teacher"].id).one()
-    row.status = TeacherStatus.SUSPENDED; env["db"].commit()
+    row = env["db"].query(StaffMember).filter(StaffMember.user_id == env["teacher"].id).one()
+    row.status = "INACTIVE"; env["db"].commit()
     assert env["as_user"](env["teacher"]).get("/api/teaching/classes").status_code == 404
 
 

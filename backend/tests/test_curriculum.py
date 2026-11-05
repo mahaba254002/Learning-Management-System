@@ -48,6 +48,8 @@ def test_verified_onboarding_keeps_platform_academic_choices(env,monkeypatch):
     assert confirmed.status_code==201
     read=c.get(f"/api/platform/institutions/{confirmed.json()['id']}/academic-configuration").json()
     assert read['managed'] and read['configuration']['structure']=='PROGRAMME' and read['configuration']['registration_mode']=='COHORT'
+    levels=c.get(f"/api/platform/institutions/{confirmed.json()['id']}/levels").json()['levels']
+    assert [(l['level'],l['structure'],l['scale']) for l in levels]==[('COLLEGE','PROGRAMME',None)]
 
 
 def university(env):

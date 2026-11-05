@@ -20,7 +20,7 @@ from app.db.session import get_db
 from app.models.user import User
 from app.schemas.auth import UserSummary
 
-from app.api.routes import auth, invitations, platform, teaching, learning, contact, workspace_access
+from app.api.routes import auth, invitations, platform, teaching, learning, contact, workspace_access, structure
 
 logging.basicConfig(level=logging.INFO)
 
@@ -65,6 +65,7 @@ app.include_router(academic_documents.router)
 app.include_router(final_grades.router)
 app.include_router(grading_policy.router)
 app.include_router(progression.router)
+app.include_router(structure.router)
 
 @app.get("/health")
 def health_check():

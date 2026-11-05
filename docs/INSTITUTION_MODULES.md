@@ -20,15 +20,34 @@ Existing institutions with empty module settings retain full functionality. Sele
 
 ## Management workflows
 
-1. Create academic and support departments in **Departments**, available even without programme-based academic structure.
-2. Add teaching and non-teaching employees in **Staff directory**. Store staff number, department, job title, employment type, status, joining date and contact details. These records do not create login accounts. Link an existing active teacher account when an employee needs educator access. Employee contact information and account identity are managed independently.
-3. Create courses in **Academic structure → Course catalogue**.
-4. Use **Course allocations** to assign a teaching employee, catalogue course, period, optional group/section and weekly hours. Allocations require no students, enrollments or submissions. Reuse a consistent period name. Duplicate employee/course/period/group combinations are rejected; combined active hours cannot exceed 168 in one period. End an allocation to retain its history. End active allocations before placing an employee on leave, changing them to non-teaching staff or marking them inactive.
-5. Use **Staff attendance** to mark a date with Present, Absent, Late, On leave or Off duty, optionally with a note. Unmarked employees are not treated as present. Bulk marking affects only eligible, unmarked employees on the displayed page. New attendance cannot precede the joining date or use a future date. Historical records for inactive staff remain visible. A conflicting entry rejects the entire batch.
+1. Create departments in **Departments and faculties**. Universities can add faculties or schools and place departments under them, one level deep. Schools can keep a flat list.
+2. Add every employee in **Staff directory**: staff number, department, job title, employment type, status, joining date, contact details, and optionally gender, date of birth, qualification and specialisation. This is the one staff record for everyone; the old separate teacher profile is no longer used.
+3. A staff record can have a sign-in account, or none. When adding someone, choose **Create account and email a set-password link** (the link works once and expires in 72 hours), **Create account with a temporary password** (expires in 7 days and must be changed at first sign-in), or **No account**. Teaching staff get a teacher account; non-teaching staff get a staff account. An existing record can be given an account later with **Sign-in** in its row, which also resends an unused link. Teacher invitations still work and now also end with a set-password link instead of an emailed password.
+4. Non-teaching staff sign in through the staff door (Teacher or staff) and see only the pages their administrator ticked under **What they can do**: view the staff directory, take staff attendance, or view student records.
+5. Create courses in **Academic structure → Course catalogue**. For CBE learning areas, open **Strands** on a catalogue row to add strands and sub-strands. Assessments can then point at a strand.
+6. Every offering has one lead teacher, chosen when it is created under **Classes and teaching**. Use **Teaching allocations** to add co-teachers, set groups and weekly hours, or make someone else the lead. Co-teachers have the same access to the offering as the lead. Combined weekly hours cannot exceed 168 in one academic year.
+7. Use **Staff attendance** to mark a date with Present, Absent, Late, On leave or Off duty, optionally with a note. New attendance cannot precede the joining date or use a future date. A conflicting entry rejects the entire batch.
 
-Linked teachers see only their own staffing allocations in **My course allocations**. Institution administrators manage employee records, allocations and attendance. Existing teacher invitations and account security controls continue to govern educator login. Employment status and login-account status are separate; use account access controls when an employee must lose sign-in access.
+### Account states
 
-Staffing allocations plan employee workloads. **Classes & teaching** continues to attach teachers and course offerings to actual student groups when student records are enabled. A staffing allocation does not automatically create a student group, publish materials, enroll students or create a class course offering.
+Accounts move one step at a time, and each step can be undone:
+
+| State | Meaning |
+| --- | --- |
+| Active | Can sign in |
+| Suspended | Temporarily blocked |
+| Deactivated | Left the institution; records kept. Needs a reason. A teacher must first hand over open offerings they lead and classes they supervise. Their co-teaching in open years is removed. |
+| Archived | Hidden from lists and read-only. Needs a reason. |
+
+Every change ends the person's sessions and is recorded in the audit trail. Nothing is permanently deleted here.
+
+## Levels and assessment scales
+
+At onboarding the platform administrator chooses, on the institution details page, which levels the institution offers (ECDE, lower and upper primary, junior school, senior school, college, TVET, university) and the assessment scale for each. Presets cover CBE four and eight levels, letter grades A–E, GPA 4.0 and 5.0, TVET competent / not yet competent, and percentage only. They can be copied and adjusted, or a new scale defined. The presets are starting points, not official policy; confirm the bands with the institution.
+
+Classes, programmes, study levels and catalogue courses can be tied to a level. An assessment copies its level's scale when it is created and when its first marks are saved, so later scale changes never rewrite past results. A custom scale that marks already use cannot be edited, only copied. A level with classes or courses can be made inactive but not removed. Existing institutions were given the level their type implies and no scale, so their marking is unchanged until a scale is assigned.
+
+Classes also have an optional stream, for example Grade 7 East.
 
 ## Student records and sign-in
 
@@ -45,12 +64,12 @@ Disabling the institution's student portal blocks existing student sessions and 
 - Configuration and security endpoints remain accessible so administrators can inspect the package and manage accounts.
 - Turning off a module preserves its records. Turning it back on restores access to the same records.
 - Updates require the version loaded by the editor. Concurrent changes return a conflict instead of overwriting another administrator's work.
-- Employee, department, allocation, attendance and module mutations are audited. Institution backups include module settings and new management records; restore inserts departments and employees before dependent records.
+- Employee, department, allocation, attendance, account, permission, level, scale and strand changes are audited. Institution backups include staff records, levels, strands and teaching allocations. Restoring an older backup turns its teacher profiles into staff records.
 
 ## Upgrade and validation
 
-Apply Alembic revision `k3a4b5c6d7e8` through the normal deployment workflow. It adds institution module settings, the user login flag and three management tables, with institution-scoped foreign keys and unique constraints. It preserves existing account access. Downgrade refuses to discard management records, configured modules or disabled-login controls.
+Revision `k3a4b5c6d7e8` added module settings and the management tables. Revision `m5c6d7e8f9a0` adds levels, scales, faculties, strands, staff accounts and co-teaching. It copies each teacher profile into a staff record and gives every offering a lead-teacher row. It stops before changing anything if old course allocations exist. Downgrade refuses while staff accounts, closed accounts, co-teachers or linked non-teaching staff exist, and recreates teacher profiles for teachers added after the upgrade. The old teachers table stays in place, unused, for one release.
 
-HTTP tests in `backend/tests/test_management.py` cover presets, dependencies, authorization, tenant boundaries, delegated access, session restrictions, employee updates, allocations, workload limits, atomic attendance, record-only student creation and backup recovery. Frontend tests cover package navigation and dependency changes. Validate the migration on an isolated PostgreSQL database before deployment.
+HTTP tests in `backend/tests/test_management.py` and `backend/tests/test_structure_and_staff.py` cover presets, dependencies, authorization, tenant boundaries, delegated access, session restrictions, employee updates, allocations, workload limits, atomic attendance, record-only student creation and backup recovery. Frontend tests cover package navigation and dependency changes. Validate the migration on an isolated PostgreSQL database before deployment.
 
-This implementation does not include payroll, employee self-service, leave approval workflows, timetable conflict detection or custom permission-role creation. Staff records and a leave attendance status do not imply those workflows exist.
+This implementation does not include payroll, employee self-service, leave approval workflows or timetable conflict detection. Staff permissions are a fixed list of three. Staff records and a leave attendance status do not imply those workflows exist.

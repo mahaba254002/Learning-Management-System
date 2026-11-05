@@ -46,9 +46,9 @@ class TeacherSubmissionRequest(BaseModel):
 class InvitationApprovedResponse(BaseModel):
     id: uuid.UUID
     username: str
-    temporary_password: str
+    # The new teacher chooses their own password through a single-use link.
+    # The link is returned only when the email could not be sent.
     credentials_emailed: bool
-    message: str = (
-        "Teacher account created. Share these credentials securely — "
-        "this is the only time the temporary password will be shown."
-    )
+    setup_link: str | None = None
+    link_expires_in_hours: int
+    message: str = "Teacher account created. A link to set their password has been sent."

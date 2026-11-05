@@ -3,7 +3,7 @@ import uuid
 from datetime import date, datetime
 from decimal import Decimal
 
-from sqlalchemy import Boolean, CheckConstraint, Date, DateTime, ForeignKeyConstraint, Index, Numeric, String, Text, UniqueConstraint
+from sqlalchemy import Boolean, CheckConstraint, Date, DateTime, ForeignKey, ForeignKeyConstraint, Index, Numeric, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import JSONType, Base, TenantMixin, TimestampMixin, UUIDPrimaryKeyMixin
@@ -18,8 +18,12 @@ class AcademicClass(UUIDPrimaryKeyMixin, TimestampMixin, TenantMixin, Base):
         ForeignKeyConstraint(["institution_id", "supervisor_id"], ["users.institution_id", "users.id"]),
         ForeignKeyConstraint(['institution_id', 'programme_id'], ['academic_programmes.institution_id', 'academic_programmes.id']),
         ForeignKeyConstraint(['institution_id', 'level_id'], ['academic_levels.institution_id', 'academic_levels.id']),
+        ForeignKeyConstraint(['institution_id', 'education_level_id'], ['institution_levels.institution_id', 'institution_levels.id']),
     )
     name: Mapped[str] = mapped_column(String(120))
+    # A class is a study level (Grade 7) plus an optional stream (East).
+    stream: Mapped[str] = mapped_column(String(60), default='', server_default='')
+    education_level_id: Mapped[uuid.UUID | None] = mapped_column(nullable=True, index=True)
     academic_year: Mapped[str] = mapped_column(String(30))
     supervisor_id: Mapped[uuid.UUID | None] = mapped_column(nullable=True, index=True)
     programme_id: Mapped[uuid.UUID | None] = mapped_column(nullable=True, index=True)
@@ -77,6 +81,7 @@ class Coursework(UUIDPrimaryKeyMixin, TimestampMixin, TenantMixin, Base):
         UniqueConstraint("institution_id", "id"),
         ForeignKeyConstraint(["institution_id", "subject_id"], ["teaching_subjects.institution_id", "teaching_subjects.id"]),
         ForeignKeyConstraint(['institution_id', 'period_id'], ['academic_periods.institution_id', 'academic_periods.id'], name='fk_coursework_period'),
+        ForeignKeyConstraint(['institution_id', 'strand_id'], ['curriculum_strands.institution_id', 'curriculum_strands.id'], name='fk_coursework_strand'),
         CheckConstraint("max_score > 0 AND max_score <= 10000"),
         CheckConstraint("kind IN ('ASSIGNMENT', 'COURSEWORK', 'EXAM')"),
         CheckConstraint("assessment_mode IN ('NUMERIC', 'COMPETENCY')"),
@@ -94,6 +99,9 @@ class Coursework(UUIDPrimaryKeyMixin, TimestampMixin, TenantMixin, Base):
     rubric_labels: Mapped[list] = mapped_column(JSONType, default=list, server_default='[]')
     grading_bands: Mapped[list | None] = mapped_column(JSONType, nullable=True)
     allow_late_submissions: Mapped[bool] = mapped_column(Boolean, default=True, server_default="true")
+    strand_id: Mapped[uuid.UUID | None] = mapped_column(nullable=True, index=True)
+    # The scale whose bands were copied into grading_bands / rubric_labels.
+    scale_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey('assessment_scales.id'), nullable=True, index=True)
 
 
 class Score(UUIDPrimaryKeyMixin, TimestampMixin, TenantMixin, Base):

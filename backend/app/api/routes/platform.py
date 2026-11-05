@@ -130,6 +130,9 @@ def confirm_create_institution(
 
     try:
         db.flush()
+        # Start with the levels the type implies; the platform admin adjusts them on the detail page.
+        from app.services.structure import create_default_levels
+        create_default_levels(db, institution)
         record_audit(db, ctx, 'institution.created', institution.id, institution.id)
         db.commit()
     except IntegrityError:

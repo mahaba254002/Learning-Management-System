@@ -7,7 +7,8 @@ from test_teaching import env
 from app.core import rate_limit as limiter
 from app.core.security import hash_password
 from app.models.institution import Institution, InstitutionStatus
-from app.models.management import StaffMember, StaffAllocation, StaffAttendance
+from app.models.management import StaffMember, StaffAttendance
+from app.models.structure import OfferingTeacher
 from app.models.curriculum import CatalogueUnit, Department
 from app.models.user import UserRole, User
 from app.models.academic import Student, Coursework
@@ -44,18 +45,8 @@ def employee(env, number='ST-001', category='TEACHING', **values):
     return response.json()
 
 
-def course(env, tenant=None):
-    row = CatalogueUnit(institution_id=tenant or env['cls'].institution_id, code='C-101', name='Operations')
-    env['db'].add(row); env['db'].commit()
-    return str(row.id)
-
-
-def allocation(staff, course_id, **changes):
-    return {**dict(staff_id=staff['id'], course_id=course_id, period='2026 Term 3', weekly_hours='8.5'), **changes}
-
-
 def edit_body(record, **changes):
-    fields = ['staff_number', 'first_name', 'last_name', 'category', 'job_title', 'department_id', 'teacher_user_id', 'email', 'phone', 'employment_type', 'status', 'joined_on']
+    fields = ['staff_number', 'first_name', 'last_name', 'category', 'job_title', 'department_id', 'user_id', 'email', 'phone', 'employment_type', 'status', 'joined_on']
     return {**{key: record[key] for key in fields}, 'expected_updated_at': record['updated_at'], **changes}
 
 
@@ -138,7 +129,7 @@ def test_management_directory_departments_without_accounts_and_pagination(env):
     result = client.get('/api/management/staff?category=NON_TEACHING&limit=1').json()
     assert result['total'] == 1 and result['items'][0]['id'] == staff['id']
     assert client.get('/api/management/staff?search=%25').json()['total'] == 0
-    assert client.get('/api/management/staff?offset=1').json()['items'] == []
+    assert client.get('/api/management/staff?offset=10').json()['items'] == []
     edited = client.put(f"/api/management/staff/{staff['id']}", json=edit_body(staff, phone='0700000000'))
     assert edited.status_code == 200
     assert client.put(f"/api/management/staff/{staff['id']}", json=edit_body(staff)).status_code == 409
@@ -155,37 +146,55 @@ def test_directory_tenant_links_and_database_constraints(env):
     client = env['as_user'](env['admin'])
     body = dict(staff_number='S1', first_name='Jane', last_name='Doe', category='TEACHING', job_title='Teacher')
     assert client.post('/api/management/staff', json={**body, 'department_id': str(foreign.id)}).status_code == 404
-    assert client.post('/api/management/staff', json={**body, 'teacher_user_id': str(env['outsider'].id)}).status_code == 404
-    assert client.post('/api/management/staff', json={**body, 'teacher_user_id': str(env['pupil'].id)}).status_code == 422
+    assert client.post('/api/management/staff', json={**body, 'user_id': str(env['outsider'].id)}).status_code == 404
+    assert client.post('/api/management/staff', json={**body, 'user_id': str(env['pupil'].id)}).status_code == 422
     row = StaffMember(institution_id=env['cls'].institution_id, department_id=foreign.id, **body)
     env['db'].add(row)
     with pytest.raises(IntegrityError): env['db'].commit()
     env['db'].rollback()
 
 
-def test_allocations_without_students_workload_and_staff_lifecycle(env):
+def staff_of(env, who):
+    return env['db'].query(StaffMember).filter_by(user_id=env[who].id).one()
+
+
+def test_allocations_are_offering_teachers_with_workload_and_lifecycle(env):
     configure(env)
-    staff = employee(env, teacher_user_id=str(env['teacher'].id))
-    support = employee(env, number='SUP-1', category='NON_TEACHING')
-    course_id = course(env)
-    foreign_course = course(env, env['other_cls'].institution_id)
     client = env['as_user'](env['admin'])
-    assert client.post('/api/management/allocations', json=allocation(staff, foreign_course)).status_code == 404
-    assert client.post('/api/management/allocations', json=allocation(support, course_id)).status_code == 422
-    first = client.post('/api/management/allocations', json=allocation(staff, course_id))
+    co = staff_of(env, 'unrelated')
+    support = employee(env, number='SUP-1', category='NON_TEACHING')
+    subject = str(env['subject'].id)
+    body = dict(subject_id=subject, staff_id=str(co.id), weekly_hours='8.5')
+    assert client.post('/api/management/allocations', json={**body, 'subject_id': str(env['other_subject'].id)}).status_code == 404
+    assert client.post('/api/management/allocations', json={**body, 'staff_id': support['id']}).status_code == 422
+    # Before the allocation the second teacher cannot see the class.
+    assert env['as_user'](env['unrelated']).get(f"/api/teaching/subjects/{subject}/periods").status_code == 404
+    client = env['as_user'](env['admin'])  # The test client is shared; switch back.
+    first = client.post('/api/management/allocations', json=body)
     assert first.status_code == 201, first.text
     row = first.json()
-    assert client.post('/api/management/allocations', json=allocation(staff, course_id)).status_code == 409
-    assert client.post('/api/management/allocations', json=allocation(staff, course_id, group_name='B', weekly_hours='160')).status_code == 422
-    assert client.put(f"/api/management/staff/{staff['id']}", json=edit_body(staff, status='INACTIVE')).status_code == 409
-    mine = env['as_user'](env['teacher']).get('/api/teacher/staff-allocations').json()
-    assert len(mine['allocations']) == 1
-    assert env['as_user'](env['unrelated']).get('/api/teacher/staff-allocations').json()['allocations'] == []
+    assert row['role'] == 'ASSISTANT'
+    assert client.post('/api/management/allocations', json=body).status_code == 409
+    assert client.post('/api/management/allocations', json={**body, 'group_name': 'B', 'weekly_hours': '160'}).status_code == 422
+    # Co-teachers get the same teaching access as the lead.
+    teacher = env['as_user'](env['unrelated'])
+    assert teacher.get(f"/api/teaching/subjects/{subject}/periods").status_code == 200
+    assert [c['id'] for c in teacher.get('/api/teaching/classes').json()] == [str(env['cls'].id)]
+    assert len(teacher.get('/api/teacher/staff-allocations').json()['allocations']) == 1
     client = env['as_user'](env['admin'])
-    body = {**allocation(staff, course_id), 'active': False, 'expected_updated_at': row['updated_at']}
-    assert client.put(f"/api/management/allocations/{row['id']}", json=body).status_code == 200
-    assert client.put(f"/api/management/staff/{staff['id']}", json=edit_body(staff, status='INACTIVE')).status_code == 200
-    assert env['db'].query(StaffAllocation).count() == 1
+    record = client.get(f'/api/management/staff?search={co.staff_number}').json()['items'][0]
+    assert client.put(f"/api/management/staff/{co.id}", json=edit_body(record, status='INACTIVE')).status_code == 409
+    # Promote the co-teacher; the previous lead stays on as a co-teacher.
+    promoted = client.put(f"/api/management/allocations/{row['id']}", json=dict(role='LEAD', weekly_hours='8.5', expected_updated_at=row['updated_at']))
+    assert promoted.status_code == 200, promoted.text
+    env['db'].expire_all()
+    assert env['db'].get(type(env['subject']), env['subject'].id).teacher_id == env['unrelated'].id
+    roles = {r.user_id: r.role for r in env['db'].query(OfferingTeacher).filter_by(subject_id=env['subject'].id)}
+    assert roles == {env['unrelated'].id: 'LEAD', env['teacher'].id: 'ASSISTANT'}
+    assert client.delete(f"/api/management/allocations/{row['id']}").status_code == 409
+    old = env['db'].query(OfferingTeacher).filter_by(subject_id=env['subject'].id, user_id=env['teacher'].id).one()
+    assert client.delete(f"/api/management/allocations/{old.id}").status_code == 200
+    assert env['as_user'](env['teacher']).get(f"/api/teaching/subjects/{subject}/periods").status_code == 404
 
 
 def test_staff_attendance_atomicity_conflicts_filters_and_history(env):
@@ -196,8 +205,10 @@ def test_staff_attendance_atomicity_conflicts_filters_and_history(env):
     entries = [dict(staff_id=first['id'], status='PRESENT'), dict(staff_id=second['id'], status='LEAVE', note='Approved')]
     assert client.put('/api/management/attendance', json=dict(day=today, entries=entries)).status_code == 200
     register = client.get(f'/api/management/attendance?day={today}').json()
-    assert register['total'] == 2 and all(row['attendance'] for row in register['items'])
-    versions = {row['staff']['id']: row['attendance']['updated_at'] for row in register['items']}
+    # The three fixture teachers also have staff records, without attendance.
+    assert register['total'] == 5
+    versions = {row['staff']['id']: row['attendance']['updated_at'] for row in register['items'] if row['attendance']}
+    assert set(versions) == {first['id'], second['id']}
     entries[0].update(status='LATE', expected_updated_at=versions[first['id']])
     # Missing the second version must reject the whole batch.
     assert client.put('/api/management/attendance', json=dict(day=today, entries=entries)).status_code == 409
@@ -210,7 +221,7 @@ def test_staff_attendance_atomicity_conflicts_filters_and_history(env):
     assert client.put(f"/api/management/staff/{second['id']}", json=edit_body(second, status='INACTIVE')).status_code == 200
     assert client.get(f'/api/management/attendance?day={today}&category=NON_TEACHING').json()['total'] == 1
     overview = client.get('/api/management/overview').json()
-    assert overview['active_staff'] == 1 and overview['attendance_today'] == {'LATE': 1, 'LEAVE': 1}
+    assert overview['active_staff'] == 4 and overview['attendance_today'] == {'LATE': 1, 'LEAVE': 1}
 
 
 def test_student_records_without_signin_and_explicit_later_activation(env):
@@ -242,7 +253,7 @@ def test_module_and_staff_history_in_backup(env):
     manifest, payload = backups.open_archive(raw)
     saved, tables = backups.institution_payload(manifest, payload)
     assert saved['module_settings'] == module_presets()['MANAGEMENT']
-    assert len(tables['staff_members']) == 1 and len(tables['staff_attendance']) == 1
+    assert len(tables['staff_members']) == 4 and len(tables['staff_attendance']) == 1
     fingerprint = backups.merge_fingerprint(env['db'], institution.id, tables)
     assert backups.merge_institution(env['db'], manifest, payload, fingerprint) == institution.id
 
@@ -274,7 +285,7 @@ def test_another_institution_admin_cannot_access_staff_or_attendance(env):
     other_admin = env['user']('otheradmin', UserRole.INSTITUTION_ADMIN, tenant=1)
     env['db'].commit()
     client = env['as_user'](other_admin)
-    assert client.get('/api/management/staff').json()['total'] == 0
+    assert client.get('/api/management/staff').json()['total'] == 1  # their own teacher
     assert client.put(f"/api/management/staff/{staff['id']}", json=edit_body(staff)).status_code == 404
     assert client.put('/api/management/attendance', json=dict(day=kenya_today().isoformat(), entries=[dict(staff_id=staff['id'], status='PRESENT')])).status_code == 404
     assert env['db'].query(StaffAttendance).count() == 0

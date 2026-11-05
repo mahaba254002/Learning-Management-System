@@ -5,20 +5,31 @@ import { useTeachingMutation, useTeachingQuery } from '../teacher/teachingQuerie
 import { Field, MutationState, PageHeading, QueryState } from '../teacher/TeachingUI';
 import { Pagination } from './StaffDirectoryPage';
 
+const offeringName = o => `${o.name} · ${o.class_name}${o.stream ? ` ${o.stream}` : ''} · ${o.academic_year}`;
+
 export default function StaffAllocationsPage() {
-  const [period, setPeriod] = useState('');
   const [staff, setStaff] = useState('');
-  const [active, setActive] = useState('true');
+  const [offering, setOffering] = useState('');
   const [offset, setOffset] = useState(0);
   const [editing, setEditing] = useState(null);
   const options = useTeachingQuery('/api/management/options');
-  const query = useTeachingQuery(`/api/management/allocations?${new URLSearchParams({ offset, ...(period ? { period } : {}), ...(staff ? { staff_id: staff } : {}), ...(active ? { active } : {}) })}`);
+  const query = useTeachingQuery(`/api/management/allocations?${new URLSearchParams({ offset, ...(staff ? { staff_id: staff } : {}), ...(offering ? { subject_id: offering } : {}) })}`);
+  const mutation = useTeachingMutation();
   const filters = setter => event => { setter(event.target.value); setOffset(0); };
-  return <div className="management-page"><PageHeading title="Staff course allocations">Assign courses and weekly teaching hours without requiring student accounts or learning submissions.</PageHeading>
-    <div className="management-links"><Link to="/institution/staff">Manage employees</Link><Link to="/institution/academic-structure">Manage course catalogue</Link></div>
-    <QueryState query={options} />{options.data && <AllocationForm key={editing?.id || 'new'} row={editing} options={options.data} onClose={() => setEditing(current => current?.id === editing?.id ? null : current)} />}
-    <div className="management-filters"><Field label="Period (exact name)" value={period} onChange={filters(setPeriod)} placeholder="e.g. 2026 Term 3" /><Field label="Employee" value={staff} onChange={filters(setStaff)}><option value="">All employees</option>{options.data?.staff.map(s => <option key={s.id} value={s.id}>{s.staff_number} · {s.name}</option>)}</Field><Field label="Allocation status" value={active} onChange={filters(setActive)}><option value="true">Active</option><option value="false">Ended</option><option value="">All</option></Field></div>
-    <QueryState query={query} />{query.data && <section className="teaching-panel"><h2>Teaching responsibilities</h2><div className="table-wrapper"><table className="data-table"><thead><tr><th>Employee</th><th>Course</th><th>Period / group</th><th>Hours / week</th><th>Status</th><th>Action</th></tr></thead><tbody>{query.data.items.map(row => <tr key={row.id}><td>{options.data?.staff.find(s => s.id === row.staff_id)?.name || 'Employee'}</td><td>{options.data?.courses.find(c => c.id === row.course_id)?.name || 'Course'}</td><td>{row.period}<small>{row.group_name || 'No group specified'}</small></td><td>{row.weekly_hours}</td><td>{row.active ? 'Active' : 'Ended'}</td><td><button type="button" onClick={() => setEditing(row)}>Edit / end</button></td></tr>)}</tbody></table></div>{!query.data.total && <p>No allocations match these filters. Add an active teaching employee and a catalogue course to begin.</p>}<Pagination offset={offset} total={query.data.total} setOffset={setOffset} /></section>}
+  async function remove(row) {
+    try { await mutation.mutateAsync({ path: `/api/management/allocations/${row.id}`, method: 'DELETE' }); } catch { /* Shown below. */ }
+  }
+  return <div className="management-page"><PageHeading title="Teaching allocations">Who teaches each offering. One lead teacher per offering, plus any co-teachers. Co-teachers can take registers and enter marks.</PageHeading>
+    <div className="management-links"><Link to="/institution/staff">Employees</Link><Link to="/institution/classes">Classes and offerings</Link></div>
+    <QueryState query={options} />{options.data && <AllocationForm key={editing?.id || 'new'} row={editing} options={options.data} onClose={() => setEditing(null)} />}
+    <div className="management-filters"><Field label="Employee" value={staff} onChange={filters(setStaff)}><option value="">All employees</option>{options.data?.staff.filter(s => s.category === 'TEACHING').map(s => <option key={s.id} value={s.id}>{s.staff_number} · {s.name}</option>)}</Field>
+      <Field label="Offering" value={offering} onChange={filters(setOffering)}><option value="">All offerings</option>{options.data?.offerings.map(o => <option key={o.id} value={o.id}>{offeringName(o)}</option>)}</Field></div>
+    <MutationState mutation={mutation} message="Allocation removed." />
+    <QueryState query={query} />{query.data && <section className="teaching-panel"><h2>Allocations</h2><div className="table-wrapper"><table className="data-table"><thead><tr><th>Teacher</th><th>Offering</th><th>Role / group</th><th>Hours / week</th><th>Action</th></tr></thead><tbody>{query.data.items.map(row => <tr key={row.id}>
+      <td>{row.staff_name}<small>{row.staff_number || 'No staff record'}</small></td><td>{row.subject_name}<small>{row.class_name}{row.stream ? ` ${row.stream}` : ''} · {row.academic_year}</small></td>
+      <td>{row.role === 'LEAD' ? 'Lead' : 'Co-teacher'}<small>{row.group_name || 'Whole offering'}</small></td><td>{row.weekly_hours ?? '—'}</td>
+      <td><div className="teaching-actions"><button type="button" onClick={() => setEditing(row)}>Edit</button>{row.role !== 'LEAD' && <button type="button" disabled={mutation.isPending} onClick={() => remove(row)}>Remove</button>}</div></td></tr>)}</tbody></table></div>
+      {!query.data.total && <p>No allocations yet. Offerings get their lead teacher when they are created under Classes and teaching.</p>}<Pagination offset={offset} total={query.data.total} setOffset={setOffset} /></section>}
   </div>;
 }
 
@@ -28,15 +39,23 @@ function AllocationForm({ row, options, onClose }) {
   async function save(event) {
     event.preventDefault();
     const values = Object.fromEntries(new FormData(event.currentTarget));
-    try { await mutation.mutateAsync({ path: `/api/management/allocations${row ? `/${row.id}` : ''}`, method: row ? 'PUT' : 'POST', body: { ...values, active: values.active === 'on', ...(row ? { expected_updated_at: row.updated_at } : {}) } }); setGeneration(value => value + 1); onClose(); } catch { /* Shown below. */ }
+    const body = { role: values.role, group_name: values.group_name, weekly_hours: values.weekly_hours || null };
+    try {
+      await mutation.mutateAsync(row
+        ? { path: `/api/management/allocations/${row.id}`, method: 'PUT', body: { ...body, expected_updated_at: row.updated_at } }
+        : { path: '/api/management/allocations', body: { ...body, subject_id: values.subject_id, staff_id: values.staff_id } });
+      setGeneration(value => value + 1); onClose();
+    } catch { /* Shown below. */ }
   }
-  return <section className="teaching-panel"><h2>{row ? 'Edit allocation' : 'Allocate a course'}</h2><MutationState mutation={mutation} message="Course allocation saved." /><WorkspaceForm key={generation} className="teaching-form" onSubmit={save}>
-    <Field label="Teaching employee" name="staff_id" required defaultValue={row?.staff_id || ''}><option value="">Choose employee</option>{options.staff.filter(s => (s.category === 'TEACHING' && s.status === 'ACTIVE') || s.id === row?.staff_id).map(s => <option key={s.id} value={s.id}>{s.staff_number} · {s.name}</option>)}</Field>
-    <Field label="Course" name="course_id" required defaultValue={row?.course_id || ''}><option value="">Choose course</option>{options.courses.map(c => <option key={c.id} value={c.id}>{c.code} · {c.name}</option>)}</Field>
-    <Field label="Period" name="period" required maxLength={100} defaultValue={row?.period || ''} placeholder="e.g. 2026 Term 3" /><Field label="Group / section (optional)" name="group_name" maxLength={100} defaultValue={row?.group_name || ''} />
-    <Field label="Weekly teaching hours" name="weekly_hours" type="number" min="0.01" max="168" step="0.01" required defaultValue={row?.weekly_hours || ''} />
-    <label><input type="checkbox" name="active" defaultChecked={row?.active ?? true} /> Active responsibility</label>
-    <p>Use the same period name for related allocations. Ending an allocation retains its history. Class teaching groups and their student enrollments remain managed under Classes & teaching when student records are enabled.</p>
+  const teachers = options.staff.filter(s => s.category === 'TEACHING' && s.status === 'ACTIVE' && s.user_id);
+  return <section className="teaching-panel"><h2>{row ? `Edit ${row.staff_name} on ${row.subject_name}` : 'Add a teacher to an offering'}</h2><MutationState mutation={mutation} message="Allocation saved." /><WorkspaceForm key={generation} className="teaching-form" onSubmit={save}>
+    {!row && <><Field label="Offering" name="subject_id" required defaultValue=""><option value="">Choose offering</option>{options.offerings.map(o => <option key={o.id} value={o.id}>{offeringName(o)}</option>)}</Field>
+      <Field label="Teacher" name="staff_id" required defaultValue=""><option value="">Choose teacher</option>{teachers.map(s => <option key={s.id} value={s.id}>{s.staff_number} · {s.name}</option>)}</Field></>}
+    <Field label="Role" name="role" defaultValue={row?.role || 'ASSISTANT'} disabled={row?.role === 'LEAD'}><option value="ASSISTANT">Co-teacher</option><option value="LEAD">Lead teacher</option></Field>
+    {row?.role === 'LEAD' && <input type="hidden" name="role" value="LEAD" />}
+    <Field label="Group or section (optional)" name="group_name" maxLength={100} defaultValue={row?.group_name || ''} description="Leave empty for the lead teacher." />
+    <Field label="Weekly hours (optional)" name="weekly_hours" type="number" min="0.01" max="168" step="0.01" defaultValue={row?.weekly_hours || ''} />
+    <p>Making someone the lead keeps the previous lead on as a co-teacher. Remove them afterwards if they no longer teach it.</p>
     <div className="teaching-actions"><button className="btn btn--primary" disabled={mutation.isPending}>Save allocation</button>{row && <button type="button" disabled={mutation.isPending} onClick={onClose}>Cancel edit</button>}</div>
   </WorkspaceForm></section>;
 }

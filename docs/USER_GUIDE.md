@@ -22,7 +22,7 @@ Class supervisors can open their class roster, edit basic student details, withd
 
 ## Institution administrators
 
-Configure teachers, classes and subjects, then assign teachers and supervisors. Use invitations for teacher onboarding and class rosters for enrollment. The attendance, coursework, materials and scores sections provide institution-wide academic oversight. Use account controls carefully: suspension prevents access and invalidates prior sessions. Settings and audit logs support day-to-day administration.
+Configure teachers, classes and subjects, then assign lead teachers, co-teachers and supervisors. Add staff directly in the staff directory, with an optional sign-in that is set up through a single-use link, or use invitations. Use class rosters for enrollment. The attendance, coursework, materials and scores sections provide institution-wide academic oversight. Use account controls carefully: suspension blocks sign-in temporarily, deactivation is for people who leave, and archiving hides an account. Each ends existing sessions. Settings and audit logs support day-to-day administration.
 
 ## Platform administrators
 

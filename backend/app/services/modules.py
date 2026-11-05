@@ -110,7 +110,7 @@ def check_module_access(db, institution_id, role, path):
                       '/api/workspace-access/stop'}
     if role == UserRole.STUDENT and path not in security_paths:
         required.add('student_portal')
-    if role == UserRole.TEACHER and path not in security_paths:
+    if role in {UserRole.TEACHER, UserRole.STAFF} and path not in security_paths:
         required.add('staff_directory')
     require_enabled(institution, *required)
 

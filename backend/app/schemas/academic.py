@@ -18,6 +18,8 @@ class ClassInput(Input):
     supervisor_id: uuid.UUID | None = None
     programme_id: uuid.UUID | None = None
     level_id: uuid.UUID | None = None
+    stream: str = Field(default='', max_length=60)
+    education_level_id: uuid.UUID | None = None
 
 
 class SubjectInput(Input):
@@ -76,6 +78,7 @@ class CourseworkInput(Input):
     allow_late_submissions: bool = True
     expected_updated_at: str | None = Field(default=None, max_length=60)
     assessment_mode: Literal['NUMERIC', 'COMPETENCY'] | None = None
+    strand_id: uuid.UUID | None = None
 
 
 class ScoreInput(Input):

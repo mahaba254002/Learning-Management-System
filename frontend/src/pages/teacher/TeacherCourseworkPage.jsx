@@ -27,7 +27,7 @@ function SubjectCoursework({ subject }) {
     event.preventDefault();
     const form = event.currentTarget;
     const data = Object.fromEntries(new FormData(form));
-    const body = { ...data, period_id: data.period_id || null, max_score: data.max_score, published: data.published === "on", allow_late_submissions: data.allow_late_submissions === "on", due_at: data.due_at ? new Date(data.due_at).toISOString() : null };
+    const body = { ...data, period_id: data.period_id || null, strand_id: data.strand_id || null, max_score: data.max_score, published: data.published === "on", allow_late_submissions: data.allow_late_submissions === "on", due_at: data.due_at ? new Date(data.due_at).toISOString() : null };
     try {
       await mutation.mutateAsync({ path: editing ? `/api/teaching/coursework/${editing.id}` : `/api/teaching/subjects/${subject.id}/coursework`, method: editing ? "PUT" : "POST", body });
       setEditing(null);

@@ -87,10 +87,10 @@ export default function LoginPage({ student = false }) {
               <fieldset className="skynet-portals" disabled={isSubmitting}><legend className="skynet-sr-only">Choose your staff role</legend>
                 {["teacher", "admin"].map(role => <label key={role} className={portal === role ? "selected" : ""}>
                   <input type="radio" name="portal" value={role} checked={portal === role} onChange={() => { setPortal(role); setServerError(null); }} />
-                  {role === "teacher" ? "Teacher" : "Admin"}
+                  {role === "teacher" ? "Teacher or staff" : "Admin"}
                 </label>)}
               </fieldset>}
-            {!student && <p className="skynet-role-note">{portal === 'admin' ? 'For platform and institution administrators.' : 'For teachers and lecturers.'}</p>}
+            {!student && <p className="skynet-role-note">{portal === 'admin' ? 'For platform and institution administrators.' : 'For teachers, lecturers and other staff.'}</p>}
             {state?.passwordChanged && <p className="skynet-notice" role="status">Your password has been changed. Sign in with your new password.</p>}
             <div className="skynet-field"><label htmlFor="identity">{student ? "Email or Student ID" : "Email Address"}</label>
               <input id="identity" type={student ? "text" : "email"} placeholder={student ? "Enter the email or ID your institution assigned" : "Enter your email"} autoComplete="username" autoCapitalize="none" spellCheck={false} aria-invalid={!!errors.email} aria-describedby={errors.email ? "identity-error" : undefined} {...register("email")} />

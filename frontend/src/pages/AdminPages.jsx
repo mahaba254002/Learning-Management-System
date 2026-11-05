@@ -13,6 +13,11 @@ function Pages({ offset, total, setOffset }) {
   return <div className="teaching-actions"><button disabled={!offset} onClick={() => setOffset(Math.max(0, offset - 50))}>Previous</button><span>{total ? offset + 1 : 0}–{Math.min(offset + 50, total)} of {total}</span><button disabled={offset + 50 >= total} onClick={() => setOffset(offset + 50)}>Next</button></div>;
 }
 
+// ACTIVE -> SUSPENDED -> DEACTIVATED -> ARCHIVED, one step at a time, each reversible.
+const NEXT_STATUS = { ACTIVE: ['SUSPENDED', 'DEACTIVATED'], SUSPENDED: ['ACTIVE', 'DEACTIVATED'], DEACTIVATED: ['ACTIVE', 'ARCHIVED'], ARCHIVED: ['DEACTIVATED'] };
+const STATUS_ACTIONS = { ACTIVE: 'Reactivate', SUSPENDED: 'Suspend', DEACTIVATED: 'Deactivate', ARCHIVED: 'Archive' };
+const STATUS_HELP = { ACTIVE: 'They can sign in again.', SUSPENDED: 'Sign-in is blocked until reactivated.', DEACTIVATED: 'Use this when someone leaves. Their records are kept.', ARCHIVED: 'The account is hidden from lists and stays read-only.' };
+
 export function AdminUsersPage({ platform = false, studentsOnly = false }) {
   const scope = platform ? 'platform' : 'institution';
   const { user } = useAuth();
@@ -20,18 +25,23 @@ export function AdminUsersPage({ platform = false, studentsOnly = false }) {
   const [role, setRole] = useState(studentsOnly ? 'STUDENT' : '');
   const [offset, setOffset] = useState(0);
   const [selected, setSelected] = useState(null);
-  const query = useTeachingQuery(`/api/${scope}/users?${new URLSearchParams({ search, offset, ...(role ? { role } : {}) })}`);
+  const [archived, setArchived] = useState(false);
+  const [reason, setReason] = useState('');
+  const query = useTeachingQuery(`/api/${scope}/users?${new URLSearchParams({ search, offset, ...(role ? { role } : {}), ...(archived ? { include_archived: 'true' } : {}) })}`);
   const mutation = useTeachingMutation();
   async function change() {
-    try { await mutation.mutateAsync({ path: `/api/${scope}/users/${selected.id}/status`, method: 'PUT', body: { status: selected.status === 'ACTIVE' ? 'SUSPENDED' : 'ACTIVE' } }); setSelected(null); } catch { /* Displayed below. */ }
+    try { await mutation.mutateAsync({ path: `/api/${scope}/users/${selected.user.id}/status`, method: 'PUT', body: { status: selected.target, reason } }); setSelected(null); setReason(''); } catch { /* Displayed below. */ }
   }
   return <><PageHeading title={studentsOnly ? 'Students' : 'User accounts'}>Search accounts and manage access. Suspending an account preserves its records.</PageHeading>
     {studentsOnly && <p><Link to="/institution/classes">Manage class enrollment and student details</Link></p>}
     <div className="teaching-toolbar"><Field label="Search name, username, email or student ID" value={search} onChange={e => { setSearch(e.target.value); setOffset(0); }} />
-      {!studentsOnly && <Field label="Role" value={role} onChange={e => { setRole(e.target.value); setOffset(0); }}><option value="">All roles</option>{['INSTITUTION_ADMIN', 'TEACHER', 'STUDENT', ...(platform ? ['PLATFORM_ADMIN'] : [])].map(r => <option key={r} value={r}>{r.replaceAll('_', ' ')}</option>)}</Field>}</div>
+      {!studentsOnly && <Field label="Role" value={role} onChange={e => { setRole(e.target.value); setOffset(0); }}><option value="">All roles</option>{['INSTITUTION_ADMIN', 'TEACHER', 'STAFF', 'STUDENT', ...(platform ? ['PLATFORM_ADMIN'] : [])].map(r => <option key={r} value={r}>{r.replaceAll('_', ' ')}</option>)}</Field>}
+      <label className="teaching-checkbox"><input type="checkbox" checked={archived} onChange={e => { setArchived(e.target.checked); setOffset(0); }} />Show archived accounts</label></div>
     <QueryState query={query} /><MutationState mutation={mutation} message="Account access updated." />
-    {selected && <section className="teaching-panel" aria-label="Confirm account access change"><h2>{selected.status === 'ACTIVE' ? 'Suspend' : 'Reactivate'} {selected.first_name} {selected.last_name}?</h2><p>Existing sessions will be invalidated. The person will need to sign in again after reactivation.</p><div className="teaching-actions"><button disabled={mutation.isPending} onClick={change}>Confirm change</button><button disabled={mutation.isPending} onClick={() => setSelected(null)}>Cancel</button></div></section>}
-    {query.data && <><div className="table-wrapper"><table className="data-table"><thead><tr><th>Name / username</th><th>Role</th><th>Status</th><th>Access</th><th>Workspace</th></tr></thead><tbody>{query.data.items.map(u => <tr key={u.id}><td>{u.first_name} {u.last_name}<div className="teaching-muted">{u.username}</div></td><td>{u.role.replaceAll('_', ' ')}</td><td>{u.status}{u.must_change_password && <div className="teaching-muted">Password change required</div>}</td><td>{u.id !== user.id && u.role !== 'PLATFORM_ADMIN' && (platform || u.role !== 'INSTITUTION_ADMIN') && u.status !== 'INVITED' && <button disabled={mutation.isPending} onClick={() => { mutation.reset(); setSelected(u); }}>{u.status === 'ACTIVE' ? 'Suspend' : 'Reactivate'}</button>}</td><td><WorkspaceAccessButton userId={u.id} role={u.role} disabled={u.status !== 'ACTIVE'} /></td></tr>)}</tbody></table></div>{!query.data.total && <p>No matching accounts.</p>}<Pages offset={offset} total={query.data.total} setOffset={setOffset} /></>}
+    {selected && <section className="teaching-panel" aria-label="Confirm account access change"><h2>{STATUS_ACTIONS[selected.target]} {selected.user.first_name} {selected.user.last_name}?</h2><p>{STATUS_HELP[selected.target]} Existing sessions end immediately.</p>
+      {['DEACTIVATED', 'ARCHIVED'].includes(selected.target) && <Field label="Reason" value={reason} onChange={e => setReason(e.target.value)} required minLength={3} maxLength={300} />}
+      <div className="teaching-actions"><button disabled={mutation.isPending || (['DEACTIVATED', 'ARCHIVED'].includes(selected.target) && reason.trim().length < 3)} onClick={change}>Confirm change</button><button disabled={mutation.isPending} onClick={() => setSelected(null)}>Cancel</button></div></section>}
+    {query.data && <><div className="table-wrapper"><table className="data-table"><thead><tr><th>Name / username</th><th>Role</th><th>Status</th><th>Access</th><th>Workspace</th></tr></thead><tbody>{query.data.items.map(u => <tr key={u.id}><td>{u.first_name} {u.last_name}<div className="teaching-muted">{u.username}</div></td><td>{u.role.replaceAll('_', ' ')}</td><td>{u.status}{u.must_change_password && <div className="teaching-muted">Password change required</div>}</td><td>{u.id !== user.id && u.role !== 'PLATFORM_ADMIN' && (platform || u.role !== 'INSTITUTION_ADMIN') && u.status !== 'INVITED' && <select aria-label={`Change status for ${u.first_name} ${u.last_name}`} value="" disabled={mutation.isPending} onChange={e => { mutation.reset(); setReason(''); setSelected({ user: u, target: e.target.value }); }}><option value="">Change status…</option>{(NEXT_STATUS[u.status] || []).map(s => <option key={s} value={s}>{STATUS_ACTIONS[s]}</option>)}</select>}</td><td><WorkspaceAccessButton userId={u.id} role={u.role} disabled={u.status !== 'ACTIVE'} /></td></tr>)}</tbody></table></div>{!query.data.total && <p>No matching accounts.</p>}<Pages offset={offset} total={query.data.total} setOffset={setOffset} /></>}
   </>;
 }
 

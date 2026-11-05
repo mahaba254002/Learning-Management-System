@@ -14,6 +14,7 @@ Two distinct trust boundaries in this file, worth reading carefully:
 """
 
 import html
+import secrets
 import uuid
 from app.services.audit_service import record_audit
 from datetime import date, datetime, timedelta, timezone
@@ -29,7 +30,8 @@ from app.core.security import hash_password
 from app.db.session import get_db
 from app.models.institution import Institution
 from app.models.invitation import Invitation, InvitationRole, InvitationStatus
-from app.models.teacher import EmploymentType, Gender, Teacher
+from app.models.teacher import EmploymentType, Gender
+from app.models.management import StaffMember
 from app.models.user import User, UserRole, UserStatus
 from app.schemas.invitation import (
     InvitationApprovedResponse,
@@ -38,7 +40,6 @@ from app.schemas.invitation import (
     SendTeacherInvitationRequest,
     TeacherSubmissionRequest,
 )
-from app.services.password_service import generate_temporary_password
 from app.services.username_service import generate_username
 
 
@@ -56,23 +57,18 @@ router = APIRouter(tags=["invitations"])
 # ---------------------------------------------------------------------------
 
 from app.schemas.teacher import TeacherSummary
+from app.services.staff import SETUP_LINK_HOURS, issue_setup_link, next_staff_number, send_setup_link, teacher_summary
 
 @router.get("/api/institution/teachers", response_model=list[TeacherSummary])
 def list_teachers(
     db: Session = Depends(get_db),
     ctx: AuthContext = Depends(require_role(UserRole.INSTITUTION_ADMIN)),
 ) -> list[TeacherSummary]:
-    from sqlalchemy import select
-    rows = (
-        db.execute(
-            select(Teacher, User)
-            .join(User, User.id == Teacher.user_id)
-            .where(Teacher.institution_id == ctx.institution_id)
-            .order_by(User.last_name, User.first_name)
-        )
-        .all()
-    )
-    return [TeacherSummary.from_orm_join(t, u) for t, u in rows]
+    rows = (db.query(StaffMember, User).join(User, User.id == StaffMember.user_id)
+            .filter(StaffMember.institution_id == ctx.institution_id, User.institution_id == ctx.institution_id,
+                    User.role == UserRole.TEACHER, User.status != UserStatus.ARCHIVED)
+            .order_by(User.last_name, User.first_name).all())
+    return [teacher_summary(profile, user) for profile, user in rows]
 
 
 @router.get("/api/institution/teachers/{teacher_id}", response_model=TeacherSummary)
@@ -81,20 +77,12 @@ def get_teacher(
     db: Session = Depends(get_db),
     ctx: AuthContext = Depends(require_role(UserRole.INSTITUTION_ADMIN)),
 ) -> TeacherSummary:
-    from sqlalchemy import select
-    row = (
-        db.execute(
-            select(Teacher, User)
-            .join(User, User.id == Teacher.user_id)
-            .where(Teacher.institution_id == ctx.institution_id)
-            .where(Teacher.id == teacher_id)
-        )
-        .first()
-    )
+    row = (db.query(StaffMember, User).join(User, User.id == StaffMember.user_id)
+           .filter(StaffMember.institution_id == ctx.institution_id, User.institution_id == ctx.institution_id,
+                   User.role == UserRole.TEACHER, StaffMember.id == teacher_id).first())
     if row is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Teacher not found")
-    teacher, user = row
-    return TeacherSummary.from_orm_join(teacher, user)
+    return teacher_summary(*row)
 
 
 
@@ -212,15 +200,14 @@ def approve_invitation(
         last_name=data["last_name"],
         institution_code=institution.code,
     )
-    temporary_password = generate_temporary_password()
-
     new_user = User(
         institution_id=ctx.institution_id,
         username=username,
         first_name=data["first_name"],
         last_name=data["last_name"],
         email=invitation.email,
-        password_hash=hash_password(temporary_password),
+        # Nobody knows this password; the teacher sets their own through the link.
+        password_hash=hash_password(secrets.token_urlsafe(32)),
         role=UserRole.TEACHER,
         status=UserStatus.ACTIVE,
         must_change_password=True,
@@ -229,18 +216,27 @@ def approve_invitation(
         db.add(new_user)
         db.flush()  # assigns new_user.id without committing yet, so we can reference it below
 
-        new_teacher = Teacher(
+        from app.services.learning_settings import learning_settings
+        employment = EmploymentType(data["employment_type"]).value
+        db.add(StaffMember(
             institution_id=ctx.institution_id,
             user_id=new_user.id,
-            gender=Gender(data["gender"]),
-            date_of_birth=date.fromisoformat(data["date_of_birth"]),
+            staff_number=next_staff_number(db, ctx.institution_id),
+            first_name=new_user.first_name,
+            last_name=new_user.last_name,
+            category="TEACHING",
+            job_title=learning_settings(institution)["teacher_label"],
+            email=new_user.email,
             phone=data.get("phone"),
+            gender=Gender(data["gender"]).value,
+            date_of_birth=date.fromisoformat(data["date_of_birth"]),
             qualification=data["qualification"],
             specialization=data.get("specialization"),
-            employment_type=EmploymentType(data["employment_type"]),
-            invited_from=invitation.id,
-        )
-        db.add(new_teacher)
+            employment_type="CONTRACT" if employment == "VISITING" else employment,
+            joined_on=datetime.now(timezone.utc).date(),
+            invitation_id=invitation.id,
+        ))
+        link = issue_setup_link(db, new_user, ctx.user_id)
 
         invitation.status = InvitationStatus.APPROVED
         invitation.reviewed_by = ctx.user_id
@@ -258,40 +254,13 @@ def approve_invitation(
 
     db.refresh(new_user)
 
-    # Email the credentials directly to the new teacher. If this fails, we
-    # do NOT undo the account — it was already created successfully and is
-    # a real, usable account. We record the failure so the admin can see
-    # it, and the admin's on-screen copy (returned below regardless)
-    # remains a valid fallback way to relay the credentials manually.
-    subject = "Your Skynet account is ready"
-    html_body = (
-        f"<p>Hello {html.escape(new_user.first_name)},</p>"
-        "<p>Your account has been approved. Here are your login details:</p>"
-        f"<p><strong>Username:</strong> {html.escape(new_user.username)}<br>"
-        f"<strong>Temporary password:</strong> {temporary_password}</p>"
-        "<p>You will be asked to set a new password the first time you log in.</p>"
-        f'<p><a href="{settings.FRONTEND_BASE_URL}/teacher/login">Log in here</a></p>'
-    )
-
-    try:
-        send_email(to=new_user.email, subject=subject, html_body=html_body)
-        credentials_emailed = True
-    except EmailSendError as e:
-        record_email_failure(
-            db=db,
-            recipient=new_user.email,
-            subject=subject,
-            email_type="TEACHER_CREDENTIALS",
-            error_message=str(e),
-            context={"user_id": str(new_user.id), "institution_id": str(ctx.institution_id)},
-        )
-        credentials_emailed = False
-
+    credentials_emailed = send_setup_link(db, new_user, institution, link)
     return InvitationApprovedResponse(
         id=new_user.id,
         username=new_user.username,
-        temporary_password=temporary_password,
         credentials_emailed=credentials_emailed,
+        setup_link=None if credentials_emailed else link,
+        link_expires_in_hours=SETUP_LINK_HOURS,
     )
 
 

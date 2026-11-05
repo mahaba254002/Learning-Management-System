@@ -32,7 +32,8 @@ def teaching_overview(db: Session = Depends(get_db), ctx: AuthContext = Depends(
     closed_years = scoped(db, AcademicYear, ctx).filter_by(status='CLOSED').with_entities(AcademicYear.name)
     visible = visible.filter(AcademicClass.academic_year.not_in(closed_years))
     if ctx.role == UserRole.TEACHER:
-        assigned = assigned.filter(Subject.teacher_id == ctx.user_id)
+        from app.api.routes.teaching import taught_subject_ids
+        assigned = assigned.filter(Subject.id.in_(taught_subject_ids(db, ctx)))
         visible = visible.filter(or_(AcademicClass.supervisor_id == ctx.user_id, AcademicClass.id.in_(assigned.with_entities(Subject.class_id))))
     counts = scoped(db, Enrollment, ctx).filter(Enrollment.active.is_(True)).with_entities(Enrollment.class_id, func.count(Enrollment.student_id).label("students")).group_by(Enrollment.class_id).subquery()
     class_counts = visible.outerjoin(counts, counts.c.class_id == AcademicClass.id).with_entities(AcademicClass.name, AcademicClass.academic_year, func.coalesce(counts.c.students, 0)).order_by(AcademicClass.name).all()

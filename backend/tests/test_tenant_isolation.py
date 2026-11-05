@@ -17,7 +17,8 @@ from app.main import app
 from app.models.curriculum import CatalogueUnit, Department
 from app.models.invitation import Invitation, InvitationRole
 from app.models.learning import CourseMaterial
-from app.models.management import StaffAllocation, StaffMember
+from app.models.management import StaffMember
+from app.models.structure import AssessmentScale, CurriculumStrand, OfferingTeacher
 from app.models.pilot import AcademicYear
 
 ALLOWED = {400, 403, 404, 405, 409, 422}
@@ -44,12 +45,14 @@ def foreign_records(env):
                         category="NON_TEACHING", job_title="Bursar", department_id=department.id)
     db.add(staff)
     db.flush()
-    allocation = StaffAllocation(institution_id=other, staff_id=staff.id, course_id=course.id, period="Term 1",
-                                 group_name="", weekly_hours=Decimal("4"))
+    allocation = OfferingTeacher(institution_id=other, subject_id=env["other_subject"].id, user_id=env["outsider"].id,
+                                 role="LEAD", weekly_hours=Decimal("4"))
+    strand = CurriculumStrand(institution_id=other, catalogue_id=course.id, code="S1", name="Other strand")
+    scale = AssessmentScale(institution_id=other, name="Other scale", kind="PERCENT")
     invitation = Invitation(institution_id=other, invited_role=InvitationRole.TEACHER, email="invitee@other.test",
                             invite_token=uuid.uuid4().hex, invited_by=env["outsider"].id,
                             expires_at=datetime.now(timezone.utc) + timedelta(days=3))
-    db.add_all([allocation, invitation])
+    db.add_all([allocation, invitation, strand, scale])
     db.commit()
     return dict(
         class_id=env["other_cls"].id, subject_id=env["other_subject"].id, student_id=env["other_student"].id,
@@ -57,7 +60,7 @@ def foreign_records(env):
         user_id=env["other_pupil"].id, institution_id=other, department_id=department.id, record_id=department.id,
         course_id=course.id, staff_id=staff.id, allocation_id=allocation.id, year_id=year.id,
         material_id=material.id, invitation_id=invitation.id, document_id=uuid.uuid4(),
-        kind="departments", token=invitation.invite_token,
+        kind="departments", token=invitation.invite_token, strand_id=strand.id, scale_id=scale.id,
     )
 
 

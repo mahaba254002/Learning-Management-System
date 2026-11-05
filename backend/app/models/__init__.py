@@ -16,4 +16,6 @@ from app.models.academic_document import AcademicDocument
 from app.models.final_grade import FinalGrade
 
 from app.models.progression import Prerequisite,ProgressionDecision
-from app.models.management import StaffMember, StaffAllocation, StaffAttendance
+from app.models.management import StaffMember, StaffAttendance
+from app.models.structure import (AssessmentScale, ScaleLevel, InstitutionLevel, CurriculumStrand,  # noqa: F401
+                                  OfferingTeacher, StaffPermission, PasswordSetupToken)

@@ -8,6 +8,7 @@ export const ROLE_HOME_PATH = {
   INSTITUTION_ADMIN: "/institution/dashboard",
   TEACHER: "/teacher/dashboard",
   STUDENT: "/student/dashboard",
+  STAFF: "/staff/dashboard",
 };
 
 export function getRoleHomePath(role) {
@@ -15,13 +16,13 @@ export function getRoleHomePath(role) {
 }
 
 export function getRoleLoginPath(role) {
-  if (role === "TEACHER") return "/teacher/login";
+  if (role === "TEACHER" || role === "STAFF") return "/teacher/login";
   if (role === "STUDENT") return "/student/login";
   return "/login";
 }
 
 export function getRoleChangePasswordPath(role) {
-  if (role === "TEACHER") return "/teacher/change-password";
+  if (role === "TEACHER" || role === "STAFF") return "/teacher/change-password";
   if (role === "STUDENT") return "/student/change-password";
   return "/change-password";
 }

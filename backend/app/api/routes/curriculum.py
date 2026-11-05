@@ -74,10 +74,26 @@ class StructureInput(Input):
     award: str | None = Field(default=None, max_length=100)
     position: int = Field(default=1, ge=1, le=100)
     credits: Decimal | None = Field(default=None, ge=0, le=1000, max_digits=6, decimal_places=2)
+    education_level_id: uuid.UUID | None = None
     expected_updated_at: str | None = Field(default=None, max_length=60)
 
 
 MODELS = dict(departments=Department, programmes=Programme, levels=StudyLevel, catalogue=CatalogueUnit)
+STRUCTURE_KEYS = {'departments': ['code', 'name'], 'programmes': ['code', 'name', 'department_id', 'award', 'education_level_id'],
+                  'levels': ['code', 'name', 'programme_id', 'position', 'education_level_id'],
+                  'catalogue': ['code', 'name', 'programme_id', 'level_id', 'credits', 'education_level_id']}
+
+
+def check_education_level(db, ctx, kind, body):
+    """A record and the programme or study level it sits under share one education level."""
+    if kind == 'departments':
+        if body.education_level_id: raise HTTPException(422, 'Departments are not tied to an education level')
+        return
+    from app.api.routes.structure import owned_level
+    owned_level(db, body.education_level_id, ctx.institution_id)
+    for parent in (owned(db, Programme, body.programme_id, ctx.institution_id), owned(db, StudyLevel, body.level_id, ctx.institution_id)):
+        if parent is not None and parent.education_level_id and body.education_level_id and parent.education_level_id != body.education_level_id:
+            raise HTTPException(422, 'This record must belong to the same education level as its programme or study level')
 
 
 def owned(db, model, identity, tenant):
@@ -106,7 +122,8 @@ def create_structure(kind: Literal['departments', 'programmes', 'levels', 'catal
     owned(db, Department, body.department_id, ctx.institution_id)
     validate_links(db, ctx.institution_id, body.programme_id, body.level_id)
     if body.credits is not None and not config['credits_enabled']: raise HTTPException(409, 'Platform admin must enable course credits first')
-    keys = {'departments': ['code', 'name'], 'programmes': ['code', 'name', 'department_id', 'award'], 'levels': ['code', 'name', 'programme_id', 'position'], 'catalogue': ['code', 'name', 'programme_id', 'level_id', 'credits']}[kind]
+    check_education_level(db, ctx, kind, body)
+    keys = STRUCTURE_KEYS[kind]
     row = model(id=uuid.uuid4(), institution_id=ctx.institution_id, **{key: getattr(body, key) for key in keys})
     row.code = row.code.upper()
     db.add(row); record_audit(db, ctx, f'academic_structure.{kind}_created', row.id, ctx.institution_id)
@@ -128,7 +145,13 @@ def edit_structure(kind: Literal['departments', 'programmes', 'levels', 'catalog
         if (row.programme_id,row.level_id,row.credits)!=(body.programme_id,body.level_id,body.credits) and scoped(db,Subject,ctx).filter_by(catalogue_id=row.id).first():
             raise HTTPException(409,'This catalogue course has teaching offerings. Create a new catalogue entry to change its programme, level or credits.')
         if body.credits is not None and not academic_configuration(db.get(Institution,ctx.institution_id))['credits_enabled']: raise HTTPException(409,'Course credits are not enabled')
-    keys={'departments':['code','name'],'programmes':['code','name','department_id','award'],'levels':['code','name','programme_id','position'],'catalogue':['code','name','programme_id','level_id','credits']}[kind]
+    if kind!='departments' and row.education_level_id!=body.education_level_id:
+        in_use={'programmes':lambda:scoped(db,AcademicClass,ctx).filter_by(programme_id=row.id).first(),
+                'levels':lambda:scoped(db,AcademicClass,ctx).filter_by(level_id=row.id).first(),
+                'catalogue':lambda:scoped(db,Subject,ctx).filter_by(catalogue_id=row.id).first()}[kind]
+        if in_use(): raise HTTPException(409,'This record is in use. Create a new one to move it to another education level.')
+    check_education_level(db,ctx,kind,body)
+    keys=STRUCTURE_KEYS[kind]
     for key in keys:setattr(row,key,getattr(body,key))
     row.code=row.code.upper()
     record_audit(db,ctx,f'academic_structure.{kind}_updated',row.id,ctx.institution_id)

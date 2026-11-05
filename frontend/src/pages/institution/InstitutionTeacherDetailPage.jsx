@@ -92,8 +92,9 @@ export default function InstitutionTeacherDetailPage() {
                             <div style={{ marginTop: "0.5rem" }}>
                                 <InfoRow label="Full name" value={`${teacher.first_name} ${teacher.last_name}`} />
                                 <InfoRow label="Email" value={teacher.email} />
-                                <InfoRow label="Gender" value={GENDER_LABELS[teacher.gender] ?? teacher.gender} />
-                                <InfoRow label="Date of birth" value={new Date(teacher.date_of_birth).toLocaleDateString()} />
+                                <InfoRow label="Gender" value={GENDER_LABELS[teacher.gender] ?? teacher.gender ?? "—"} />
+                                <InfoRow label="Staff number" value={teacher.staff_number} />
+                                <InfoRow label="Date of birth" value={teacher.date_of_birth ? new Date(teacher.date_of_birth).toLocaleDateString() : "—"} />
                                 <InfoRow label="Phone" value={teacher.phone || "—"} />
                             </div>
                         </div>
@@ -104,7 +105,7 @@ export default function InstitutionTeacherDetailPage() {
                                 Professional Information
                             </h2>
                             <div style={{ marginTop: "0.5rem" }}>
-                                <InfoRow label="Qualification" value={teacher.qualification} />
+                                <InfoRow label="Qualification" value={teacher.qualification || "—"} />
                                 <InfoRow label="Specialization" value={teacher.specialization || "—"} />
                                 <InfoRow label="Employment" value={EMPLOYMENT_LABELS[teacher.employment_type] ?? teacher.employment_type} />
                                 <InfoRow label="Joined" value={new Date(teacher.joined_at).toLocaleDateString()} />

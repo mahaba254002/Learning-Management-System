@@ -112,17 +112,17 @@ export default function InstitutionInvitationsPage() {
                 <div className="recent-institutions" style={{ marginBottom: "1.5rem" }}>
                     <p className="credential-warning">
                         {approvedCredentials.credentials_emailed
-                            ? "Credentials were emailed to the teacher. A copy is shown below in case you need to relay them manually."
-                            : "We could not email the credentials automatically — please share these with the teacher directly."}
+                            ? `A link to set their password was emailed to the teacher. It expires in ${approvedCredentials.link_expires_in_hours} hours.`
+                            : "The email could not be sent. Give the teacher this link directly. It works once."}
                     </p>
                     <div className="credential-row">
                         <span className="credential-label">Username</span>
                         <code className="credential-value">{approvedCredentials.username}</code>
                     </div>
-                    <div className="credential-row">
-                        <span className="credential-label">Temporary password</span>
-                        <code className="credential-value">{approvedCredentials.temporary_password}</code>
-                    </div>
+                    {approvedCredentials.setup_link && <div className="credential-row">
+                        <span className="credential-label">Set-password link</span>
+                        <code className="credential-value">{approvedCredentials.setup_link}</code>
+                    </div>}
                     <button className="btn btn--primary" onClick={() => setApprovedCredentials(null)}>
                         Done
                     </button>

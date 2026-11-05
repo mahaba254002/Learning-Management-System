@@ -16,10 +16,12 @@ from app.db.session import get_db
 from app.models.academic import AcademicClass, Attendance, Coursework, Enrollment, Score, Student, Subject
 from app.models.institution import Institution
 from app.models.curriculum import CourseRegistration, CatalogueUnit, CourseCompletion
-from app.models.teacher import Teacher, TeacherStatus
+from app.models.management import StaffMember
+from app.models.structure import OfferingTeacher
 from app.models.user import User, UserRole, UserStatus
 from app.schemas.academic import ClassInput, CourseworkInput, EnrollInput, RegisterInput, ScoresInput, StudentEdit, StudentInput, SubjectInput
 from app.schemas.teacher import TeacherSummary
+from app.services.staff import teacher_summary
 from app.services.password_service import generate_temporary_password
 from app.services.username_service import generate_username
 
@@ -52,16 +54,52 @@ def check_revision(rows, expected):
 
 
 def active_teacher(db, teacher_id, ctx):
-    found = scoped(db, Teacher, ctx).join(User, Teacher.user_id == User.id).filter(
+    """A teacher account that is active and whose staff record is active."""
+    found = scoped(db, StaffMember, ctx).join(User, StaffMember.user_id == User.id).filter(
         User.institution_id == ctx.institution_id, User.id == teacher_id,
         User.role == UserRole.TEACHER, User.status == UserStatus.ACTIVE,
-        Teacher.status == TeacherStatus.ACTIVE,
+        StaffMember.status == 'ACTIVE',
     ).first()
     if not found:
         missing()
 
 
+def taught_subject_ids(db, ctx, user_id=None):
+    """Offerings a teacher leads or co-teaches. The lead is mirrored in
+    teaching_subjects.teacher_id; co-teachers live only in offering_teachers."""
+    user_id = user_id or ctx.user_id
+    co_taught = db.query(OfferingTeacher.subject_id).filter(
+        OfferingTeacher.institution_id == ctx.institution_id, OfferingTeacher.user_id == user_id)
+    return scoped(db, Subject, ctx).filter(or_(Subject.teacher_id == user_id, Subject.id.in_(co_taught))).with_entities(Subject.id)
+
+
+def taught_class_ids(db, ctx, user_id=None):
+    return scoped(db, Subject, ctx).filter(Subject.id.in_(taught_subject_ids(db, ctx, user_id))).with_entities(Subject.class_id)
+
+
+def sync_lead(db, ctx, subject, previous_lead=None):
+    """Keep exactly one LEAD row, matching teaching_subjects.teacher_id."""
+    db.flush()
+    lead = None
+    for row in scoped(db, OfferingTeacher, ctx).filter_by(subject_id=subject.id).all():
+        if row.user_id == subject.teacher_id and row.group_name == '':
+            lead = row
+        elif row.role == 'LEAD':
+            # A replaced lead loses access, as before co-teaching existed.
+            if row.user_id == previous_lead: db.delete(row)
+            else: row.role = 'ASSISTANT'
+    db.flush()  # Demote first so the one-lead index never sees two.
+    if lead is None:
+        db.add(OfferingTeacher(institution_id=ctx.institution_id, subject_id=subject.id, user_id=subject.teacher_id, role='LEAD'))
+    else:
+        lead.role = 'LEAD'
+
+
 def ensure_staff(db, ctx):
+    """Teaching data is for teachers and institution admins only. Other roles,
+    including non-teaching staff, are refused here even on shared routes."""
+    if ctx.role not in {UserRole.TEACHER, UserRole.INSTITUTION_ADMIN}:
+        raise HTTPException(403, "You do not have permission to perform this action")
     if ctx.role == UserRole.TEACHER:
         active_teacher(db, ctx.user_id, ctx)
 
@@ -72,8 +110,7 @@ def get_class(db, class_id, ctx, *, supervise=False, lock=False):
     if ctx.role != UserRole.INSTITUTION_ADMIN:
         permission = AcademicClass.supervisor_id == ctx.user_id
         if not supervise:
-            taught = scoped(db, Subject, ctx).filter(Subject.teacher_id == ctx.user_id).with_entities(Subject.class_id)
-            permission = or_(permission, AcademicClass.id.in_(taught))
+            permission = or_(permission, AcademicClass.id.in_(taught_class_ids(db, ctx)))
         q = q.filter(permission)
     row = q.first()
     if not row:
@@ -90,7 +127,7 @@ def get_subject(db, subject_id, ctx):
     ensure_staff(db, ctx)
     q = scoped(db, Subject, ctx).filter(Subject.id == subject_id)
     if ctx.role != UserRole.INSTITUTION_ADMIN:
-        q = q.filter(Subject.teacher_id == ctx.user_id)
+        q = q.filter(Subject.id.in_(taught_subject_ids(db, ctx)))
     row = q.first()
     if not row:
         missing()
@@ -126,7 +163,12 @@ def subject_students(db, subject, ctx):
 
 def class_links(db, ctx, payload):
     from app.api.routes.curriculum import validate_links
-    validate_links(db, ctx.institution_id, payload.programme_id, payload.level_id)
+    from app.api.routes.structure import owned_level
+    programme, level = validate_links(db, ctx.institution_id, payload.programme_id, payload.level_id)
+    owned_level(db, payload.education_level_id, ctx.institution_id)
+    for linked in (programme, level):
+        if linked is not None and linked.education_level_id and payload.education_level_id and linked.education_level_id != payload.education_level_id:
+            raise HTTPException(422, 'The programme and study level must belong to the same education level as the class')
 
 
 def offering_values(db, ctx, payload, cls, current=None):
@@ -160,8 +202,19 @@ def assessment_values(db, ctx, payload, subject, current=None):
     mode = payload.assessment_mode or (current.assessment_mode if current else ('COMPETENCY' if policy['assessment_policy'] == 'COMPETENCY' else 'NUMERIC'))
     if policy['assessment_policy'] not in {'MIXED', mode}: raise HTTPException(422, 'This assessment type is not enabled by the institution policy')
     if current and mode != current.assessment_mode: raise HTTPException(409, 'Create a new assessment to change its method; existing history is preserved.')
-    return dict(**payload.model_dump(exclude={'expected_updated_at', 'assessment_mode'}), assessment_mode=mode,
-        rubric_labels=current.rubric_labels if current else (policy['competency_labels'] if mode == 'COMPETENCY' else []))
+    from app.api.routes.structure import check_strand
+    check_strand(db, ctx, subject, payload.strand_id)
+    values = dict(**payload.model_dump(exclude={'expected_updated_at', 'assessment_mode'}), assessment_mode=mode)
+    if current:
+        return dict(values, rubric_labels=current.rubric_labels)
+    # New assessments copy the level's scale, so later scale changes never alter them.
+    from app.services.structure import class_scale, scale_bands, scale_labels
+    scale = class_scale(db, scoped(db, AcademicClass, ctx).filter_by(id=subject.class_id).one())
+    # Record the scale only when this assessment really uses it.
+    if scale is not None and not (mode == 'COMPETENCY' and scale.kind == 'COMPETENCY' or mode == 'NUMERIC' and scale_bands(db, scale) is not None):
+        scale = None
+    labels = scale_labels(db, scale) if scale is not None and mode == 'COMPETENCY' else policy['competency_labels']
+    return dict(values, rubric_labels=labels if mode == 'COMPETENCY' else [], scale_id=scale.id if scale is not None else None)
 
 
 def student_view(student, user):
@@ -172,7 +225,8 @@ def student_view(student, user):
 
 
 def class_view(row, ctx, year_status=None):
-    return dict(id=row.id, name=row.name, academic_year=row.academic_year, supervisor_id=row.supervisor_id,
+    return dict(id=row.id, name=row.name, stream=row.stream, education_level_id=row.education_level_id,
+                academic_year=row.academic_year, supervisor_id=row.supervisor_id,
                 academic_year_status=year_status or 'UNCONFIGURED',
                 programme_id=row.programme_id, level_id=row.level_id,
                 can_view_class_register=ctx.role == UserRole.INSTITUTION_ADMIN or row.supervisor_id == ctx.user_id,
@@ -182,9 +236,9 @@ def class_view(row, ctx, year_status=None):
 @router.get("/teacher/profile")
 def profile(db: Session = Depends(get_db), ctx: AuthContext = Depends(require_role(UserRole.TEACHER))):
     active_teacher(db, ctx.user_id, ctx)
-    teacher, user = scoped(db, Teacher, ctx).join(User, User.id == Teacher.user_id).filter(
-        User.institution_id == ctx.institution_id, User.id == ctx.user_id).with_entities(Teacher, User).one()
-    return TeacherSummary.from_orm_join(teacher, user)
+    profile, user = scoped(db, StaffMember, ctx).join(User, User.id == StaffMember.user_id).filter(
+        User.institution_id == ctx.institution_id, User.id == ctx.user_id).with_entities(StaffMember, User).one()
+    return teacher_summary(profile, user)
 
 
 @router.get("/teaching/classes")
@@ -192,8 +246,7 @@ def classes(db: Session = Depends(get_db), ctx: AuthContext = Depends(staff)):
     ensure_staff(db, ctx)
     q = scoped(db, AcademicClass, ctx)
     if ctx.role == UserRole.TEACHER:
-        taught = scoped(db, Subject, ctx).filter(Subject.teacher_id == ctx.user_id).with_entities(Subject.class_id)
-        q = q.filter(or_(AcademicClass.supervisor_id == ctx.user_id, AcademicClass.id.in_(taught)))
+        q = q.filter(or_(AcademicClass.supervisor_id == ctx.user_id, AcademicClass.id.in_(taught_class_ids(db, ctx))))
     from app.models.pilot import AcademicYear
     statuses = {y.name: y.status for y in scoped(db, AcademicYear, ctx).all()}
     return [class_view(row, ctx, statuses.get(row.academic_year)) for row in q.order_by(AcademicClass.academic_year.desc(), AcademicClass.name).all()]
@@ -238,10 +291,10 @@ def subjects(db: Session = Depends(get_db), ctx: AuthContext = Depends(staff)):
     ensure_staff(db, ctx)
     q = scoped(db, Subject, ctx).join(AcademicClass, AcademicClass.id == Subject.class_id).filter(AcademicClass.institution_id == ctx.institution_id)
     if ctx.role == UserRole.TEACHER:
-        q = q.filter(Subject.teacher_id == ctx.user_id)
+        q = q.filter(Subject.id.in_(taught_subject_ids(db, ctx)))
     from app.models.pilot import AcademicYear
     statuses = {y.name: y.status for y in scoped(db, AcademicYear, ctx).all()}
-    return [dict(id=s.id, class_id=c.id, name=s.name, class_name=c.name, academic_year=c.academic_year, teacher_id=s.teacher_id, catalogue_id=s.catalogue_id, period_id=s.period_id, registration_mode=s.registration_mode, academic_year_status=statuses.get(c.academic_year, 'UNCONFIGURED'))
+    return [dict(id=s.id, class_id=c.id, name=s.name, class_name=c.name, stream=c.stream, academic_year=c.academic_year, teacher_id=s.teacher_id, catalogue_id=s.catalogue_id, period_id=s.period_id, registration_mode=s.registration_mode, academic_year_status=statuses.get(c.academic_year, 'UNCONFIGURED'))
             for s, c in q.with_entities(Subject, AcademicClass).order_by(AcademicClass.name, Subject.name).all()]
 
 
@@ -257,6 +310,7 @@ def create_subject(class_id: uuid.UUID, payload: SubjectInput, db: Session = Dep
     if row.registration_mode == "COHORT":
         for student, _ in enrolled_students(db, class_id, ctx).all(): assert_course(db, ctx.institution_id, student.id, row)
     db.add(row)
+    sync_lead(db, ctx, row)
     record_audit(db, ctx, 'subject.created', row.id, ctx.institution_id)
     commit(db)
     return dict(id=row.id)
@@ -274,7 +328,9 @@ def update_subject(subject_id: uuid.UUID, payload: SubjectInput, db: Session = D
     if values.get("catalogue_id") != row.catalogue_id:
         candidate = Subject(id=row.id, institution_id=ctx.institution_id, class_id=row.class_id, **values)
         for student, _ in subject_students(db, row, ctx).all(): assert_course(db, ctx.institution_id, student.id, candidate)
+    previous_lead = row.teacher_id
     for key, value in values.items(): setattr(row, key, value)
+    sync_lead(db, ctx, row, previous_lead if previous_lead != row.teacher_id else None)
     record_audit(db, ctx, 'subject.updated', row.id, ctx.institution_id)
     commit(db)
     return dict(id=row.id)
@@ -285,7 +341,7 @@ def roster(class_id: uuid.UUID, db: Session = Depends(get_db), ctx: AuthContext 
     cls = get_class(db, class_id, ctx)
     people = enrolled_students(db, class_id, ctx)
     if ctx.role == UserRole.TEACHER and cls.supervisor_id != ctx.user_id:
-        offerings = scoped(db, Subject, ctx).filter_by(class_id=class_id, teacher_id=ctx.user_id)
+        offerings = scoped(db, Subject, ctx).filter(Subject.class_id == class_id, Subject.id.in_(taught_subject_ids(db, ctx)))
         if not offerings.filter_by(registration_mode='COHORT').first():
             registered = scoped(db, CourseRegistration, ctx).filter(CourseRegistration.subject_id.in_(offerings.with_entities(Subject.id)), CourseRegistration.active.is_(True)).with_entities(CourseRegistration.student_id)
             people = people.filter(Student.id.in_(registered))
@@ -496,8 +552,13 @@ def save_scores(coursework_id: uuid.UUID, payload: ScoresInput, db: Session = De
             db.add(row)
         row.score, row.competency_label, row.feedback = entry.score, entry.competency_label, entry.feedback
     if work.grading_bands is None:
+        # The first marks fix the bands this assessment is graded with.
         from app.services.learning_settings import learning_settings
-        work.grading_bands = learning_settings(db.get(Institution, ctx.institution_id))['grade_bands']
+        from app.services.structure import class_scale, scale_bands
+        scale = class_scale(db, scoped(db, AcademicClass, ctx).filter_by(id=subject.class_id).one())
+        bands = scale_bands(db, scale) if scale is not None and work.assessment_mode == 'NUMERIC' else None
+        work.grading_bands = bands if bands is not None else learning_settings(db.get(Institution, ctx.institution_id))['grade_bands']
+        if bands is not None: work.scale_id = scale.id
     record_audit(db, ctx, 'assessment.outcomes_saved', work.id, ctx.institution_id, f'{len(payload.entries)} outcomes; {work.assessment_mode}')
     commit(db)
     return {"message": "Scores saved"}

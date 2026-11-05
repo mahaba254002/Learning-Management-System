@@ -1,0 +1,12 @@
+import { useTeachingQuery } from "../teacher/teachingQueries";
+
+// Each page appears only when the administrator granted the matching right.
+export const STAFF_PAGES = [
+  { label: "Staff directory", path: "/staff/staff", icon: "staff", permission: "staff.view" },
+  { label: "Staff attendance", path: "/staff/staff-attendance", icon: "staff-attendance", permission: "staff_attendance.manage" },
+  { label: "Students", path: "/staff/students", icon: "students", permission: "students.view" },
+];
+
+export function useStaffProfile() {
+  return useTeachingQuery("/api/staff/me");
+}

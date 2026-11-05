@@ -35,6 +35,21 @@ class StatusInput(Input):
     status: Literal['ACTIVE', 'SUSPENDED']
 
 
+class UserStatusInput(Input):
+    status: Literal['ACTIVE', 'SUSPENDED', 'DEACTIVATED', 'ARCHIVED']
+    reason: str = Field(default='', max_length=300)
+
+
+# ACTIVE -> SUSPENDED (temporary) -> DEACTIVATED (left, record kept) -> ARCHIVED (hidden, read-only).
+# Each step can be undone one step at a time. Permanent deletion is never done here.
+TRANSITIONS = {
+    UserStatus.ACTIVE: {UserStatus.SUSPENDED, UserStatus.DEACTIVATED},
+    UserStatus.SUSPENDED: {UserStatus.ACTIVE, UserStatus.DEACTIVATED},
+    UserStatus.DEACTIVATED: {UserStatus.ACTIVE, UserStatus.ARCHIVED},
+    UserStatus.ARCHIVED: {UserStatus.DEACTIVATED},
+}
+
+
 def institution_view(row):
     return {key: getattr(row, key) for key in ('id', 'name', 'code', 'type', 'country', 'address', 'official_email', 'phone', 'website', 'status')}
 
@@ -70,9 +85,10 @@ def overview(db: Session = Depends(get_db), ctx: AuthContext = Depends(instituti
         scores_recorded=count(Score))
 
 
-def user_page(db, tenant=None, search='', role=None, offset=0, limit=50):
+def user_page(db, tenant=None, search='', role=None, offset=0, limit=50, include_archived=False):
     q = db.query(User)
     if tenant is not None: q = q.filter(User.institution_id == tenant)
+    if not include_archived: q = q.filter(User.status != UserStatus.ARCHIVED)
     if role is not None: q = q.filter(User.role == role)
     if search:
         term = '%' + search.replace('\\', '\\\\').replace('%', '\\%').replace('_', '\\_') + '%'
@@ -85,13 +101,13 @@ def user_page(db, tenant=None, search='', role=None, offset=0, limit=50):
 
 
 @router.get('/institution/users')
-def institution_users(search: str = Query('', max_length=100), role: UserRole | None = None, offset: int = Query(0, ge=0), limit: int = Query(50, ge=1, le=100), db: Session = Depends(get_db), ctx: AuthContext = Depends(institution_admin)):
-    return user_page(db, ctx.institution_id, search, role, offset, limit)
+def institution_users(search: str = Query('', max_length=100), role: UserRole | None = None, include_archived: bool = False, offset: int = Query(0, ge=0), limit: int = Query(50, ge=1, le=100), db: Session = Depends(get_db), ctx: AuthContext = Depends(institution_admin)):
+    return user_page(db, ctx.institution_id, search, role, offset, limit, include_archived)
 
 
 @router.get('/platform/users')
-def platform_users(search: str = Query('', max_length=100), role: UserRole | None = None, institution_id: uuid.UUID | None = None, offset: int = Query(0, ge=0), limit: int = Query(50, ge=1, le=100), db: Session = Depends(get_db), ctx: AuthContext = Depends(require_platform_admin)):
-    return user_page(db, institution_id, search, role, offset, limit)
+def platform_users(search: str = Query('', max_length=100), role: UserRole | None = None, institution_id: uuid.UUID | None = None, include_archived: bool = False, offset: int = Query(0, ge=0), limit: int = Query(50, ge=1, le=100), db: Session = Depends(get_db), ctx: AuthContext = Depends(require_platform_admin)):
+    return user_page(db, institution_id, search, role, offset, limit, include_archived)
 
 
 def change_user_status(db, ctx, user_id, body, platform=False):
@@ -100,25 +116,55 @@ def change_user_status(db, ctx, user_id, body, platform=False):
     row = q.with_for_update().first()
     if not row: raise HTTPException(404, 'User not found')
     # Platform accounts and institution-admin peers cannot be disabled here.
-    allowed = {UserRole.TEACHER, UserRole.STUDENT, UserRole.INSTITUTION_ADMIN} if platform else {UserRole.TEACHER, UserRole.STUDENT}
-    if row.id == ctx.user_id or row.role not in allowed: raise HTTPException(403, 'This account cannot be changed here')
+    allowed = {UserRole.TEACHER, UserRole.STUDENT, UserRole.STAFF}
+    if platform: allowed.add(UserRole.INSTITUTION_ADMIN)
+    if row.id == ctx.user_id or row.id == ctx.actor_user_id or row.role not in allowed: raise HTTPException(403, 'This account cannot be changed here')
     if row.status == UserStatus.INVITED: raise HTTPException(409, 'Complete the invitation process first')
-    if row.status.value != body.status:
-        row.status = UserStatus(body.status)
+    target = UserStatus(body.status)
+    if row.status != target:
+        if target not in TRANSITIONS.get(row.status, set()):
+            raise HTTPException(409, f'An account that is {row.status.value.lower()} cannot become {target.value.lower()} in one step')
+        if target in {UserStatus.DEACTIVATED, UserStatus.ARCHIVED} and len(body.reason.strip()) < 3:
+            raise HTTPException(422, 'Give a short reason for closing this account')
+        if target == UserStatus.DEACTIVATED:
+            leaving_checks(db, row)
+        from app.models.management import StaffMember
+        profile = db.query(StaffMember).filter_by(institution_id=row.institution_id, user_id=row.id).first()
+        if profile is not None and target == UserStatus.DEACTIVATED: profile.status = 'INACTIVE'
+        if profile is not None and target == UserStatus.ACTIVE and row.status == UserStatus.DEACTIVATED: profile.status = 'ACTIVE'
+        row.status = target
         # Invalidate earlier sessions so reactivation does not revive old cookies.
         row.password_changed_at = datetime.now(timezone.utc)
-        record_audit(db, ctx, 'user.status_changed', row.id, row.institution_id, body.status)
+        from app.models.pilot import AuthSession
+        db.query(AuthSession).filter(AuthSession.user_id == row.id, AuthSession.revoked.is_(False)).update({AuthSession.revoked: True}, synchronize_session=False)
+        record_audit(db, ctx, 'user.status_changed', row.id, row.institution_id, body.status + (f'. {body.reason.strip()}' if body.reason.strip() else ''))
         commit(db)
     return dict(id=row.id, status=row.status)
 
 
+def leaving_checks(db, row):
+    """Someone who leaves must hand over open classes first, so no class is left without a teacher."""
+    if row.role != UserRole.TEACHER: return
+    from app.models.pilot import AcademicYear
+    from app.models.structure import OfferingTeacher
+    closed = db.query(AcademicYear.name).filter_by(institution_id=row.institution_id, status='CLOSED')
+    open_classes = db.query(AcademicClass.id).filter(AcademicClass.institution_id == row.institution_id, AcademicClass.academic_year.not_in(closed))
+    leads = db.query(Subject.id).filter(Subject.institution_id == row.institution_id, Subject.teacher_id == row.id, Subject.class_id.in_(open_classes))
+    if leads.first(): raise HTTPException(409, 'Choose a new lead teacher for this person’s open offerings first')
+    if db.query(AcademicClass.id).filter(AcademicClass.id.in_(open_classes), AcademicClass.supervisor_id == row.id).first():
+        raise HTTPException(409, 'Choose a new class teacher for this person’s open classes first')
+    # Co-teaching rows in open years are removed; history in closed years stays.
+    db.query(OfferingTeacher).filter(OfferingTeacher.institution_id == row.institution_id, OfferingTeacher.user_id == row.id,
+        OfferingTeacher.subject_id.in_(db.query(Subject.id).filter(Subject.class_id.in_(open_classes)))).delete(synchronize_session=False)
+
+
 @router.put('/institution/users/{user_id}/status')
-def institution_user_status(user_id: uuid.UUID, body: StatusInput, db: Session = Depends(get_db), ctx: AuthContext = Depends(institution_admin)):
+def institution_user_status(user_id: uuid.UUID, body: UserStatusInput, db: Session = Depends(get_db), ctx: AuthContext = Depends(institution_admin)):
     return change_user_status(db, ctx, user_id, body)
 
 
 @router.put('/platform/users/{user_id}/status')
-def platform_user_status(user_id: uuid.UUID, body: StatusInput, db: Session = Depends(get_db), ctx: AuthContext = Depends(require_platform_admin)):
+def platform_user_status(user_id: uuid.UUID, body: UserStatusInput, db: Session = Depends(get_db), ctx: AuthContext = Depends(require_platform_admin)):
     return change_user_status(db, ctx, user_id, body, platform=True)
 
 

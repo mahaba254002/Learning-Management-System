@@ -72,14 +72,16 @@ def staff_dashboard(db, ctx, days, institution, since):
     classes=scoped(db,AcademicClass,ctx).filter(AcademicClass.academic_year.not_in(closed))
     subjects=scoped(db,Subject,ctx)
     if teacher:
-        taught=subjects.filter_by(teacher_id=ctx.user_id).with_entities(Subject.class_id)
+        from app.api.routes.teaching import taught_subject_ids
+        mine=taught_subject_ids(db,ctx)
+        taught=subjects.filter(Subject.id.in_(mine)).with_entities(Subject.class_id)
         classes=classes.filter((AcademicClass.supervisor_id==ctx.user_id)|(AcademicClass.id.in_(taught)))
-        subjects=subjects.filter_by(teacher_id=ctx.user_id)
+        subjects=subjects.filter(Subject.id.in_(mine))
     groups=classes.order_by(AcademicClass.name).all(); ids=[g.id for g in groups]
     allocations=subjects.filter(Subject.class_id.in_(ids)).all(); subject_ids=[s.id for s in allocations]
     enrollments=scoped(db,Enrollment,ctx).filter(Enrollment.active.is_(True),Enrollment.class_id.in_(ids))
     if teacher:
-        entitled=scoped(db,Subject,ctx).filter(Subject.teacher_id==ctx.user_id,Subject.class_id==Enrollment.class_id,
+        entitled=scoped(db,Subject,ctx).filter(Subject.id.in_(mine),Subject.class_id==Enrollment.class_id,
             or_(Subject.registration_mode=='COHORT',scoped(db,CourseRegistration,ctx).filter(CourseRegistration.subject_id==Subject.id,CourseRegistration.student_id==Enrollment.student_id,CourseRegistration.active.is_(True)).exists())).exists()
         enrollments=enrollments.filter(or_(Enrollment.class_id.in_([g.id for g in groups if g.supervisor_id==ctx.user_id]),entitled))
     students=enrollments.all()

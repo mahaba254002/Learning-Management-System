@@ -10,7 +10,7 @@ from app.core.security import create_access_token, create_workspace_token
 from app.models.academic import Coursework, Enrollment
 from app.models.audit import AuditEvent
 from app.models.learning import Submission
-from app.models.teacher import Teacher, TeacherStatus
+from app.models.management import StaffMember
 from app.models.user import UserRole, UserStatus
 
 
@@ -165,7 +165,7 @@ def test_live_permissions_rechecked_on_every_request(env, revocation):
     elif revocation == "target":
         env["pupil"].status = UserStatus.SUSPENDED
     else:
-        env["db"].query(Teacher).filter_by(user_id=env["teacher"].id).one().status = TeacherStatus.SUSPENDED
+        env["db"].query(StaffMember).filter_by(user_id=env["teacher"].id).one().status = "INACTIVE"
     env["db"].commit()
     assert client.get("/api/student/profile").status_code == 404
 
