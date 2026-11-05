@@ -1,5 +1,6 @@
 @import "./tokens.css";
 @import "./workspace-forms.css";
+@import "./components.css";
 
 *, *::before, *::after {
   box-sizing: border-box;

@@ -13,9 +13,6 @@
 .landing-intro h1 em { color: var(--color-accent); font-weight: 400; }
 .landing-lead { font-size: 17px; line-height: 1.8; color: var(--color-ink-soft); margin-top: 28px; max-width: 49ch; }
 .landing-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 24px; margin-top: 32px; font-size: 14px; }
-.btn { display: inline-block; padding: 12px 22px; border: 1px solid transparent; border-radius: 4px; font: 500 14px var(--font-body); text-decoration: none; cursor: pointer; }
-.btn--primary { background: var(--color-accent); color: var(--color-white); }
-.btn--primary:hover { background: var(--color-accent-hover); }
 .landing-caption { margin-top: 22px; font-size: 12px; color: var(--color-ink-soft); }
 .lesson-preview { background: var(--color-canvas); border: 1px solid var(--color-line); padding: 28px 32px 0; border-radius: 4px; }
 .lesson-preview__top { display: flex; justify-content: space-between; gap: 12px; font-size: 10px; color: var(--color-ink-soft); padding-bottom: 22px; margin-bottom: 32px; border-bottom: 1px solid var(--color-line); }

@@ -13,6 +13,7 @@ Two distinct trust boundaries in this file, worth reading carefully:
    password-reset link.
 """
 
+import html
 import uuid
 from app.services.audit_service import record_audit
 from datetime import date, datetime, timedelta, timezone
@@ -21,7 +22,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app.core.deps import AuthContext, require_role
+from app.core.deps import AuthContext, forbid_delegated_credentials, require_role
 from app.core.invitation_token import generate_invite_token
 from app.core.rate_limit import rate_limit
 from app.core.security import hash_password
@@ -182,6 +183,7 @@ def list_invitations(
 @router.post(
     "/api/institution/invitations/{invitation_id}/approve",
     response_model=InvitationApprovedResponse,
+    dependencies=[Depends(forbid_delegated_credentials)],
 )
 def approve_invitation(
     invitation_id: str,
@@ -261,14 +263,14 @@ def approve_invitation(
     # a real, usable account. We record the failure so the admin can see
     # it, and the admin's on-screen copy (returned below regardless)
     # remains a valid fallback way to relay the credentials manually.
-    subject = "Your Rollcall account is ready"
+    subject = "Your Skynet account is ready"
     html_body = (
-        f"<p>Hello {new_user.first_name},</p>"
+        f"<p>Hello {html.escape(new_user.first_name)},</p>"
         "<p>Your account has been approved. Here are your login details:</p>"
-        f"<p><strong>Username:</strong> {new_user.username}<br>"
+        f"<p><strong>Username:</strong> {html.escape(new_user.username)}<br>"
         f"<strong>Temporary password:</strong> {temporary_password}</p>"
         "<p>You will be asked to set a new password the first time you log in.</p>"
-        f'<p><a href="{settings.FRONTEND_BASE_URL}/login">Log in here</a></p>'
+        f'<p><a href="{settings.FRONTEND_BASE_URL}/teacher/login">Log in here</a></p>'
     )
 
     try:

@@ -1,3 +1,40 @@
+// The API trusts the client IP header only when the shared secret matches, so
+// browsers can never choose the address used for rate limits and audit logs.
+const CLIENT_IP_HEADER = 'X-Skynet-Client-IP';
+const PROXY_SECRET_HEADER = 'X-Skynet-Proxy-Secret';
+
+const PAGE_SECURITY_HEADERS = {
+  'Content-Security-Policy': [
+    "default-src 'self'",
+    "script-src 'self'",
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+    "font-src 'self' https://fonts.gstatic.com",
+    "img-src 'self' data: blob:",
+    "connect-src 'self'",
+    "object-src 'none'",
+    "base-uri 'self'",
+    "form-action 'self'",
+    "frame-ancestors 'none'",
+  ].join('; '),
+  'X-Frame-Options': 'DENY',
+  'X-Content-Type-Options': 'nosniff',
+  'Referrer-Policy': 'strict-origin-when-cross-origin',
+  'Permissions-Policy': 'camera=(), microphone=(), geolocation=()',
+  'Strict-Transport-Security': 'max-age=63072000; includeSubDomains',
+};
+
+function proxyHeaders(request, env) {
+  const headers = new Headers(request.headers);
+  headers.delete(CLIENT_IP_HEADER);
+  headers.delete(PROXY_SECRET_HEADER);
+  const clientIp = request.headers.get('CF-Connecting-IP');
+  if (env.PROXY_SHARED_SECRET && clientIp) {
+    headers.set(CLIENT_IP_HEADER, clientIp);
+    headers.set(PROXY_SECRET_HEADER, env.PROXY_SHARED_SECRET);
+  }
+  return headers;
+}
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
@@ -22,13 +59,14 @@ export default {
       if (api.protocol !== 'https:' || api.username || api.password || api.pathname !== '/' || api.search || api.hash) {
         return Response.json({ detail: 'API configuration is invalid.' }, { status: 503, headers: noindex });
       }
-      const upstream = await fetch(new Request(new URL(url.pathname + url.search, api), request));
+      const upstream = await fetch(new Request(new URL(url.pathname + url.search, api), new Request(request, { headers: proxyHeaders(request, env) })));
       const response = new Response(upstream.body, upstream);
       Object.entries(noindex).forEach(([key, value]) => response.headers.set(key, value));
       return response;
     }
     const asset = await env.ASSETS.fetch(request);
     const response = new Response(asset.body, asset);
+    Object.entries(PAGE_SECURITY_HEADERS).forEach(([key, value]) => response.headers.set(key, value));
     if (!indexable || url.pathname !== '/') {
       response.headers.set('X-Robots-Tag', 'noindex, nofollow');
     } else response.headers.set('Link', `<${site.origin}/>; rel="canonical"`);

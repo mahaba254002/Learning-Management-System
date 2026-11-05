@@ -236,7 +236,7 @@ def test_closure_requires_released_complete_marks_and_locks_academic_writes(env)
     assert c.put(f"/api/teaching/coursework/{env['work'].id}/results-release", json=dict(released=False)).status_code == 409
     teacher = env['as_user'](env['teacher'])
     # A historical teaching allocation must not grant access to a learner's future workspace.
-    assert teacher.post('/api/workspace-access/start', json=dict(target_user_id=str(env['pupil'].id))).status_code == 404
+    assert teacher.post('/api/workspace-access/start', json=dict(reason='Support request in tests', target_user_id=str(env['pupil'].id))).status_code == 404
     pupil = env['as_user'](env['pupil'])
     assert pupil.put(f"/api/student/assignments/{env['work'].id}/submission", json=dict(answer='Late write', expected_version=0, submit=False)).status_code == 409
 

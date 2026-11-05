@@ -17,7 +17,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 from app.api.routes.teaching import admin, get_class, commit
 from app.core.config import settings
-from app.core.deps import AuthContext
+from app.core.deps import AuthContext, forbid_delegated_credentials
 from app.core.rate_limit import rate_limit
 from app.core.security import decode_token, hash_password
 from app.db.session import get_db
@@ -137,7 +137,7 @@ def preview(body: ImportInput, db: Session = Depends(get_db), ctx: AuthContext =
     return dict(class_name=cls.name, academic_year=cls.academic_year, students=clean, errors=errors, preview_token=token)
 
 
-@router.post('/commit', dependencies=[Depends(rate_limit(max_requests=5, window_seconds=60, key_prefix='import-commit'))])
+@router.post('/commit', dependencies=[Depends(rate_limit(max_requests=5, window_seconds=60, key_prefix='import-commit')), Depends(forbid_delegated_credentials)])
 def execute(body: ImportInput, db: Session = Depends(get_db), ctx: AuthContext = Depends(admin)):
     from app.services.progression import lock_entry
     lock_entry(db, ctx.institution_id)

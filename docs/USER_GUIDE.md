@@ -18,7 +18,7 @@ Passwords require at least eight characters, an uppercase letter, a lowercase le
 
 Use your assigned subjects to publish materials, create coursework, mark subject attendance and enter scores. Coursework can stay in draft until ready for students. Review final submissions from the assessment’s score page. Check maximum marks before entering scores. Saving marks does not release results: use **Release results to students** when marking is ready.
 
-Class supervisors can open their class roster, edit basic student details, enroll or withdraw existing students, and view all subject marks in their class's academic overview. Institution administrators create accounts and control sign-in details. Withdrawing a student preserves historical records. Authority is limited to assigned subjects and supervised classes.
+Class supervisors can open their class roster, edit basic student details, withdraw students and restore students they withdrew, and view all subject marks in their class's academic overview. Institution administrators create accounts, add new students to classes and control sign-in details. Withdrawing a student preserves historical records. Authority is limited to assigned subjects and supervised classes.
 
 ## Institution administrators
 

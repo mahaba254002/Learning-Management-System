@@ -75,12 +75,12 @@ export function AuthProvider({ children }) {
     }
   }, [queryClient]);
 
-  const startWorkspace = useCallback(async (targetUserId) => {
+  const startWorkspace = useCallback(async (targetUserId, reason) => {
     if (workspaceTransition.current) throw new Error("A workspace is already opening or closing. Please wait.");
     workspaceTransition.current = true;
     setIsWorkspaceChanging(true);
     try {
-      const data = await apiRequest("/api/workspace-access/start", { method: "POST", body: { target_user_id: targetUserId } });
+      const data = await apiRequest("/api/workspace-access/start", { method: "POST", body: { target_user_id: targetUserId, ...(reason ? { reason } : {}) } });
       await queryClient.cancelQueries();
       setWorkspaceAccess(data);
       queryClient.clear();

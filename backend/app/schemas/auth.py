@@ -49,10 +49,14 @@ class UserSummary(BaseModel):
 
 LoginResponse.model_rebuild()
 
+# Passwords are capped so a huge input cannot tie up the argon2 hasher.
+PASSWORD_MAX_LENGTH = 1024
+
+
 class ChangePasswordRequest(BaseModel):
-    current_password: str
-    new_password: str
-    confirm_password: str
+    current_password: str = Field(min_length=1, max_length=PASSWORD_MAX_LENGTH)
+    new_password: str = Field(max_length=PASSWORD_MAX_LENGTH)
+    confirm_password: str = Field(max_length=PASSWORD_MAX_LENGTH)
 
     @model_validator(mode="after")
     def passwords_must_match(self) -> "ChangePasswordRequest":
@@ -66,7 +70,7 @@ class ChangePasswordResponse(BaseModel):
 
 ###############
 class ForgotPasswordRequest(BaseModel):
-    email: str
+    email: str = Field(max_length=255)
 
 
 class ForgotPasswordResponse(BaseModel):
@@ -76,8 +80,8 @@ class ForgotPasswordResponse(BaseModel):
 class ResetPasswordRequest(BaseModel):
     verification_id: uuid.UUID
     code: str = Field(min_length=6, max_length=6)
-    new_password: str
-    confirm_password: str
+    new_password: str = Field(max_length=PASSWORD_MAX_LENGTH)
+    confirm_password: str = Field(max_length=PASSWORD_MAX_LENGTH)
 
     @model_validator(mode="after")
     def passwords_must_match(self) -> "ResetPasswordRequest":

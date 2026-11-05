@@ -147,7 +147,7 @@ def test_individual_lecturer_cannot_bypass_registration_through_class_roster(env
     c.put(f'/api/institution/subjects/{subject}/registrations',json=dict(student_id=str(env['student'].id),active=True))
     teacher=env['as_user'](env['teacher']);roster=teacher.get(f'/api/teaching/classes/{group}/students').json()
     assert [r['id'] for r in roster]==[str(env['student'].id)]
-    assert teacher.post('/api/workspace-access/start',json=dict(target_user_id=response.json()['student']['user_id'])).status_code==404
+    assert teacher.post('/api/workspace-access/start',json=dict(reason='Support request in tests',target_user_id=response.json()['student']['user_id'])).status_code==404
 
 
 def test_used_catalogue_credit_and_programme_cannot_be_reinterpreted(env):

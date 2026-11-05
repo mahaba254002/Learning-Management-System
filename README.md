@@ -15,7 +15,7 @@ Institutions can also use Management Only or Management + Student Records packag
 | Workspace | Implemented capabilities |
 | --- | --- |
 | Student | View enrolled subjects and published materials; save assignment drafts and submit written answers or document links; view personal attendance, scores, feedback and a read-only profile. |
-| Teacher | View assigned subjects; publish resources and coursework; record attendance and marks; review submissions and release results. Class supervisors correct basic details, manage enrollment and review all subject marks for their classes. |
+| Teacher | View assigned subjects; publish resources and coursework; record attendance and marks; review submissions and release results. Class supervisors correct basic details, withdraw and restore students in their classes, and review all subject marks for their classes. Adding a new student to a class is an institution administrator task. |
 | Institution administrator | Configure terminology and grading; manage classes, subjects and teachers; provision email or ID-only student accounts; reset student credentials; oversee records, settings and audit events. |
 | Platform administrator | Search/open institutions and their workspaces; view actual charts; manage monthly KES subscriptions, received payments and overdue/manual freezes; manage access and audit events; archive institutions through email verification. |
 
@@ -34,7 +34,7 @@ flowchart LR
 
 The browser uses same-origin `/api` requests. FastAPI validates the session and current account status, then enforces institution membership and teaching/enrollment relationships. Composite database constraints reinforce institution boundaries. Alembic manages schema changes. React Query manages fetched state and clears cached account data when authentication changes.
 
-Production uses Cloudflare Workers for the frontend, Render for the API and Redis, and Neon for PostgreSQL. Netlify and Vercel configuration files are alternative hosting configurations, not additional required services.
+Production uses Cloudflare Workers for the frontend, Render for the API and Redis, and Neon for PostgreSQL. The Netlify and Vercel configurations were removed; the old Vercel deployment should be deleted from the Vercel dashboard.
 
 ## Sign in
 

@@ -6,7 +6,7 @@ import logo from "../../assets/skynet-logo.png";
 import { useAuth } from "../../context/useAuth";
 import InstitutionWorkspace from "../common/InstitutionWorkspace";
 import ModuleAccess from "../common/ModuleAccess";
-import { pageEnabled } from "../../modules/institutionModules";
+import { navItemVisible } from "../../modules/institutionModules";
 import { useQuery } from "@tanstack/react-query";
 import { apiRequest } from "../../api/client";
 import "./DashboardLayout.css";
@@ -41,7 +41,7 @@ export default function DashboardLayout({ navItems, children, brandLabel }) {
         {brandLabel && <p className="dashboard-sidebar__context">{labels ? brandLabel.replace("Teacher", labels.teacher_label).replace("Student", labels.student_label) : brandLabel}</p>}
 
         <nav className="dashboard-sidebar__nav" aria-label="Workspace navigation">
-          {navItems.filter(item => !user.institution_id || pageEnabled(item.path, modules.data?.modules)).map((item) => {
+          {navItems.filter(item => !user.institution_id || navItemVisible(item.path, modules.data?.modules)).map((item) => {
             const isActive = location.pathname === item.path || location.pathname.startsWith(`${item.path}/`);
             return (
               <Link

@@ -182,7 +182,7 @@ def test_freeze_blocks_login_sessions_and_regular_workspace_not_owner(env):
     assert c.post('/api/auth/teacher/login', json=dict(email=env['teacher'].email, password='Valid-password-123!')).status_code == 403
     owner = platform(env)
     c = env['as_user'](owner)
-    result = c.post('/api/workspace-access/start', json={'target_user_id': str(env['teacher'].id)})
+    result = c.post('/api/workspace-access/start', json={'reason': 'Support request in tests', 'target_user_id': str(env['teacher'].id)})
     assert result.status_code == 200
     c.headers['X-Workspace-Token'] = result.json()['token']
     assert c.get('/api/teaching/classes').status_code == 200

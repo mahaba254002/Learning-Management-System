@@ -48,3 +48,11 @@ export function pageModules(path) {
 export function pageEnabled(path, modules) {
   return Boolean(modules) && pageModules(path).every(key => modules[key]);
 }
+
+// The sidebar must never go empty while modules load or if that request fails.
+// Until modules are known it shows pages that need no module (dashboard,
+// account, audit). Signed-in students already passed the student portal check.
+export function navItemVisible(path, modules) {
+  if (modules) return pageEnabled(path, modules);
+  return pageModules(path).every(key => key === 'student_portal');
+}

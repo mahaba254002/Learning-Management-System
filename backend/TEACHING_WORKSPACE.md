@@ -5,7 +5,7 @@ The teacher portal now has a dashboard, personal profile, class rosters, attenda
 ## Permissions
 
 - Institution administrators create classes and assign supervisors and subject teachers in their own institution.
-- Class supervisors create student accounts, edit student names and phone numbers, enroll existing students by exact admission number, remove enrollment, and take the daily class register.
+- Class supervisors edit student names and phone numbers, remove enrollment, restore a student they removed, and take the daily class register. Institution administrators create student accounts and add new students to a class by exact admission number.
 - Subject teachers view rosters, take subject attendance, create/edit/publish assessments, and enter scores only for their assigned subjects. Supervision alone does not grant assessment or score access.
 - Students see published assessments and their own scores/feedback for active enrollments at `/student/dashboard`. Drafts and other students' marks are never returned.
 - Every academic lookup is scoped to the authenticated institution. Unknown, foreign, and unauthorized resources return the same 404. Composite foreign keys also prevent cross-institution relationships in the database.

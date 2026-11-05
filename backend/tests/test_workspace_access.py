@@ -22,7 +22,7 @@ def actor_client(env, who):
 
 def enter(env, actor, target):
     client = actor_client(env, actor)
-    result = client.post("/api/workspace-access/start", json={"target_user_id": str(target.id)})
+    result = client.post("/api/workspace-access/start", json={"reason": "Support request in tests", "target_user_id": str(target.id)})
     assert result.status_code == 200, result.text
     data = result.json()
     client.headers["X-Workspace-Token"] = data["token"]
@@ -53,7 +53,7 @@ def test_teacher_student_view_preserves_real_session_and_records_audit(env, who)
 
 @pytest.mark.parametrize("actor,target", [("unrelated", "pupil"), ("teacher", "other_pupil"), ("teacher", "admin"), ("teacher", "supervisor"), ("pupil", "teacher"), ("admin", "outsider"), ("admin", "other_pupil")])
 def test_unauthorised_targets_are_unavailable(env, actor, target):
-    result = actor_client(env, env[actor]).post("/api/workspace-access/start", json={"target_user_id": str(env[target].id)})
+    result = actor_client(env, env[actor]).post("/api/workspace-access/start", json={"reason": "Support request in tests", "target_user_id": str(env[target].id)})
     assert result.status_code == 404 and "token" not in result.json()
 
 
@@ -65,7 +65,7 @@ def test_institution_admin_teacher_view_and_class_register_remain_readable(env):
     assert classes[0]["can_manage"] is False
     assert classes[0]["can_view_class_register"] is True
     # An admin can drill down from the teacher view; identity remains the real admin.
-    result = client.post("/api/workspace-access/start", json={"target_user_id": str(env["pupil"].id)})
+    result = client.post("/api/workspace-access/start", json={"reason": "Support request in tests", "target_user_id": str(env["pupil"].id)})
     assert result.status_code == 200 and result.json()["actor"]["id"] == str(env["admin"].id)
     assert result.json()["read_only"] is True
 
@@ -143,7 +143,7 @@ def test_workspace_grants_cannot_be_forged_replayed_or_replaced_with_auth_token(
     client.headers["X-Workspace-Token"] = data["token"]
     assert client.get("/api/me").status_code == 401
     client = actor_client(env, env["teacher"])
-    assert client.post("/api/workspace-access/start", json={"target_user_id": str(env["pupil"].id), "read_only": False}).status_code == 422
+    assert client.post("/api/workspace-access/start", json={"reason": "Support request in tests", "target_user_id": str(env["pupil"].id), "read_only": False}).status_code == 422
 
 
 def test_workspace_expiration_and_csrf(env):
@@ -154,7 +154,7 @@ def test_workspace_expiration_and_csrf(env):
     assert client.get("/api/student/profile").status_code == 401
     client.headers.pop("X-Workspace-Token")
     client.headers.pop("X-CSRF-Token")
-    assert client.post("/api/workspace-access/start", json={"target_user_id": str(env["pupil"].id)}).status_code == 403
+    assert client.post("/api/workspace-access/start", json={"reason": "Support request in tests", "target_user_id": str(env["pupil"].id)}).status_code == 403
 
 
 @pytest.mark.parametrize("revocation", ["enrollment", "target", "teacher"])

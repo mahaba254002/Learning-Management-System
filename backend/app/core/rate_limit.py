@@ -18,11 +18,13 @@ only the runtime multiplier changes based on environment, so nothing needs
 to be manually reverted before deploying.
 """
 
+import hashlib
 import logging
 
 from fastapi import HTTPException, Request, status
 import redis as redis_lib
 
+from app.core.client_ip import client_ip
 from app.core.config import settings
 from app.core.redis_client import redis_client
 
@@ -36,41 +38,52 @@ def rate_limit(*, max_requests: int, window_seconds: int, key_prefix: str):
     Factory returning a FastAPI dependency. Usage:
         Depends(rate_limit(max_requests=5, window_seconds=60, key_prefix="login"))
 
-    Limits by client IP address. Good enough for now; could be extended to
-    also limit by username/account later if needed.
+    Limits by the visitor IP from app.core.client_ip. Pair it with
+    limit_identity() where one account can be targeted from many addresses.
     """
 
     effective_max = max_requests * _DEV_MULTIPLIER if settings.is_development else max_requests
 
     def _check(request: Request) -> None:
-        client_ip = request.client.host if request.client else "unknown"
-        redis_key = f"ratelimit:{key_prefix}:{client_ip}"
-
-        try:
-            # INCR atomically increments the counter (creating it at 1 if it
-            # doesn't exist yet) — atomic matters here so concurrent requests
-            # from the same IP can't race past each other and both slip through.
-            current_count = redis_client.incr(redis_key)
-
-            if current_count == 1:
-                # This is the first request in a new window — set it to expire
-                # after window_seconds, starting the clock on this window.
-                redis_client.expire(redis_key, window_seconds)
-
-            if current_count > effective_max:
-                raise HTTPException(
-                    status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-                    detail="Too many requests, please try again later.",
-                )
-        except HTTPException:
-            # Re-raise 429s — those are intentional, not Redis errors.
-            raise
-        except redis_lib.RedisError as exc:
-            logger.error("Rate limiter unavailable: %s", exc)
-            raise HTTPException(
-                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                detail="Authentication is temporarily unavailable. Please try again shortly.",
-                headers={"Retry-After": "60"},
-            ) from exc
+        _count(f"ratelimit:{key_prefix}:{client_ip(request) or 'unknown'}", effective_max, window_seconds)
 
     return _check
+
+
+def limit_identity(*, key_prefix: str, identity: str, max_requests: int, window_seconds: int) -> None:
+    """Limit attempts against one account, whatever IP addresses they come from.
+
+    The identity is hashed so raw emails and student IDs never sit in Redis."""
+    digest = hashlib.sha256(identity.strip().lower().encode()).hexdigest()[:32]
+    effective_max = max_requests * _DEV_MULTIPLIER if settings.is_development else max_requests
+    _count(f"ratelimit:{key_prefix}:account:{digest}", effective_max, window_seconds)
+
+
+def _count(redis_key: str, effective_max: int, window_seconds: int) -> None:
+    try:
+        # INCR atomically increments the counter (creating it at 1 if it
+        # doesn't exist yet) — atomic matters here so concurrent requests
+        # from the same IP can't race past each other and both slip through.
+        current_count = redis_client.incr(redis_key)
+
+        if current_count == 1:
+            # This is the first request in a new window — set it to expire
+            # after window_seconds, starting the clock on this window.
+            redis_client.expire(redis_key, window_seconds)
+
+        if current_count > effective_max:
+            raise HTTPException(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail="Too many requests, please try again later.",
+            )
+    except HTTPException:
+        # Re-raise 429s — those are intentional, not Redis errors.
+        raise
+    except redis_lib.RedisError as exc:
+        logger.error("Rate limiter unavailable: %s", exc)
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Authentication is temporarily unavailable. Please try again shortly.",
+            headers={"Retry-After": "60"},
+        ) from exc
+

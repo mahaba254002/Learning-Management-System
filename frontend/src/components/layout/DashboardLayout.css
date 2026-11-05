@@ -53,6 +53,10 @@
 .workspace-access-action { display: grid; gap: 6px; }
 .workspace-access-action button { border: 1px solid #026aa7; background: #f4f7fa; color: #026aa7; border-radius: 6px; padding: 8px 12px; cursor: pointer; }
 .workspace-access-action button:disabled { opacity: .55; cursor: not-allowed; }
+.workspace-access-action label { font-weight: 500; }
+.workspace-access-action textarea { font: inherit; padding: 8px; border: 1px solid #c5d2dc; border-radius: 6px; resize: vertical; }
+.workspace-access-action .field-hint { margin: 0; color: #55636f; font-size: 13px; }
+.workspace-access-buttons { display: flex; flex-wrap: wrap; gap: 8px; }
 @media (min-width: 901px) {
   .dashboard-shell--collapsed .dashboard-sidebar__brand { justify-content: center; }
   .dashboard-shell--collapsed .dashboard-sidebar--desktop :is(.dashboard-brand-image,.dashboard-sidebar__context,.dashboard-sidebar__link > span,.dashboard-sidebar__name,.dashboard-sidebar__role,.dashboard-sidebar__logout > span) { display: none; }

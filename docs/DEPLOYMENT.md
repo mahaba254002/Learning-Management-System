@@ -70,8 +70,9 @@ Rehearse the exact upgrade from the live starting revision, not only from an emp
 | Setting/tool | Requirement |
 | --- | --- |
 | DATABASE_URL / DATABASE_URL_UNPOOLED | Same intended database/branch, correct runtime/direct connection; verify privately |
-| JWT_SECRET_KEY | Strong existing production secret, shared consistently; changing it signs out users |
-| ENVIRONMENT | production; HTTPS required for secure cookies |
+| JWT_SECRET_KEY | Strong existing production secret of at least 32 characters, shared consistently; changing it signs out users. The API refuses to start with a shorter key outside development |
+| ENVIRONMENT | production (the default). Must be development, staging or production; any other value stops the API from starting |
+| PROXY_SHARED_SECRET | Random value of at least 32 characters, set to the same value on Render and as the Worker secret. Without it every visitor shares one rate-limit bucket and audit logs show the proxy address. See the client IP section below |
 | ALLOWED_ORIGINS / FRONTEND_BASE_URL | Exact real HTTPS frontend origin; test login and recovery links through Worker |
 | REDIS_URL | Reachable intended service; unavailable limits intentionally block sensitive endpoints |
 | RESEND_API_KEY / EMAIL_FROM_ADDRESS | Valid key and verified sender; controlled delivery test |
@@ -81,6 +82,15 @@ Rehearse the exact upgrade from the live starting revision, not only from an emp
 | PG_DUMP_PATH / PG_RESTORE_PATH or PATH | Compatible PostgreSQL client binaries actually installed; Python dependencies alone do not supply them |
 | RESTORE_DATABASE_URL | Optional separate empty recovery target; never the running DB |
 | ACCESS_TOKEN_EXPIRE_MINUTES / REFRESH_TOKEN_EXPIRE_DAYS | Confirm intended lifetimes from config.py; stable settings across API instances |
+
+### Client IP behind the Worker
+
+Production traffic reaches the API through the Cloudflare Worker, so the API sees the proxy, not the visitor. The Worker sends the visitor address in X-Skynet-Client-IP with X-Skynet-Proxy-Secret, and removes any copies a browser sends. The API uses that address for rate limits and audit logs only when the secret matches. Requests made straight to the Render address keep using the connection address.
+
+1. Generate a value once, for example python -c "import secrets; print(secrets.token_urlsafe(48))".
+2. Render dashboard, API service, Environment: add PROXY_SHARED_SECRET with that value and redeploy.
+3. From frontend: wrangler secret put PROXY_SHARED_SECRET and paste the same value. Never add it to wrangler.jsonc.
+4. Sign in once and confirm the auth.login audit event shows your own public IP address.
 
 Take an encrypted/offsite recoverable pre-release database backup, record its timestamp and checksum privately, and prove restoration to a separate destination. A signed tenant export does not replace a full database recovery copy. Record acceptable recovery time and data loss. Ensure billing cron or outbound email does not run against an unintended restored/staging database.
 

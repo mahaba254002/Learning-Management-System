@@ -172,13 +172,16 @@ def request_archive_institution(
 
     admin = db.get(User, ctx.user_id)
 
-    verification_id = generate_verification_code(
-        db=db,
-        user_id=ctx.user_id,
-        user_email=admin.email if admin else None,
-        purpose=VerificationPurpose.DELETE_INSTITUTION,
-        payload={"institution_id": str(institution.id), "institution_name": institution.name},
-    )
+    try:
+        verification_id = generate_verification_code(
+            db=db,
+            user_id=ctx.user_id,
+            user_email=admin.email if admin else None,
+            purpose=VerificationPurpose.DELETE_INSTITUTION,
+            payload={"institution_id": str(institution.id), "institution_name": institution.name},
+        )
+    except VerificationError as e:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(e))
 
     return VerificationRequiredResponse(verification_id=verification_id)
 

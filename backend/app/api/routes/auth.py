@@ -30,7 +30,9 @@ from app.core.config import settings
 from app.core.csrf import CSRF_COOKIE_NAME, generate_csrf_token, verify_csrf
 from app.core.deps import AuthContext, get_current_context
 from app.core.password_policy import PasswordPolicyError, validate_password_policy
-from app.core.rate_limit import rate_limit
+from app.core.client_ip import client_ip
+from app.core.rate_limit import limit_identity, rate_limit
+from app.models.audit import AuditEvent
 from app.core.security import create_access_token, create_refresh_token, decode_token, hash_password, verify_password
 from app.models.pilot import AuthSession
 from app.db.session import get_db
@@ -99,6 +101,19 @@ def _set_auth_cookies(response: Response, *, access_token: str, refresh_token: s
     )
 
 
+# Repeated attempts against one account are limited even when they come from
+# many addresses. Counting every attempt keeps the check to one Redis call.
+ACCOUNT_LOGIN_LIMIT = 10
+ACCOUNT_LOGIN_WINDOW_SECONDS = 15 * 60
+
+
+def _auth_audit(db: Session, request: Request, user: User, action: str, detail: str = "") -> None:
+    """Record a sign-in event. Never stores passwords, codes or tokens."""
+    db.add(AuditEvent(actor_id=user.id, institution_id=user.institution_id, action=action,
+                      target_id=str(user.id), detail=detail[:500], ip_address=client_ip(request),
+                      request_method=request.method, request_path=request.url.path[:500]))
+
+
 def _bump_password_changed_at(user: User) -> None:
     """
     Stamps password_changed_at so that any access/refresh tokens issued
@@ -112,6 +127,7 @@ def _bump_password_changed_at(user: User) -> None:
 
 def _authenticate(
     payload: LoginRequest | StudentLoginRequest,
+    request: Request,
     response: Response,
     db: Session,
     *,
@@ -123,6 +139,10 @@ def _authenticate(
     rejected with the SAME error as a wrong password, so a login attempt
     can never be used to discover which door a given username belongs to.
     """
+    identity = payload.student_id if isinstance(payload, StudentLoginRequest) and payload.student_id else payload.email
+    limit_identity(key_prefix="login", identity=identity, max_requests=ACCOUNT_LOGIN_LIMIT,
+                   window_seconds=ACCOUNT_LOGIN_WINDOW_SECONDS)
+
     if isinstance(payload, StudentLoginRequest) and payload.student_id:
         matches = db.query(User).filter(User.student_login_id == payload.student_id.upper(), User.student_login_method == "STUDENT_ID", User.role == UserRole.STUDENT).limit(2).all()
     else:
@@ -147,10 +167,14 @@ def _authenticate(
         raise invalid_credentials
 
     if not verify_password(payload.password, user.password_hash):
+        _auth_audit(db, request, user, "auth.login_failed", "Incorrect password")
+        db.commit()
         raise invalid_credentials
 
     if user.role not in allowed_roles:
         # Deliberately identical to the wrong-password error above.
+        _auth_audit(db, request, user, "auth.login_failed", "Signed in through another portal")
+        db.commit()
         raise invalid_credentials
 
     if user.status != UserStatus.ACTIVE or not user.login_enabled:
@@ -188,6 +212,7 @@ def _authenticate(
     refresh_token = create_refresh_token(user_id=user.id, session_id=session.id, expires_at=session.expires_at)
     session.refresh_digest = hashlib.sha256(refresh_token.encode()).hexdigest()
     db.add(session)
+    _auth_audit(db, request, user, "auth.login", "Remember me" if payload.remember_me else "")
     db.commit()
 
     _set_auth_cookies(response, access_token=access_token, refresh_token=refresh_token, remember_me=payload.remember_me)
@@ -204,10 +229,10 @@ def _authenticate(
     response_model=LoginResponse,
     dependencies=[Depends(rate_limit(max_requests=5, window_seconds=60, key_prefix="login"))],
 )
-def login(payload: LoginRequest, response: Response, db: Session = Depends(get_db)) -> LoginResponse:
+def login(payload: LoginRequest, request: Request, response: Response, db: Session = Depends(get_db)) -> LoginResponse:
     """Admin login door — platform admin, institution admin only.
     Teachers and students are rejected here; they have their own doors."""
-    return _authenticate(payload, response, db, allowed_roles=ADMIN_ROLES)
+    return _authenticate(payload, request, response, db, allowed_roles=ADMIN_ROLES)
 
 
 @router.post(
@@ -215,9 +240,9 @@ def login(payload: LoginRequest, response: Response, db: Session = Depends(get_d
     response_model=LoginResponse,
     dependencies=[Depends(rate_limit(max_requests=5, window_seconds=60, key_prefix="login"))],
 )
-def teacher_login(payload: LoginRequest, response: Response, db: Session = Depends(get_db)) -> LoginResponse:
+def teacher_login(payload: LoginRequest, request: Request, response: Response, db: Session = Depends(get_db)) -> LoginResponse:
     """Teacher login door. Admins and students are rejected here."""
-    return _authenticate(payload, response, db, allowed_roles=TEACHER_ROLES)
+    return _authenticate(payload, request, response, db, allowed_roles=TEACHER_ROLES)
 
 
 @router.post(
@@ -225,9 +250,9 @@ def teacher_login(payload: LoginRequest, response: Response, db: Session = Depen
     response_model=LoginResponse,
     dependencies=[Depends(rate_limit(max_requests=5, window_seconds=60, key_prefix="login"))],
 )
-def student_login(payload: StudentLoginRequest, response: Response, db: Session = Depends(get_db)) -> LoginResponse:
+def student_login(payload: StudentLoginRequest, request: Request, response: Response, db: Session = Depends(get_db)) -> LoginResponse:
     """Student login door. Admins and teachers are rejected here."""
-    return _authenticate(payload, response, db, allowed_roles=STUDENT_ROLES)
+    return _authenticate(payload, request, response, db, allowed_roles=STUDENT_ROLES)
 
 
 @router.post('/refresh', dependencies=[Depends(rate_limit(max_requests=60, window_seconds=60, key_prefix='refresh'))])
@@ -244,7 +269,16 @@ def refresh(request: Request, response: Response, db: Session = Depends(get_db))
     except (jwt.PyJWTError, KeyError, TypeError, ValueError, OverflowError):
         raise invalid
     session = db.query(AuthSession).filter(AuthSession.id == session_id, AuthSession.user_id == user_id).with_for_update().first()
-    if not session or session.revoked or not hmac.compare_digest(session.refresh_digest, hashlib.sha256(token.encode()).hexdigest()):
+    if not session or session.revoked:
+        raise invalid
+    if not hmac.compare_digest(session.refresh_digest, hashlib.sha256(token.encode()).hexdigest()):
+        # A correctly signed but already rotated token means two parties hold
+        # this session. End it, so a stolen token stops working for both.
+        session.revoked = True
+        owner = db.get(User, user_id)
+        if owner:
+            _auth_audit(db, request, owner, "auth.refresh_reuse", "Session ended after an old refresh token was reused")
+        db.commit()
         raise invalid
     expiry = session.expires_at.replace(tzinfo=timezone.utc) if session.expires_at.tzinfo is None else session.expires_at
     user = db.get(User, user_id)
@@ -286,6 +320,9 @@ def logout(request: Request, response: Response, db: Session = Depends(get_db)) 
             row = db.get(AuthSession, uuid.UUID(token['sid']))
             if row and str(row.user_id) == token.get('sub'):
                 row.revoked = True
+                owner = db.get(User, row.user_id)
+                if owner:
+                    _auth_audit(db, request, owner, "auth.logout")
                 db.commit()
     except (jwt.PyJWTError, KeyError, TypeError, ValueError):
         pass
@@ -301,6 +338,7 @@ def logout(request: Request, response: Response, db: Session = Depends(get_db)) 
 )
 def change_password(
     payload: ChangePasswordRequest,
+    request: Request,
     db: Session = Depends(get_db),
     ctx: AuthContext = Depends(get_current_context),
 ) -> ChangePasswordResponse:
@@ -331,6 +369,7 @@ def change_password(
     user.password_hash = hash_password(payload.new_password)
     user.must_change_password = False
     _bump_password_changed_at(user)
+    _auth_audit(db, request, user, "auth.password_changed")
     db.commit()
 
     return ChangePasswordResponse()
@@ -346,6 +385,8 @@ def _forgot_password(
     user = db.query(User).filter(func.lower(User.email) == payload.email.strip().lower()).first()
 
     if user is not None and user.role in allowed_roles and user.status == UserStatus.ACTIVE:
+        # Only the newest code works, so an older email cannot be replayed.
+        _retire_reset_codes(db, user.id)
         try:
             generate_verification_code(
                 db=db,
@@ -403,8 +444,17 @@ def student_forgot_password(payload: ForgotPasswordRequest, db: Session = Depend
     return _forgot_password(payload, db, allowed_roles=STUDENT_ROLES, reset_link_path="/student/reset-password")
 
 
-def _reset_password(payload: ResetPasswordRequest, db: Session, *, allowed_roles: frozenset[UserRole]) -> ResetPasswordResponse:
-    record = db.get(VerificationCode, payload.verification_id)
+def _retire_reset_codes(db: Session, user_id) -> None:
+    db.query(VerificationCode).filter(
+        VerificationCode.user_id == user_id,
+        VerificationCode.purpose == VerificationPurpose.PASSWORD_RESET,
+        VerificationCode.consumed_at.is_(None),
+    ).update({VerificationCode.consumed_at: datetime.now(timezone.utc)}, synchronize_session=False)
+
+
+def _reset_password(payload: ResetPasswordRequest, request: Request, db: Session, *, allowed_roles: frozenset[UserRole]) -> ResetPasswordResponse:
+    # Locked so parallel guesses cannot all slip under the attempt limit.
+    record = db.query(VerificationCode).filter(VerificationCode.id == payload.verification_id).with_for_update().first()
     if record is None or record.purpose != VerificationPurpose.PASSWORD_RESET:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid or expired reset request")
 
@@ -435,14 +485,16 @@ def _reset_password(payload: ResetPasswordRequest, db: Session, *, allowed_roles
     except PasswordPolicyError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
-    user = db.get(User, record.payload["user_id"])
-    if user is None:
+    user = db.get(User, uuid.UUID(str(record.payload["user_id"])))
+    if user is None or user.status != UserStatus.ACTIVE:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid or expired reset request")
 
     user.password_hash = hash_password(payload.new_password)
     user.must_change_password = False
     _bump_password_changed_at(user)
+    _retire_reset_codes(db, user.id)
     record.consumed_at = datetime.now(timezone.utc)
+    _auth_audit(db, request, user, "auth.password_reset")
     db.commit()
 
     return ResetPasswordResponse()
@@ -453,8 +505,8 @@ def _reset_password(payload: ResetPasswordRequest, db: Session, *, allowed_roles
     response_model=ResetPasswordResponse,
     dependencies=[Depends(rate_limit(max_requests=10, window_seconds=600, key_prefix="reset-password"))],
 )
-def reset_password(payload: ResetPasswordRequest, db: Session = Depends(get_db)) -> ResetPasswordResponse:
-    return _reset_password(payload, db, allowed_roles=ADMIN_ROLES)
+def reset_password(payload: ResetPasswordRequest, request: Request, db: Session = Depends(get_db)) -> ResetPasswordResponse:
+    return _reset_password(payload, request, db, allowed_roles=ADMIN_ROLES)
 
 
 @router.post(
@@ -462,8 +514,8 @@ def reset_password(payload: ResetPasswordRequest, db: Session = Depends(get_db))
     response_model=ResetPasswordResponse,
     dependencies=[Depends(rate_limit(max_requests=10, window_seconds=600, key_prefix="teacher-reset-password"))],
 )
-def teacher_reset_password(payload: ResetPasswordRequest, db: Session = Depends(get_db)) -> ResetPasswordResponse:
-    return _reset_password(payload, db, allowed_roles=TEACHER_ROLES)
+def teacher_reset_password(payload: ResetPasswordRequest, request: Request, db: Session = Depends(get_db)) -> ResetPasswordResponse:
+    return _reset_password(payload, request, db, allowed_roles=TEACHER_ROLES)
 
 
 @router.post(
@@ -471,5 +523,5 @@ def teacher_reset_password(payload: ResetPasswordRequest, db: Session = Depends(
     response_model=ResetPasswordResponse,
     dependencies=[Depends(rate_limit(max_requests=10, window_seconds=600, key_prefix="student-reset-password"))],
 )
-def student_reset_password(payload: ResetPasswordRequest, db: Session = Depends(get_db)) -> ResetPasswordResponse:
-    return _reset_password(payload, db, allowed_roles=STUDENT_ROLES)
+def student_reset_password(payload: ResetPasswordRequest, request: Request, db: Session = Depends(get_db)) -> ResetPasswordResponse:
+    return _reset_password(payload, request, db, allowed_roles=STUDENT_ROLES)

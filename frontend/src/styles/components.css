@@ -1,0 +1,6 @@
+/* Shared controls used on every page. These rules lived in LandingPage.css,
+   which admin layouts never load, so admin buttons could render unstyled.
+   Keep component styles here, not in page stylesheets. */
+.btn { display: inline-block; padding: 12px 22px; border: 1px solid transparent; border-radius: 4px; font: 500 14px var(--font-body); text-decoration: none; cursor: pointer; }
+.btn--primary { background: var(--color-accent); color: var(--color-white); }
+.btn--primary:hover { background: var(--color-accent-hover); }

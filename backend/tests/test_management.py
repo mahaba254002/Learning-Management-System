@@ -97,7 +97,7 @@ def test_modules_apply_to_delegated_workspaces_and_existing_student_sessions(env
     configure(env)
     owner = platform(env)
     client = env['as_user'](owner)
-    workspace = client.post('/api/workspace-access/start', json=dict(target_user_id=str(env['admin'].id)))
+    workspace = client.post('/api/workspace-access/start', json=dict(reason='Support request in tests', target_user_id=str(env['admin'].id)))
     assert workspace.status_code == 200, workspace.text
     token = workspace.json()['token']
     assert client.get(f"/api/teaching/classes/{env['cls'].id}/students", headers={'X-Workspace-Token': token}).status_code == 403
@@ -111,7 +111,7 @@ def test_modules_apply_to_delegated_workspaces_and_existing_student_sessions(env
 def test_delegation_can_be_exited_after_target_portal_or_account_disabled(env):
     owner = platform(env)
     client = env['as_user'](owner)
-    started = client.post('/api/workspace-access/start', json=dict(target_user_id=str(env['pupil'].id)))
+    started = client.post('/api/workspace-access/start', json=dict(reason='Support request in tests', target_user_id=str(env['pupil'].id)))
     assert started.status_code == 200
     configure(env)
     env['pupil'].login_enabled = False; env['db'].commit()

@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import Field, model_validator
 from sqlalchemy import func, or_
 from sqlalchemy.orm import Session
-from app.core.deps import AuthContext, require_platform_admin, require_role, require_tenant_user
+from app.core.deps import AuthContext, forbid_delegated_credentials, require_platform_admin, require_role, require_tenant_user
 from app.db.session import get_db
 from app.models.institution import Institution, InstitutionStatus
 from app.models.user import User, UserRole
@@ -86,7 +86,7 @@ def save_learning_settings(body: LearningSettings, db: Session = Depends(get_db)
     return learning_settings(row)
 
 
-@router.put("/institution/students/{user_id}/login")
+@router.put("/institution/students/{user_id}/login", dependencies=[Depends(forbid_delegated_credentials)])
 def student_access(user_id: uuid.UUID, body: StudentAccessInput, db: Session = Depends(get_db), ctx: AuthContext = Depends(institution_admin)):
     # Identity changes are institution-admin operations and immediately revoke sessions.
     from datetime import datetime, timezone
@@ -107,7 +107,7 @@ def student_access(user_id: uuid.UUID, body: StudentAccessInput, db: Session = D
     return {"message": "Student login updated. Existing sessions were revoked."}
 
 
-@router.post("/institution/students/{user_id}/reset-password")
+@router.post("/institution/students/{user_id}/reset-password", dependencies=[Depends(forbid_delegated_credentials)])
 def reset_student_password(user_id: uuid.UUID, db: Session = Depends(get_db), ctx: AuthContext = Depends(institution_admin)):
     from datetime import datetime, timezone
     from app.core.security import hash_password

@@ -10,7 +10,7 @@ from sqlalchemy import or_
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app.core.deps import AuthContext, require_role
+from app.core.deps import AuthContext, forbid_delegated_credentials, require_role
 from app.core.security import hash_password
 from app.db.session import get_db
 from app.models.academic import AcademicClass, Attendance, Coursework, Enrollment, Score, Student, Subject
@@ -292,7 +292,7 @@ def roster(class_id: uuid.UUID, db: Session = Depends(get_db), ctx: AuthContext 
     return [student_view(s, u) for s, u in people.order_by(User.first_name, User.last_name).all()]
 
 
-@router.post("/teaching/classes/{class_id}/students", status_code=201)
+@router.post("/teaching/classes/{class_id}/students", status_code=201, dependencies=[Depends(forbid_delegated_credentials)])
 def create_student(class_id: uuid.UUID, payload: StudentInput, response: Response, db: Session = Depends(get_db), ctx: AuthContext = Depends(admin)):
     from app.services.progression import lock_entry
     lock_entry(db, ctx.institution_id)
@@ -341,6 +341,11 @@ def enroll(class_id: uuid.UUID, payload: EnrollInput, db: Session = Depends(get_
     if not student:
         missing()
     row = scoped(db, Enrollment, ctx).filter(Enrollment.class_id == class_id, Enrollment.student_id == student.id).first()
+    # Enrolling gives a class's staff access to the student's records, so only an
+    # institution admin can bring in a student who was never in this class.
+    # Supervisors can still restore a student they removed.
+    if row is None and ctx.role != UserRole.INSTITUTION_ADMIN:
+        raise HTTPException(403, "Ask an institution administrator to add new students to this class.")
     if not row or not row.active:
         from app.services.progression import assert_group, assert_transition
         assert_transition(db, ctx.institution_id, student.id, class_id)
@@ -349,6 +354,7 @@ def enroll(class_id: uuid.UUID, payload: EnrollInput, db: Session = Depends(get_
         row.active = True
     else:
         db.add(Enrollment(institution_id=ctx.institution_id, class_id=class_id, student_id=student.id))
+    record_audit(db, ctx, "enrollment.added", student.id, ctx.institution_id, f"Class {class_id}")
     commit(db)
     return {"message": "Student enrolled"}
 
@@ -361,6 +367,7 @@ def edit_student(class_id: uuid.UUID, student_id: uuid.UUID, payload: StudentEdi
         missing()
     student, user = row
     user.first_name, user.last_name, student.phone = payload.first_name, payload.last_name, payload.phone
+    record_audit(db, ctx, "student.details_updated", student.id, ctx.institution_id, f"Class {class_id}")
     commit(db)
     return student_view(student, user)
 
@@ -372,6 +379,7 @@ def remove_enrollment(class_id: uuid.UUID, student_id: uuid.UUID, db: Session = 
     if not row:
         missing()
     row.active = False  # Keep attendance, marks and the student account intact.
+    record_audit(db, ctx, "enrollment.removed", student_id, ctx.institution_id, f"Class {class_id}")
     commit(db)
     return {"message": "Student removed from class"}
 

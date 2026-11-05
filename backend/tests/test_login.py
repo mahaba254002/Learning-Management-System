@@ -86,7 +86,9 @@ def test_limits_shared_across_doors_and_fail_closed(env, monkeypatch):
     monkeypatch.setattr(limiter.redis_client, "incr", increment)
     for path in ["/api/auth/login", "/api/auth/teacher/login", "/api/auth/student/login"]:
         env["client"].post(path, json={"email": "missing@example.test", "password": "invalid"})
-    assert len(set(keys)) == 1
+    # One shared IP bucket and one shared bucket for the account, across all doors.
+    assert len({k for k in keys if ':account:' not in k}) == 1
+    assert len({k for k in keys if ':account:' in k}) == 1
     monkeypatch.setattr(limiter.redis_client, "incr", lambda key: 100000)
     assert env["client"].post("/api/auth/login", json={"email": "x@example.test", "password": "x"}).status_code == 429
     def unavailable(key):

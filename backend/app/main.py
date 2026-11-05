@@ -24,7 +24,14 @@ from app.api.routes import auth, invitations, platform, teaching, learning, cont
 
 logging.basicConfig(level=logging.INFO)
 
-app = FastAPI(title="Learning Institution Management System API")
+# Interactive API docs are for local development only; production hides them.
+_docs = settings.is_development
+app = FastAPI(
+    title="Learning Institution Management System API",
+    docs_url="/docs" if _docs else None,
+    redoc_url="/redoc" if _docs else None,
+    openapi_url="/openapi.json" if _docs else None,
+)
 
 register_exception_handlers(app)
 

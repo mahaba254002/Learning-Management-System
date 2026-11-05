@@ -75,7 +75,7 @@ function ClassRoster({ classId }) {
     </section>}
     {accessStudent && <StudentAccessEditor key={accessStudent.id} student={accessStudent} onClose={() => setAccessStudent(null)} />}
     {removing && <section className="teaching-panel" aria-label="Confirm enrollment removal"><h2>Remove {studentName(removing)} from this class?</h2>
-      <p>Their account, attendance and scores will be preserved. You can enroll them again using their admission number.</p>
+      <p>Their account, attendance and scores will be preserved. You can restore them to this class later using their admission number.</p>
       <div className="teaching-actions"><button type="button" disabled={mutation.isPending} onClick={async () => {
         try { await mutation.mutateAsync({ path: `${root}/enrollments/${removing.id}`, method: "DELETE" }); setRemoving(null); } catch { /* Error above. */ }
       }}>Confirm removal</button><button type="button" onClick={() => setRemoving(null)}>Cancel</button></div></section>}
@@ -95,7 +95,7 @@ function ClassRoster({ classId }) {
             {editing && <button type="button" onClick={() => setEditing(null)}>Cancel edit</button>}</div>
         </WorkspaceForm>
       </section>}
-      <section className="teaching-panel"><h2>Enroll an existing student</h2><p className="teaching-muted">Use the student’s exact admission number from your institution.</p>
+      <section className="teaching-panel"><h2>{user.role === "INSTITUTION_ADMIN" ? "Enroll an existing student" : "Restore a removed student"}</h2><p className="teaching-muted">{user.role === "INSTITUTION_ADMIN" ? "Use the student’s exact admission number from your institution." : "Use the admission number of a student who was removed from this class. An institution administrator adds new students."}</p>
         <WorkspaceForm className="teaching-form" onSubmit={enroll}><Field label="Admission number" name="admission_number" required maxLength={60} /><button className="btn btn--primary" disabled={mutation.isPending}>Enroll student</button></WorkspaceForm>
       </section>
     </div>}

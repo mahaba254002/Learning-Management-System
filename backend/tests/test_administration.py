@@ -145,7 +145,12 @@ def test_orphan_student_cannot_receive_a_session_or_enter_portal(env, monkeypatc
     env['pupil'].institution_id = None
     env['db'].commit()
     monkeypatch.setattr(auth, 'verify_password', lambda *args: True)
+    from starlette.requests import Request
+    from app.core import rate_limit as limiter
+    monkeypatch.setattr(limiter.redis_client, 'incr', lambda key: 1)
+    monkeypatch.setattr(limiter.redis_client, 'expire', lambda *args: True)
+    request = Request({'type': 'http', 'method': 'POST', 'path': '/api/auth/student/login', 'headers': [], 'client': ('127.0.0.1', 1)})
     with pytest.raises(HTTPException) as error:
-        auth._authenticate(LoginRequest(email=env['pupil'].email, password='Test-password1!'), Response(), env['db'], allowed_roles=auth.STUDENT_ROLES)
+        auth._authenticate(LoginRequest(email=env['pupil'].email, password='Test-password1!'), request, Response(), env['db'], allowed_roles=auth.STUDENT_ROLES)
     assert error.value.status_code == 403
     assert env['as_user'](env['pupil']).get('/api/me').status_code == 401

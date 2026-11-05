@@ -40,3 +40,8 @@ backend/scripts/repair_seed_accounts.py
 *.log
 *.pem
 *.key
+
+# Local tooling and scratch output
+.venv/
+tmp/
+frontend/.wrangler/

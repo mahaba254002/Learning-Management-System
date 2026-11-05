@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { changeModule, pageEnabled } from '../src/modules/institutionModules.js';
+import { changeModule, navItemVisible, pageEnabled } from '../src/modules/institutionModules.js';
 
 const dependencies = { course_allocation: ['staff_directory'], student_records: ['course_allocation'], student_portal: ['student_records'], coursework: ['student_records'], assessments: ['coursework'], academic_reports: ['assessments'], staff_attendance: ['staff_directory'] };
 const management = { staff_directory: true, course_allocation: true, staff_attendance: true, student_records: false, student_portal: false, student_attendance: false, coursework: false, assessments: false, academic_reports: false, learning_materials: false, progression: false };
@@ -41,4 +41,13 @@ test('account and package controls remain available when every optional module i
   assert.equal(pageEnabled('/institution/account', modules), true);
   assert.equal(pageEnabled('/institution/modules', modules), true);
   assert.equal(pageEnabled('/institution/dashboard', undefined), false);
+});
+
+test('sidebar keeps module-free pages while modules are loading or unavailable', () => {
+  assert.equal(navItemVisible('/institution/dashboard', undefined), true);
+  assert.equal(navItemVisible('/institution/account', undefined), true);
+  assert.equal(navItemVisible('/student/dashboard', undefined), true);
+  assert.equal(navItemVisible('/institution/students', undefined), false);
+  assert.equal(navItemVisible('/student/assignments', undefined), false);
+  assert.equal(navItemVisible('/institution/students', { student_records: true }), true);
 });

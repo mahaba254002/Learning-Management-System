@@ -11,7 +11,6 @@ forget on an individual route.
 """
 
 import uuid
-import ipaddress
 from dataclasses import dataclass
 from datetime import datetime, timezone
 
@@ -19,6 +18,7 @@ import jwt
 from fastapi import Depends, HTTPException, Request, status
 from sqlalchemy.orm import Session
 
+from app.core.client_ip import client_ip
 from app.core.csrf import verify_csrf
 from app.core.security import decode_token
 from app.db.session import get_db
@@ -65,11 +65,7 @@ def get_current_context(
     # request with a missing/invalid CSRF token is rejected regardless of
     # whether the JWT itself is valid.
     verify_csrf(request)
-    try:
-        peer_ip = str(ipaddress.ip_address(request.client.host)) if request.client else None
-    except ValueError:
-        peer_ip = None
-    metadata = dict(ip_address=peer_ip,
+    metadata = dict(ip_address=client_ip(request),
                     request_method=request.method, request_path=request.url.path[:500])
 
     token = request.cookies.get(ACCESS_TOKEN_COOKIE_NAME)
@@ -186,6 +182,19 @@ def get_current_context(
         must_change_password=user.must_change_password,
         **metadata,
     )
+
+
+def forbid_delegated_credentials(ctx: AuthContext = Depends(get_current_context)) -> AuthContext:
+    """Credentials are only ever issued or changed from the person's own session.
+
+    Add to any route that creates, reveals or changes a sign-in identity or
+    temporary password, so nobody can obtain one while acting as someone else."""
+    if ctx.actor_user_id is not None:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Return to your own workspace to create or change sign-in details.",
+        )
+    return ctx
 
 
 def require_tenant_user(ctx: AuthContext = Depends(get_current_context)) -> AuthContext:
