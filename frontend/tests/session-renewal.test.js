@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { apiRequest } from '../src/api/client.js';
+import { apiRequest, setWorkspaceAccess } from '../src/api/client.js';
 import { recordRevision } from '../src/pages/teacher/recordRevision.js';
 
 test('concurrent expired requests share one renewal and retry once with rotated CSRF', async () => {
@@ -91,4 +91,43 @@ test('an expired CSRF cookie opens recovery without replaying an unauthenticated
     await assert.rejects(apiRequest('/api/test/save', { method: 'PUT', body: {} }), error => error.status === 403);
     assert.equal(attempts, 1); assert.deepEqual(events, ['skynet:session-ended']);
   } finally { globalThis.fetch = previousFetch; globalThis.document = previousDocument; globalThis.window = previousWindow; }
+});
+
+
+test('expired delegation does not renew the owner session or replay a write', async () => {
+  const oldFetch = globalThis.fetch, oldDocument = globalThis.document;
+  globalThis.document = { cookie: 'csrf_token=valid-owner' };
+  const calls = [];
+  setWorkspaceAccess({ token: 'expired-delegation', read_only: false });
+  globalThis.fetch = async (path, options) => {
+    calls.push({ path, options });
+    return new Response(JSON.stringify({ detail: 'Workspace access expired or invalid. Return to your own workspace.' }), { status: 401 });
+  };
+  try {
+    await assert.rejects(apiRequest('/api/test/save', { method: 'PUT', body: { student_id: 'one' } }), error => error.code === 'WORKSPACE_ACCESS_EXPIRED');
+    assert.equal(calls.length, 1);
+    assert.equal(calls[0].options.headers['X-Workspace-Token'], 'expired-delegation');
+  } finally { setWorkspaceAccess(null); globalThis.fetch = oldFetch; globalThis.document = oldDocument; }
+});
+
+test('returning to the owner omits an expired delegated token', async () => {
+  const oldFetch = globalThis.fetch;
+  setWorkspaceAccess({ token: 'expired-delegation', read_only: false });
+  globalThis.fetch = async (path, options) => {
+    assert.equal(path, '/api/me'); assert.equal(options.headers['X-Workspace-Token'], undefined);
+    return new Response(JSON.stringify({ id: 'owner' }), { status: 200 });
+  };
+  try { assert.equal((await apiRequest('/api/me', { workspace: false })).id, 'owner'); }
+  finally { setWorkspaceAccess(null); globalThis.fetch = oldFetch; }
+});
+
+test('connection failure is actionable and never replays a submission', async () => {
+  const oldFetch = globalThis.fetch, oldDocument = globalThis.document;
+  globalThis.document = { cookie: 'csrf_token=present' };
+  let calls = 0;
+  globalThis.fetch = async () => { calls++; throw new TypeError('Failed to fetch'); };
+  try {
+    await assert.rejects(apiRequest('/api/test/save', { method: 'POST', body: {} }), error => error.status === 0 && error.message.includes('not been confirmed'));
+    assert.equal(calls, 1);
+  } finally { globalThis.fetch = oldFetch; globalThis.document = oldDocument; }
 });

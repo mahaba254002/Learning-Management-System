@@ -6,6 +6,7 @@ import { apiRequest, ApiError } from "../../api/client";
 import { institutionDetailsSchema, codeSchema, INSTITUTION_TYPES } from "./createInstitutionSchema";
 import Modal from "../../components/common/Modal";
 import AcademicConfigurationEditor from '../../components/common/AcademicConfigurationEditor';
+import ModuleEditor from '../../components/common/ModuleEditor';
 
 const STEPS = {
   DETAILS: "details",
@@ -24,6 +25,9 @@ export default function CreateInstitutionModal({ onClose }) {
   const type = useWatch({ control: detailsForm.control, name: 'type' });
   const templates = useQuery({ queryKey:['academic-templates'],queryFn:()=>apiRequest('/api/platform/academic-templates') });
   const [setup,setSetup] = useState(null);
+  const moduleOptions = useQuery({ queryKey: ['module-presets'], queryFn: () => apiRequest('/api/platform/module-presets') });
+  const [selectedModules, setSelectedModules] = useState(null);
+  const moduleSettings = selectedModules || moduleOptions.data?.presets.FULL;
   const template = templates.data?.find(t => t.type === type);
   const academic = setup && setup.type === type ? setup.value : template;
   const codeForm = useForm({ resolver: zodResolver(codeSchema) });
@@ -37,7 +41,7 @@ export default function CreateInstitutionModal({ onClose }) {
       );
       return apiRequest("/api/platform/institutions/request-create", {
         method: "POST",
-        body: { ...cleaned, ...(academic ? {academic_configuration:academic.configuration,learning_settings:academic.labels} : {}) },
+        body: { ...cleaned, ...(moduleSettings ? { module_settings: moduleSettings } : {}), ...(academic ? {academic_configuration:academic.configuration,learning_settings:academic.labels} : {}) },
       });
     },
     onSuccess: (data) => {
@@ -182,6 +186,9 @@ export default function CreateInstitutionModal({ onClose }) {
           <input id="website" type="text" {...detailsForm.register("website")} />
         </div>
 
+        <h3>Institution package</h3>
+        {moduleOptions.isError && <p role="alert">Institution packages could not load. Close this dialog and try again.</p>}
+        {moduleSettings && <ModuleEditor value={moduleSettings} onChange={setSelectedModules} presets={moduleOptions.data.presets} dependencies={moduleOptions.data.dependencies} disabled={requestMutation.isPending} />}
         {academic && <AcademicConfigurationEditor key={type} value={academic} onChange={value=>setSetup({type,value})} disabled={requestMutation.isPending} />}
 
         {serverError && <p className="form-error" role="alert">{serverError}</p>}
@@ -190,7 +197,7 @@ export default function CreateInstitutionModal({ onClose }) {
           type="submit"
           className="btn btn--primary"
           style={{ width: "100%" }}
-          disabled={requestMutation.isPending}
+          disabled={requestMutation.isPending || !moduleSettings || !academic}
         >
           {requestMutation.isPending ? "Sending code..." : "Send verification code"}
         </button>

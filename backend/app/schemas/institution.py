@@ -5,6 +5,7 @@ from pydantic import BaseModel, Field, field_validator
 from app.models.institution import InstitutionStatus, InstitutionType
 from app.services.academic_configuration import AcademicConfiguration
 from app.services.learning_settings import LearningSettings
+from app.services.modules import InstitutionModules
 
 
 class InstitutionCreateRequest(BaseModel):
@@ -18,6 +19,7 @@ class InstitutionCreateRequest(BaseModel):
     website: str | None = None
     academic_configuration: AcademicConfiguration | None = None
     learning_settings: LearningSettings | None = None
+    module_settings: InstitutionModules | None = None
 
     @field_validator("code")
     @classmethod

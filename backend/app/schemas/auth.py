@@ -38,6 +38,7 @@ class UserSummary(BaseModel):
     must_change_password: bool
     student_login_method: str = 'EMAIL'
     student_login_id: str | None = None
+    login_enabled: bool = True
 
     # Concept note: `model_config` with from_attributes=True tells Pydantic
     # it's allowed to build this schema directly from a SQLAlchemy model

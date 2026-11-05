@@ -29,12 +29,16 @@ class SubjectInput(Input):
 
 
 class StudentAccessInput(Input):
+    login_enabled: bool = True
     email: str | None = Field(default=None, min_length=3, max_length=255, pattern=r"^[^\s@]+@[^\s@]+\.[^\s@]+$")
     login_method: Literal["EMAIL", "STUDENT_ID"] = "EMAIL"
     login_id: str | None = Field(default=None, min_length=1, max_length=60, pattern=r"^[A-Za-z0-9._/-]+$")
 
     @model_validator(mode="after")
     def login_identity(self):
+        if not self.login_enabled:
+            if self.login_id: self.login_id = self.login_id.upper()
+            return self
         if self.login_method == "EMAIL" and not self.email:
             raise ValueError("Email is required for email login")
         if self.login_method == "STUDENT_ID" and not self.login_id:

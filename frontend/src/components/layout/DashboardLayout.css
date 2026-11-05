@@ -36,10 +36,6 @@
 .dashboard-topbar__context { color: #526176; font-size: 14px; text-transform: capitalize; }
 .dashboard-topbar__menu-btn, .dashboard-topbar__brand-mobile { display: none; }
 .dashboard-topbar__menu-btn { width: 40px; height: 40px; border: 1px solid #dbe3ed; border-radius: 6px; background: #fff; padding: 10px; cursor: pointer; }
-.dashboard-topbar__menu-icon,.dashboard-topbar__menu-icon::before,.dashboard-topbar__menu-icon::after { display: block; width: 18px; height: 2px; background: #334155; position: relative; }
-.dashboard-topbar__menu-icon::before,.dashboard-topbar__menu-icon::after { content: ''; position: absolute; left: 0; }
-.dashboard-topbar__menu-icon::before { top: -6px; }
-.dashboard-topbar__menu-icon::after { top: 6px; }
 .dashboard-topbar__brand-mobile { font-size: 18px; font-weight: 650; color: #233e53; }
 .dashboard-content { flex: 1 1 0%; min-width: 0; min-height: 0; width: 100%; margin: 0; padding: 28px; overflow: auto; overscroll-behavior: contain; scrollbar-gutter: stable; scroll-padding: 28px; }
 .dashboard-content > * { min-width: 0; max-width: 100%; }

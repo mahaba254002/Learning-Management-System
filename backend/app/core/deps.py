@@ -92,7 +92,7 @@ def get_current_context(
         raise _unauthorized("Invalid authentication token")
 
     user = db.get(User, user_id)
-    if user is None or user.status != UserStatus.ACTIVE:
+    if user is None or user.status != UserStatus.ACTIVE or not user.login_enabled:
         raise _unauthorized("Account is no longer active")
 
     if payload.get('sid'):
@@ -129,7 +129,7 @@ def get_current_context(
         if institution is None or institution.status != InstitutionStatus.ACTIVE:
             raise _unauthorized("Institution is no longer active")
         from app.services.subscriptions import check_subscription_access
-        if request.url.path not in {"/api/me", "/api/auth/logout", "/api/auth/change-password", "/api/institution/subscription"}:
+        if request.url.path not in {"/api/me", "/api/auth/logout", "/api/auth/change-password", "/api/institution/subscription", "/api/workspace-access/stop"}:
             check_subscription_access(db, institution_id)
 
     # Server-side enforcement of the forced password change. The frontend
@@ -151,6 +151,13 @@ def get_current_context(
             target_id = uuid.UUID(workspace["target"])
         except (jwt.PyJWTError, KeyError, TypeError, ValueError):
             raise _unauthorized("Workspace access expired or invalid. Return to your own workspace.")
+        # A signed delegation may always be exited by its authenticated owner,
+        # even after the target's portal, account or institution is disabled.
+        if request.method == 'POST' and request.url.path == '/api/workspace-access/stop':
+            target = db.get(User, target_id)
+            return AuthContext(user_id=target_id, institution_id=target.institution_id if target else None,
+                role=target.role if target else user.role, must_change_password=False,
+                actor_user_id=user.id, read_only=True, **metadata)
         target, read_only = resolve_workspace_target(db, user, target_id)
         mutation = request.method not in {"GET", "HEAD", "OPTIONS"}
         management = request.method == "POST" and request.url.path in {
@@ -165,9 +172,13 @@ def get_current_context(
                               action="workspace.mutation_attempt", target_id=str(target.id),
                               detail=f"{request.method} {request.url.path}"[:500], **metadata))
             db.commit()
+        from app.services.modules import check_module_access
+        check_module_access(db, target.institution_id, target.role, request.url.path)
         return AuthContext(user_id=target.id, institution_id=target.institution_id, role=target.role,
                            must_change_password=False, actor_user_id=user.id, read_only=read_only, **metadata)
 
+    from app.services.modules import check_module_access
+    check_module_access(db, institution_id, user.role, request.url.path)
     return AuthContext(
         user_id=user.id,
         institution_id=institution_id,

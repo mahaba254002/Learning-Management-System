@@ -1,3 +1,4 @@
+import MaterialIcon from "../../components/common/MaterialIcon";
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import WorkspaceForm from '../../components/common/WorkspaceForm';
@@ -16,7 +17,7 @@ export default function AcademicStructurePage(){
     try{await mutation.mutateAsync({path:`/api/institution/academic-structure/${kind}${editing ? `/${editing.id}` : ""}`,method:editing?"PUT":"POST",body:{...values,...(editing?{expected_updated_at:editing.updated_at}:{})}});form.reset();setProgramme('');setEditing(null);}catch{/* shown below */}}
   const nameOf=(rows,id)=>rows?.find(r=>r.id===id)?.name || '—';
   return <><PageHeading title="Academic structure">Build the institution’s catalogue and study hierarchy. Connect it to yearly teaching groups and allocations.</PageHeading><QueryState query={config}/><QueryState query={query}/><MutationState mutation={mutation} message="Academic record created."/>
-    {config.data && <div className="academic-path">{config.data.structure==='PROGRAMME'?'Department → Programme → Study level → Cohort → Course offering':'Study level → Learning group → Subject / learning area'}<Link to="/institution/classes">Manage teaching allocations →</Link></div>}
+    {config.data && <div className="academic-path">{config.data.structure==='PROGRAMME'?'Department / Programme / Study level / Cohort / Course offering':'Study level / Learning group / Subject / learning area'}<Link to="/institution/classes">Manage teaching allocations <MaterialIcon name="arrow_forward" /></Link></div>}
     <div className="academic-tabs" aria-label="Structure section">{kinds.map(([key,label])=><button type="button" key={key} aria-pressed={kind===key} onClick={()=>{setKind(key);setProgramme('');setEditing(null);mutation.reset();}}>{label}</button>)}</div>
     <section className="teaching-panel"><h2>{editing?"Edit":"Add"} {kinds.find(([key])=>key===kind)?.[1].toLowerCase()}</h2><WorkspaceForm key={`${kind}:${editing?.id || "new"}`} onSubmit={submit} className="teaching-form">
       <Field label="Code" name="code" defaultValue={editing?.code ?? ""} required maxLength={30} pattern="[A-Za-z0-9._/-]+"/><Field label="Name" name="name" defaultValue={editing?.name ?? ""} required maxLength={100}/>

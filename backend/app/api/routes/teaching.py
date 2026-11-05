@@ -167,7 +167,8 @@ def assessment_values(db, ctx, payload, subject, current=None):
 def student_view(student, user):
     return dict(id=student.id, user_id=user.id, admission_number=student.admission_number, first_name=user.first_name,
                 last_name=user.last_name, email=user.email, phone=student.phone,
-                login_method=user.student_login_method, login_id=user.student_login_id)
+                login_method=user.student_login_method, login_id=user.student_login_id if user.login_enabled else None,
+                login_enabled=user.login_enabled)
 
 
 def class_view(row, ctx, year_status=None):
@@ -297,6 +298,8 @@ def create_student(class_id: uuid.UUID, payload: StudentInput, response: Respons
     lock_entry(db, ctx.institution_id)
     get_class(db, class_id, ctx, supervise=True, lock=True)
     institution = db.query(Institution).filter(Institution.id == ctx.institution_id).one()
+    from app.services.modules import institution_modules
+    login_enabled = payload.login_enabled and institution_modules(institution)['student_portal']
     from app.services.progression import assert_group
     assert_group(db, ctx.institution_id, None, class_id)
     temporary_password = generate_temporary_password()
@@ -306,9 +309,11 @@ def create_student(class_id: uuid.UUID, payload: StudentInput, response: Respons
         raise HTTPException(400, "Names must contain letters or digits suitable for a username")
     user = User(institution_id=ctx.institution_id, username=username, first_name=payload.first_name,
                 last_name=payload.last_name, email=payload.email, role=UserRole.STUDENT, status=UserStatus.ACTIVE,
-                password_hash=hash_password(temporary_password), must_change_password=True)
+                password_hash=hash_password(temporary_password), must_change_password=True, login_enabled=login_enabled)
     user.student_login_method = payload.login_method
     user.student_login_id = payload.login_id
+    if not login_enabled and (not user.email or user.student_login_method == 'STUDENT_ID' and not user.student_login_id):
+        user.student_login_method, user.student_login_id = 'STUDENT_ID', 'RECORD-' + uuid.uuid4().hex.upper()
     db.add(user)
     try:
         db.flush()
@@ -323,8 +328,8 @@ def create_student(class_id: uuid.UUID, payload: StudentInput, response: Respons
         raise HTTPException(409, "Could not create this student. Check the details or contact your administrator.")
     response.headers["Cache-Control"] = "no-store"
     return dict(student=student_view(student, user), username=username, login_method=user.student_login_method,
-                login_identity=user.email if user.student_login_method == "EMAIL" else user.student_login_id,
-                temporary_password=temporary_password)
+                login_identity=(user.email if user.student_login_method == "EMAIL" else user.student_login_id) if login_enabled else None,
+                login_enabled=login_enabled, temporary_password=temporary_password if login_enabled else None)
 
 
 @router.post("/teaching/classes/{class_id}/enrollments")
@@ -501,12 +506,14 @@ def student_coursework(db: Session = Depends(get_db), ctx: AuthContext = Depends
         Subject.institution_id == ctx.institution_id, Subject.id.in_(enrolled), Coursework.published.is_(True),
     ).with_entities(Coursework, Subject).order_by(Coursework.created_at.desc()).all()
     marks = {s.coursework_id: s for s in scoped(db, Score, ctx).filter(Score.student_id == student.id).all()}
+    from app.services.modules import institution_modules
+    can_grade = institution_modules(db.get(Institution, ctx.institution_id))['assessments']
     return [dict(id=w.id, title=w.title, instructions=w.instructions, kind=w.kind, due_at=w.due_at,
                  max_score=w.max_score, subject_name=s.name,
-                 grades_released=w.grades_released,
-                 assessment_mode=w.assessment_mode, competency_label=marks[w.id].competency_label if w.grades_released and w.id in marks else None,
-                 score=marks[w.id].score if w.grades_released and w.id in marks else None,
-                 feedback=marks[w.id].feedback if w.grades_released and w.id in marks else "") for w, s in rows]
+                 grades_released=can_grade and w.grades_released,
+                 assessment_mode=w.assessment_mode, competency_label=marks[w.id].competency_label if can_grade and w.grades_released and w.id in marks else None,
+                 score=marks[w.id].score if can_grade and w.grades_released and w.id in marks else None,
+                 feedback=marks[w.id].feedback if can_grade and w.grades_released and w.id in marks else "") for w, s in rows]
 
 
 @router.get('/teaching/subjects/{subject_id}/periods')

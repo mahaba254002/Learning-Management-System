@@ -16,3 +16,4 @@ from app.models.academic_document import AcademicDocument
 from app.models.final_grade import FinalGrade
 
 from app.models.progression import Prerequisite,ProgressionDecision
+from app.models.management import StaffMember, StaffAllocation, StaffAttendance

@@ -4,6 +4,8 @@
 
 Skynet is a multi-tenant learning management application built with React, FastAPI and PostgreSQL. It connects the daily work of students, teachers, institution administrators and platform administrators, with access checked by role and institution on the server.
 
+Institutions can also use Management Only or Management + Student Records packages. Employee records, departments, staff course allocations and staff attendance operate independently of online learning. See [Institution modules and management workflows](docs/INSTITUTION_MODULES.md).
+
 [Open Rollcall](https://rollback.mahaba955.workers.dev) · [User guide](docs/USER_GUIDE.md) · [Engineering portfolio](docs/PORTFOLIO.md)
 
 ![Rollcall home page](docs/images/rollcall-home.png)

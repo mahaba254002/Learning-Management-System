@@ -153,7 +153,7 @@ def _authenticate(
         # Deliberately identical to the wrong-password error above.
         raise invalid_credentials
 
-    if user.status != UserStatus.ACTIVE:
+    if user.status != UserStatus.ACTIVE or not user.login_enabled:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="This account is not active. Contact your administrator.",
@@ -171,6 +171,13 @@ def _authenticate(
             )
         from app.services.subscriptions import check_subscription_access
         check_subscription_access(db, user.institution_id)
+
+        if user.role == UserRole.STUDENT:
+            from app.services.modules import require_enabled
+            require_enabled(institution, 'student_portal')
+        elif user.role == UserRole.TEACHER:
+            from app.services.modules import require_enabled
+            require_enabled(institution, 'staff_directory')
 
     session = AuthSession(id=uuid.uuid4(), user_id=user.id,
         expires_at=datetime.now(timezone.utc) + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS),
@@ -241,7 +248,7 @@ def refresh(request: Request, response: Response, db: Session = Depends(get_db))
         raise invalid
     expiry = session.expires_at.replace(tzinfo=timezone.utc) if session.expires_at.tzinfo is None else session.expires_at
     user = db.get(User, user_id)
-    if expiry <= datetime.now(timezone.utc) or not user or user.status != UserStatus.ACTIVE: raise invalid
+    if expiry <= datetime.now(timezone.utc) or not user or user.status != UserStatus.ACTIVE or not user.login_enabled: raise invalid
     if user.password_changed_at:
         changed = user.password_changed_at.replace(tzinfo=timezone.utc) if user.password_changed_at.tzinfo is None else user.password_changed_at
         if issued < changed: raise invalid
@@ -250,6 +257,12 @@ def refresh(request: Request, response: Response, db: Session = Depends(get_db))
         if not institution or institution.status != InstitutionStatus.ACTIVE: raise invalid
         from app.services.subscriptions import check_subscription_access
         check_subscription_access(db, institution.id)
+        if user.role == UserRole.STUDENT:
+            from app.services.modules import require_enabled
+            require_enabled(institution, 'student_portal')
+        elif user.role == UserRole.TEACHER:
+            from app.services.modules import require_enabled
+            require_enabled(institution, 'staff_directory')
     renewed = create_refresh_token(user_id=user.id, session_id=session.id, expires_at=expiry)
     session.refresh_digest = hashlib.sha256(renewed.encode()).hexdigest()
     db.commit()

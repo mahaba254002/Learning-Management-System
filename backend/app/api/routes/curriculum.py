@@ -103,7 +103,7 @@ def structure(db: Session = Depends(get_db), ctx: AuthContext = Depends(admin)):
 def create_structure(kind: Literal['departments', 'programmes', 'levels', 'catalogue'], body: StructureInput, db: Session = Depends(get_db), ctx: AuthContext = Depends(admin)):
     config = academic_configuration(db.get(Institution, ctx.institution_id))
     model = MODELS[kind]
-    if kind in {'departments', 'programmes'} and config['structure'] != 'PROGRAMME': raise HTTPException(409, 'Platform admin must enable programme structure first')
+    if kind == 'programmes' and config['structure'] != 'PROGRAMME': raise HTTPException(409, 'Platform admin must enable programme structure first')
     if body.programme_id and config['structure'] != 'PROGRAMME': raise HTTPException(409, 'Programme structure is not enabled')
     owned(db, Department, body.department_id, ctx.institution_id)
     validate_links(db, ctx.institution_id, body.programme_id, body.level_id)

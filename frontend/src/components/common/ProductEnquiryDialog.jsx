@@ -1,3 +1,4 @@
+import MaterialIcon from './MaterialIcon';
 import { useEffect, useRef, useState } from "react";
 import { apiRequest } from "../../api/client";
 import { EDUCATION_SECTORS } from "./educationSectors";
@@ -44,7 +45,7 @@ export default function ProductEnquiryDialog({ sector, onClose }) {
     <dialog ref={dialogRef} className="skynet-enquiry" aria-labelledby="enquiry-title" onCancel={onClose}>
       <div className="skynet-enquiry-header">
         <h2 id="enquiry-title">Ask about Skynet</h2>
-        <button type="button" onClick={onClose} aria-label="Close enquiry form">×</button>
+        <button type="button" onClick={onClose} aria-label="Close enquiry form"><MaterialIcon name="close" /></button>
       </div>
       {sent ? <div className="skynet-enquiry-success" role="status">
         <h3>Thank you for your enquiry.</h3>

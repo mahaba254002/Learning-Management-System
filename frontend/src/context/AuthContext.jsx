@@ -1,4 +1,4 @@
-import { createContext, useEffect, useState, useCallback } from "react";
+import { createContext, useEffect, useState, useCallback, useRef } from "react";
 import { apiRequest, setWorkspaceAccess } from "../api/client";
 import { useQueryClient } from '@tanstack/react-query';
 import SessionRecovery from '../components/common/SessionRecovery';
@@ -12,6 +12,7 @@ export function AuthProvider({ children }) {
   const [isLoading, setIsLoading] = useState(true);
   const [workspace, setWorkspace] = useState(null);
   const [isWorkspaceChanging, setIsWorkspaceChanging] = useState(false);
+  const workspaceTransition = useRef(false);
   const [sessionEnded, setSessionEnded] = useState(false);
   const [actor, setActor] = useState(null);
 
@@ -75,6 +76,8 @@ export function AuthProvider({ children }) {
   }, [queryClient]);
 
   const startWorkspace = useCallback(async (targetUserId) => {
+    if (workspaceTransition.current) throw new Error("A workspace is already opening or closing. Please wait.");
+    workspaceTransition.current = true;
     setIsWorkspaceChanging(true);
     try {
       const data = await apiRequest("/api/workspace-access/start", { method: "POST", body: { target_user_id: targetUserId } });
@@ -85,11 +88,14 @@ export function AuthProvider({ children }) {
       setUser(data.user);
       return data.user;
     } finally {
+      workspaceTransition.current = false;
       setIsWorkspaceChanging(false);
     }
   }, [queryClient]);
 
   const stopWorkspace = useCallback(async () => {
+    if (workspaceTransition.current) throw new Error("A workspace is already opening or closing. Please wait.");
+    workspaceTransition.current = true;
     setIsWorkspaceChanging(true);
     try {
       try {
@@ -97,19 +103,22 @@ export function AuthProvider({ children }) {
       } catch {
         // An expired/revoked target must never prevent returning to the real session.
       }
+      let originalUser;
+      try {
+        originalUser = await apiRequest("/api/me", { workspace: false });
+      } catch (error) {
+        // An outage does not mean the owner's session ended.
+        if (error.status !== 401) throw error;
+        originalUser = null;
+      }
       await queryClient.cancelQueries();
       setWorkspaceAccess(null);
       queryClient.clear();
       setWorkspace(null);
-      try {
-        const actor = await apiRequest("/api/me", { workspace: false });
-        setUser(actor);
-        return actor;
-      } catch {
-        setUser(null);
-        return null;
-      }
+      setUser(originalUser);
+      return originalUser;
     } finally {
+      workspaceTransition.current = false;
       setIsWorkspaceChanging(false);
     }
   }, [queryClient]);

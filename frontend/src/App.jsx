@@ -20,6 +20,7 @@ const TeacherLayout = lazy(() => import("./pages/teacher/TeacherLayout"));
 const TeacherDashboardPage = lazy(() => import("./pages/teacher/TeacherDashboardPage"));
 const TeacherProfilePage = lazy(() => import("./pages/teacher/TeacherProfilePage"));
 const TeacherClassesPage = lazy(() => import("./pages/teacher/TeacherClassesPage"));
+const TeacherAllocationsPage = lazy(() => import('./pages/teacher/TeacherAllocationsPage'));
 const ClassStudentsPage = lazy(() => import("./pages/teacher/ClassStudentsPage"));
 const TeacherAttendancePage = lazy(() => import("./pages/teacher/TeacherAttendancePage"));
 const TeacherCourseworkPage = lazy(() => import("./pages/teacher/TeacherCourseworkPage"));
@@ -52,6 +53,11 @@ const StudentImportPage = lazy(() => import('./pages/institution/StudentImportPa
 const InstitutionDashboardPage = lazy(() => import("./pages/institution/InstitutionDashboardPage"));
 const InstitutionInvitationsPage = lazy(() => import("./pages/institution/InstitutionInvitationsPage"));
 const InstitutionTeachersPage = lazy(() => import("./pages/institution/InstitutionTeachersPage"));
+const StaffDirectoryPage = lazy(() => import('./pages/institution/StaffDirectoryPage'));
+const StaffAllocationsPage = lazy(() => import('./pages/institution/StaffAllocationsPage'));
+const StaffAttendancePage = lazy(() => import('./pages/institution/StaffAttendancePage'));
+const InstitutionModulesPage = lazy(() => import('./pages/institution/InstitutionModulesPage'));
+const DepartmentsPage = lazy(() => import('./pages/institution/DepartmentsPage'));
 const InstitutionTeacherDetailPage = lazy(() => import("./pages/institution/InstitutionTeacherDetailPage"));
 
 
@@ -104,6 +110,11 @@ function App() {
           }
         >
           <Route path="dashboard" element={<InstitutionDashboardPage />} />
+          <Route path="staff" element={<StaffDirectoryPage />} />
+          <Route path="departments" element={<DepartmentsPage />} />
+          <Route path="allocations" element={<StaffAllocationsPage />} />
+          <Route path="staff-attendance" element={<StaffAttendancePage />} />
+          <Route path="modules" element={<InstitutionModulesPage />} />
           <Route path="reports" element={<AcademicDocumentsPage />} />
           <Route path="invitations" element={<InstitutionInvitationsPage />} />
           <Route path="teachers" element={<InstitutionTeachersPage />} />
@@ -138,6 +149,7 @@ function App() {
           <Route path="dashboard" element={<TeacherDashboardPage />} />
           <Route path="reports" element={<AcademicDocumentsPage />} />
           <Route path="profile" element={<TeacherProfilePage />} />
+          <Route path="allocations" element={<TeacherAllocationsPage />} />
           <Route path="classes" element={<TeacherClassesPage />} />
           <Route path="classes/:classId" element={<ClassStudentsPage />} />
           <Route path="attendance" element={<TeacherAttendancePage />} />

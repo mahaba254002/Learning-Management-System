@@ -1,5 +1,6 @@
 import { useState, forwardRef } from "react";
 import "./PasswordInput.css";
+import MaterialIcon from './MaterialIcon';
 
 /**
  * A password <input> with a show/hide toggle. Built with forwardRef so
@@ -24,7 +25,7 @@ const PasswordInput = forwardRef(function PasswordInput(props, ref) {
         aria-label={visible ? "Hide password" : "Show password"}
         aria-pressed={visible}
       >
-        {visible ? "Hide" : "Show"}
+        <MaterialIcon name={visible ? 'visibility_off' : 'visibility'} />
       </button>
     </div>
   );

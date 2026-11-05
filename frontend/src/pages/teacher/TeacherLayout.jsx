@@ -6,6 +6,7 @@ import { useAcademicNavigation } from '../../hooks/useAcademicNavigation';
 
 const navItems = [
   { label: "Dashboard", path: "/teacher/dashboard" },
+  { label: "My course allocations", path: "/teacher/allocations", icon: "classes" },
   { label: "Report cards & transcripts", path: "/teacher/reports" },
   { label: "My classes", path: "/teacher/classes" },
   { label: "Attendance", path: "/teacher/attendance" },

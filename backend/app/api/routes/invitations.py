@@ -330,6 +330,9 @@ def _get_valid_invitation_or_404(db: Session, token: str) -> Invitation:
     if invitation is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Invitation not found")
 
+    from app.services.modules import require_enabled
+    require_enabled(db.get(Institution, invitation.institution_id), 'staff_directory')
+
     if invitation.status == InvitationStatus.SENT and datetime.now(timezone.utc) > invitation.expires_at:
         invitation.status = InvitationStatus.EXPIRED
         db.commit()

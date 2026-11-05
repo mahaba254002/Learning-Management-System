@@ -18,6 +18,7 @@ from app.models.curriculum import CourseRegistration
 from app.services.subscriptions import kenya_today, subscription_view
 from app.services.academic_configuration import academic_configuration
 from app.services.learning_settings import learning_settings
+from app.services.modules import institution_modules, dashboard_link_enabled, require_enabled
 from app.api.routes.teaching import scoped, ensure_staff
 
 router = APIRouter(prefix='/api', tags=['Operational dashboards'])
@@ -137,7 +138,8 @@ def staff_dashboard(db, ctx, days, institution, since):
 def student_dashboard(db,ctx,days,institution,since):
     from app.api.routes.learning import assignments, own_student, student_subjects
     student=own_student(db,ctx); subjects=student_subjects(db,student,ctx).all()
-    works=assignments(None,db,ctx)
+    modules = institution_modules(institution)
+    works=assignments(None,db,ctx) if modules['coursework'] else []
     pending=[w for w in works if not w['academic_year_closed'] and w['kind']!='EXAM' and not w['submission_locked'] and (not w['submission'] or w['submission']['status']!='SUBMITTED')]
     pending.sort(key=lambda w:w['due_at'] or datetime.max.replace(tzinfo=timezone.utc))
     today=kenya_today(); queue=[]
@@ -168,7 +170,18 @@ def dashboard(days:int=Query(30,ge=7,le=90),db:Session=Depends(get_db),ctx:AuthC
     if ctx.role==UserRole.PLATFORM_ADMIN: result=platform(db,days); institution=None
     else:
         institution=db.get(Institution,ctx.institution_id)
+        if ctx.role == UserRole.TEACHER: require_enabled(institution, 'staff_directory')
         result=student_dashboard(db,ctx,days,institution,since) if ctx.role==UserRole.STUDENT else staff_dashboard(db,ctx,days,institution,since)
+        modules = institution_modules(institution)
+        for key in ['metrics', 'queue', 'actions']:
+            result[key] = [entry for entry in result[key] if dashboard_link_enabled(entry['href'], modules)]
+        result['queue_total'] = len(result['queue']) if not modules['student_attendance'] or not modules['coursework'] else result['queue_total']
+        if not modules['student_attendance']:
+            result['trend'], result['breakdown'] = [], []
+        if not dashboard_link_enabled(result['primary']['href'], modules):
+            result['primary'] = dict(label='My profile' if ctx.role != UserRole.INSTITUTION_ADMIN else 'Institution package',
+                href='/student/profile' if ctx.role == UserRole.STUDENT else '/teacher/profile' if ctx.role == UserRole.TEACHER else '/institution/modules')
     return dict(**result,role=ctx.role,generated_at=datetime.now(timezone.utc),since=since,today=today,days=days,
         configuration=academic_configuration(institution) if institution else None,labels=learning_settings(institution) if institution else None,
+        modules=institution_modules(institution) if institution else None,
         institution=dict(name=institution.name,code=institution.code,type=institution.type) if institution else None)

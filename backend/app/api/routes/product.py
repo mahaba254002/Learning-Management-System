@@ -93,8 +93,14 @@ def student_access(user_id: uuid.UUID, body: StudentAccessInput, db: Session = D
     user = scoped(db, User, ctx).filter(User.id == user_id, User.role == UserRole.STUDENT).with_for_update().first()
     if not user:
         raise HTTPException(404, "Student not found")
+    if body.login_enabled:
+        from app.services.modules import require_enabled
+        require_enabled(db.get(Institution, ctx.institution_id), 'student_portal')
     user.email = body.email
     user.student_login_method, user.student_login_id = body.login_method, body.login_id
+    user.login_enabled = body.login_enabled
+    if not user.login_enabled and (not user.email or user.student_login_method == 'STUDENT_ID' and not user.student_login_id):
+        user.student_login_method, user.student_login_id = 'STUDENT_ID', 'RECORD-' + uuid.uuid4().hex.upper()
     user.password_changed_at = datetime.now(timezone.utc)
     record_audit(db, ctx, "student.login_updated", user.id, ctx.institution_id)
     commit(db)
@@ -109,6 +115,9 @@ def reset_student_password(user_id: uuid.UUID, db: Session = Depends(get_db), ct
     user = scoped(db, User, ctx).filter(User.id == user_id, User.role == UserRole.STUDENT).with_for_update().first()
     if not user:
         raise HTTPException(404, "Student not found")
+    from app.services.modules import require_enabled
+    require_enabled(db.get(Institution, ctx.institution_id), 'student_portal')
+    if not user.login_enabled: raise HTTPException(409, 'Enable student sign-in before generating a password')
     password = generate_temporary_password()
     user.password_hash = hash_password(password)
     user.must_change_password = True

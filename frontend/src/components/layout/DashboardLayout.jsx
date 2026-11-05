@@ -5,6 +5,8 @@ import { getRoleHomePath } from "../../routes/roleRoutes";
 import logo from "../../assets/skynet-logo.png";
 import { useAuth } from "../../context/useAuth";
 import InstitutionWorkspace from "../common/InstitutionWorkspace";
+import ModuleAccess from "../common/ModuleAccess";
+import { pageEnabled } from "../../modules/institutionModules";
 import { useQuery } from "@tanstack/react-query";
 import { apiRequest } from "../../api/client";
 import "./DashboardLayout.css";
@@ -15,8 +17,10 @@ export default function DashboardLayout({ navItems, children, brandLabel }) {
   const location = useLocation();
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
+  const [returnError, setReturnError] = useState("");
   const terminology = useQuery({ queryKey: ["teaching", user.id, "/api/institution/learning-settings"], queryFn: () => apiRequest("/api/institution/learning-settings"), enabled: Boolean(user.institution_id), retry: false });
   const labels = terminology.data;
+  const modules = useQuery({ queryKey: ["teaching", user.id, "/api/institution/modules"], queryFn: () => apiRequest("/api/institution/modules"), enabled: Boolean(user.institution_id), refetchInterval: 30000, retry: false });
   const plural = label => `${label}${label.endsWith("s") ? "es" : "s"}`;
   const navigationLabel = label => labels ? label.replace(/students/gi, plural(labels.student_label)).replace(/teachers/gi, plural(labels.teacher_label)).replace(/classes/gi, plural(labels.class_label)).replace(/subjects/gi, plural(labels.subject_label)) : label;
 
@@ -37,7 +41,7 @@ export default function DashboardLayout({ navItems, children, brandLabel }) {
         {brandLabel && <p className="dashboard-sidebar__context">{labels ? brandLabel.replace("Teacher", labels.teacher_label).replace("Student", labels.student_label) : brandLabel}</p>}
 
         <nav className="dashboard-sidebar__nav" aria-label="Workspace navigation">
-          {navItems.map((item) => {
+          {navItems.filter(item => !user.institution_id || pageEnabled(item.path, modules.data?.modules)).map((item) => {
             const isActive = location.pathname === item.path || location.pathname.startsWith(`${item.path}/`);
             return (
               <Link
@@ -86,7 +90,7 @@ export default function DashboardLayout({ navItems, children, brandLabel }) {
             aria-controls="dashboard-mobile-navigation"
             onClick={() => setMobileNavOpen((open) => !open)}
           >
-            <span className="dashboard-topbar__menu-icon" />
+            <NavIcon name={mobileNavOpen ? 'collapse-sidebar' : 'menu'} />
           </button>
           <span className="dashboard-topbar__brand-mobile">Skynet</span>
         </header>
@@ -101,11 +105,15 @@ export default function DashboardLayout({ navItems, children, brandLabel }) {
           <div><strong>{readOnly ? "Read-only view" : "Full access"}: {user.first_name} {user.last_name}</strong>
             <p>Signed in as {workspace.actor.first_name} {workspace.actor.last_name}. {readOnly ? "Changes are blocked." : "Actions are recorded under your platform administrator account."}</p></div>
           <button type="button" disabled={isWorkspaceChanging} onClick={async () => {
-            const actor = await stopWorkspace();
-            navigate(getRoleHomePath(actor?.role), { replace: true });
+            setReturnError("");
+            try {
+              const actor = await stopWorkspace();
+              navigate(getRoleHomePath(actor?.role), { replace: true });
+            } catch (error) { setReturnError(error.message); }
           }}>{isWorkspaceChanging ? "Returning…" : "Return to my workspace"}</button>
+          {returnError && <p role="alert">{returnError}</p>}
         </section>}
-        <main id="workspace-main" tabIndex={-1} className="dashboard-content" key={`${user.id}:${readOnly}`}>{user.institution_id ? <InstitutionWorkspace>{children}</InstitutionWorkspace> : children}</main>
+        <main id="workspace-main" tabIndex={-1} className="dashboard-content" key={`${user.id}:${readOnly}`}>{user.institution_id ? <InstitutionWorkspace><ModuleAccess>{children}</ModuleAccess></InstitutionWorkspace> : children}</main>
       </div>
     </div>
   );

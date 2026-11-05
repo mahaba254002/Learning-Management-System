@@ -23,6 +23,8 @@ from app.core.security import decode_token, hash_password
 from app.db.session import get_db
 from app.models.academic import Enrollment, Student
 from app.models.user import User, UserRole
+from app.models.institution import Institution
+from app.services.modules import institution_modules
 from app.schemas.academic import Input, StudentInput
 from app.services.audit_service import record_audit
 from app.services.password_service import generate_temporary_password
@@ -44,6 +46,7 @@ def digest(body):
 
 def validate_rows(db, ctx, rows):
     errors, clean = [], []
+    portal = institution_modules(db.get(Institution, ctx.institution_id))['student_portal']
     seen = {key: set() for key in ['admission_number', 'email', 'login_id']}
     for number, raw in enumerate(rows, 2):
         try:
@@ -51,6 +54,9 @@ def validate_rows(db, ctx, rows):
             for key in ['email', 'login_id', 'phone']:
                 if values.get(key) == '': values[key] = None
             if values.get('login_method'): values['login_method'] = values['login_method'].upper()
+            if not portal:
+                values['login_enabled'] = False
+                if not values.get('login_method'): values['login_method'] = 'STUDENT_ID'
             row = StudentInput.model_validate(values).model_dump()
             if row['email']: row['email'] = row['email'].lower()
             row_errors = []
@@ -71,7 +77,7 @@ def validate_rows(db, ctx, rows):
 
 
 @router.post('/parse', dependencies=[Depends(rate_limit(max_requests=10, window_seconds=60, key_prefix='import-parse'))])
-async def parse_file(request: Request, filename: str = Query(max_length=200), ctx: AuthContext = Depends(admin)):
+async def parse_file(request: Request, filename: str = Query(max_length=200), db: Session = Depends(get_db), ctx: AuthContext = Depends(admin)):
     data = bytearray()
     async for chunk in request.stream():
         data.extend(chunk)
@@ -105,7 +111,9 @@ async def parse_file(request: Request, filename: str = Query(max_length=200), ct
         if not records or len(records) < 2 or len(records) > 501: raise ValueError('Use 1 to 500 students')
         header = [c.strip().lower() for c in records[0]]
         if len(header) != len(set(header)) or set(header) - set(COLUMNS): raise ValueError('Unexpected or duplicate column names')
-        if not {'first_name', 'last_name', 'admission_number', 'login_method'}.issubset(header): raise ValueError('Missing required columns')
+        required_columns = {'first_name', 'last_name', 'admission_number'}
+        if institution_modules(db.get(Institution, ctx.institution_id))['student_portal']: required_columns.add('login_method')
+        if not required_columns.issubset(header): raise ValueError('Missing required columns')
         rows = []
         for row in records[1:]:
             if len(row) > len(header): raise ValueError('A row has extra columns')
@@ -124,7 +132,7 @@ def preview(body: ImportInput, db: Session = Depends(get_db), ctx: AuthContext =
     token = None
     if not errors:
         token = jwt.encode(dict(type='student_import', sub=str(ctx.actor_user_id or ctx.user_id), user=str(ctx.user_id),
-            tenant=str(ctx.institution_id), sha=digest(body), exp=datetime.now(timezone.utc) + timedelta(minutes=10)),
+            tenant=str(ctx.institution_id), sha=digest(body), portal=institution_modules(db.get(Institution, ctx.institution_id))['student_portal'], exp=datetime.now(timezone.utc) + timedelta(minutes=10)),
             settings.JWT_SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
     return dict(class_name=cls.name, academic_year=cls.academic_year, students=clean, errors=errors, preview_token=token)
 
@@ -136,6 +144,7 @@ def execute(body: ImportInput, db: Session = Depends(get_db), ctx: AuthContext =
     try:
         token = decode_token(body.preview_token or '')
         if any(token.get(k) != v for k, v in dict(type='student_import', sub=str(ctx.actor_user_id or ctx.user_id), user=str(ctx.user_id), tenant=str(ctx.institution_id), sha=digest(body)).items()): raise ValueError()
+        if token.get('portal') != institution_modules(db.get(Institution, ctx.institution_id))['student_portal']: raise ValueError()
     except (jwt.PyJWTError, ValueError): raise HTTPException(409, 'Review this file again before importing')
     get_class(db, body.class_id, ctx, lock=True)
     from app.services.progression import assert_group
@@ -149,16 +158,20 @@ def execute(body: ImportInput, db: Session = Depends(get_db), ctx: AuthContext =
             password = 'S' + generate_temporary_password()
             user = User(id=uuid.uuid4(), institution_id=ctx.institution_id, username='student.' + uuid.uuid4().hex,
                 first_name=row['first_name'], last_name=row['last_name'], email=row['email'], role=UserRole.STUDENT,
-                student_login_method=row['login_method'], student_login_id=row['login_id'], password_hash=hash_password(password), must_change_password=True)
+                student_login_method=row['login_method'], student_login_id=row['login_id'], password_hash=hash_password(password), must_change_password=True,
+                login_enabled=row['login_enabled'])
+            if not user.login_enabled and (not user.email or user.student_login_method == 'STUDENT_ID' and not user.student_login_id):
+                user.student_login_method, user.student_login_id = 'STUDENT_ID', 'RECORD-' + uuid.uuid4().hex.upper()
             db.add(user); db.flush()
             student = Student(institution_id=ctx.institution_id, user_id=user.id, admission_number=row['admission_number'], phone=row['phone'])
             db.add(student); db.flush()
             db.add(Enrollment(institution_id=ctx.institution_id, class_id=body.class_id, student_id=student.id))
-            credentials.append(dict(name=f"{user.first_name} {user.last_name}", admission_number=student.admission_number,
-                login_method=row['login_method'], login_identity=row['email'] if row['login_method'] == 'EMAIL' else row['login_id'], temporary_password=password))
+            if user.login_enabled:
+                credentials.append(dict(name=f"{user.first_name} {user.last_name}", admission_number=student.admission_number,
+                    login_method=row['login_method'], login_identity=row['email'] if row['login_method'] == 'EMAIL' else row['login_id'], temporary_password=password))
     except IntegrityError:
         db.rollback()
         raise HTTPException(409, 'An account detail became unavailable. No students were imported; preview the file again.')
-    record_audit(db, ctx, 'students.imported', body.class_id, ctx.institution_id, f'{len(credentials)} student accounts created')
+    record_audit(db, ctx, 'students.imported', body.class_id, ctx.institution_id, f'{len(clean)} student records; {len(credentials)} sign-in accounts')
     commit(db)
-    return dict(created=len(credentials), credentials=credentials)
+    return dict(created=len(clean), credentials=credentials)

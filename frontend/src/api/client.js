@@ -73,12 +73,29 @@ export async function apiRequest(path, { method = "GET", body, rawBody, response
     }
   }
 
-  const response = await fetch(`${API_BASE_URL}${path}`, {
-    method,
-    headers,
-    credentials: "include",
-    body: rawBody !== undefined ? rawBody : body !== undefined ? JSON.stringify(body) : undefined,
-  });
+  let response;
+  try {
+    response = await fetch(`${API_BASE_URL}${path}`, {
+      method,
+      headers,
+      credentials: "include",
+      body: rawBody !== undefined ? rawBody : body !== undefined ? JSON.stringify(body) : undefined,
+    });
+  } catch (error) {
+    if (!(error instanceof TypeError)) throw error;
+    throw new ApiError(0, 'Unable to connect. Check your connection and try again. Your changes have not been confirmed.');
+  }
+
+  // The delegated token has its own lifetime. Renewing the owner's session
+  // cannot repair it, and replaying this request could affect another workspace.
+  if (response.status === 401 && headers['X-Workspace-Token']) {
+    const failure = await response.clone().json().catch(() => null);
+    if (['Workspace access expired or invalid. Return to your own workspace.', 'Invalid workspace access'].includes(failure?.detail)) {
+      const error = new ApiError(401, 'This workspace access has ended. Return to your own workspace to continue.', failure);
+      error.code = 'WORKSPACE_ACCESS_EXPIRED';
+      throw error;
+    }
+  }
 
   if (response.status === 401 && retrySession && !path.startsWith('/api/auth/')) {
     try {

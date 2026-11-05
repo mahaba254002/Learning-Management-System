@@ -15,7 +15,7 @@ from app.models.curriculum import CourseRegistration
 def resolve_workspace_target(db, actor: User, target_id: uuid.UUID):
     denied = HTTPException(404, "Workspace is not available to your account")
     target = db.get(User, target_id)
-    if target is None or target.id == actor.id or target.status != UserStatus.ACTIVE:
+    if target is None or target.id == actor.id or target.status != UserStatus.ACTIVE or not target.login_enabled:
         raise denied
     if target.role == UserRole.PLATFORM_ADMIN or target.institution_id is None:
         raise denied
@@ -57,6 +57,8 @@ def resolve_workspace_target(db, actor: User, target_id: uuid.UUID):
         raise denied
 
     if target.role == UserRole.STUDENT:
+        from app.services.modules import require_enabled
+        require_enabled(institution, 'student_portal')
         profile = db.query(Student).filter_by(user_id=target.id, institution_id=target.institution_id).first()
         if profile is None:
             raise denied

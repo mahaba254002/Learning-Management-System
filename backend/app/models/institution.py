@@ -29,6 +29,7 @@ class Institution(UUIDPrimaryKeyMixin, TimestampMixin, Base):
 
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     learning_settings: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict, server_default="{}")
+    module_settings: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict, server_default="{}")
     academic_configuration: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict, server_default="{}")
 
     code: Mapped[str] = mapped_column(String(20), unique=True, nullable=False, index=True)

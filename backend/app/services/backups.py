@@ -37,13 +37,14 @@ from app.models.curriculum import Department, Programme, StudyLevel, CatalogueUn
 from app.models.academic_document import AcademicDocument
 from app.models.final_grade import FinalGrade
 from app.models.progression import Prerequisite, ProgressionDecision
+from app.models.management import StaffMember, StaffAllocation, StaffAttendance
 
 MAX_ARCHIVE = 512 * 1024 * 1024
 MAX_INSTITUTION = 50 * 1024 * 1024
-GROUPS = {"people": [User, Teacher, Student], "academics": [Department, Programme, StudyLevel, CatalogueUnit, Prerequisite, AcademicYear, AcademicPeriod, AcademicClass, Subject, Enrollment, CourseRegistration, CourseCompletion, ProgressionDecision],
-          "learning": [Coursework, CourseMaterial, Score, Submission, FinalGrade, AcademicDocument], "attendance": [Attendance],
+GROUPS = {"people": [User, Teacher, Student, StaffMember], "academics": [Department, Programme, StudyLevel, CatalogueUnit, StaffAllocation, Prerequisite, AcademicYear, AcademicPeriod, AcademicClass, Subject, Enrollment, CourseRegistration, CourseCompletion, ProgressionDecision],
+          "learning": [Coursework, CourseMaterial, Score, Submission, FinalGrade, AcademicDocument], "attendance": [Attendance, StaffAttendance],
           "billing": [Subscription, SubscriptionPayment, BillingNotice]}
-ORDER = [User, Teacher, Student, Department, Programme, StudyLevel, CatalogueUnit, Prerequisite, AcademicYear, AcademicPeriod, AcademicClass, Subject, Enrollment, CourseRegistration, CourseCompletion, ProgressionDecision, Coursework, CourseMaterial,
+ORDER = [User, Teacher, Student, Department, StaffMember, Programme, StudyLevel, CatalogueUnit, StaffAllocation, StaffAttendance, Prerequisite, AcademicYear, AcademicPeriod, AcademicClass, Subject, Enrollment, CourseRegistration, CourseCompletion, ProgressionDecision, Coursework, CourseMaterial,
          Score, Submission, FinalGrade, AcademicDocument, Attendance, Subscription, SubscriptionPayment, BillingNotice]
 MODELS = {model.__tablename__: model for model in ORDER}
 
@@ -237,7 +238,7 @@ def merge_institution(db, manifest, payload, expected_fingerprint):
         current = Institution(**values, status=institution.get("status", InstitutionStatus.ACTIVE))
         db.add(current)
     else:
-        for key in ["name", "type", "country", "address", "official_email", "phone", "website", "learning_settings", "academic_configuration"]:
+        for key in ["name", "type", "country", "address", "official_email", "phone", "website", "learning_settings", "academic_configuration", "module_settings"]:
             if key in institution: setattr(current, key, institution[key])
     db.flush()
     for model in ORDER:

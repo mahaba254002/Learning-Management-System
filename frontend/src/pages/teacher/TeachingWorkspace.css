@@ -6,6 +6,10 @@
 .teaching-panel h2, .teaching-panel h3 { margin-bottom: var(--space-4); }
 .teaching-actions { display: flex; flex-wrap: wrap; gap: var(--space-3); align-items: center; margin-top: var(--space-4); }
 .teaching-actions a { color: var(--color-accent); }
+.teaching-actions a { display:inline-flex; align-items:center; gap:.4rem; padding:.4rem .6rem; border-radius:4px; background:#f0f6fb; font-weight:500; }
+.teaching-actions a:hover { color:#024d78; background:#e4eff7; }
+.teaching-panel > a { color:#075680; font-weight:500; }
+.teaching-panel > a:hover { color:#023e60; }
 .teaching-actions .btn--primary { color: var(--color-white); }
 .teaching-form { max-width: var(--content-measure); margin-top: var(--space-4); }
 .teaching-form textarea { box-sizing: border-box; width: 100%; min-height: var(--space-24); padding: var(--space-3); font: inherit; color: var(--color-ink); background: var(--color-white); border: 1px solid var(--color-line); }
@@ -30,3 +34,7 @@
 .session-recovery-backdrop { position: fixed; inset: 0; z-index: 2000; background: rgb(15 23 42 / 65%); display: grid; place-items: center; padding: 1rem; }
 .session-recovery { width: min(100%, 30rem); max-height: 90dvh; overflow: auto; background: white; }
 .session-recovery::backdrop { background: rgb(15 23 42 / 65%); }
+
+.workspace-recovery { padding: 20px; border: 1px solid #e4c389; border-radius: 8px; background: #fffaf0; color: #493715; overflow-wrap: anywhere; }
+.workspace-recovery h2 { margin: 0 0 10px; font-size: 18px; }
+.workspace-recovery p { margin: 0 0 12px; line-height: 1.6; }

@@ -1,5 +1,9 @@
 export const institutionNavItems = [
     { label: "Dashboard", path: "/institution/dashboard" },
+    { label: "Staff directory", path: "/institution/staff", icon: "staff" },
+    { label: "Departments", path: "/institution/departments", icon: "departments" },
+    { label: "Course allocations", path: "/institution/allocations", icon: "allocations" },
+    { label: "Staff attendance", path: "/institution/staff-attendance", icon: "staff-attendance" },
   { label: "Report cards & transcripts", path: "/institution/reports" },
     { label: "Invitations", path: "/institution/invitations" },
     { label: "Teachers", path: "/institution/teachers" },
@@ -17,5 +21,6 @@ export const institutionNavItems = [
     { label: "Scores", path: "/institution/scores" },
     { label: "Audit trail", path: "/institution/audit-logs" },
     { label: "Settings", path: "/institution/settings" },
+    { label: "Institution package", path: "/institution/modules", icon: "settings" },
     { label: "Account & security", path: "/institution/account" },
 ];

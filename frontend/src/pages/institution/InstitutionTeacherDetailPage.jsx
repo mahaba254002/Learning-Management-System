@@ -1,3 +1,4 @@
+import MaterialIcon from "../../components/common/MaterialIcon";
 import { useQuery } from "@tanstack/react-query";
 import { useParams, Link } from "react-router-dom";
 import { apiRequest } from "../../api/client";
@@ -50,7 +51,7 @@ export default function InstitutionTeacherDetailPage() {
                 to="/institution/teachers"
                 style={{ display: "inline-flex", alignItems: "center", gap: "0.4rem", fontSize: "0.85rem", color: "var(--color-ink-soft)", textDecoration: "none", marginBottom: "1.25rem" }}
             >
-                ← Back to Teachers
+                <MaterialIcon name="arrow_back" /> Back to Teachers
             </Link>
 
             {isLoading && <p style={{ color: "var(--color-ink-soft)" }}>Loading…</p>}

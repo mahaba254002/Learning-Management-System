@@ -21,6 +21,10 @@ function ClassRoster({ classId }) {
   const roster = useTeachingQuery(`/api/teaching/classes/${classId}/students`);
   const mutation = useTeachingMutation();
   const settings = useTeachingQuery("/api/institution/learning-settings");
+  const modules = useTeachingQuery('/api/institution/modules');
+  const studentPortal = Boolean(modules.data?.modules.student_portal);
+  const [enableLogin, setEnableLogin] = useState(true);
+  const grantLogin = studentPortal && enableLogin;
   const [loginChoice, setLoginChoice] = useState(null);
   const loginMethod = loginChoice || settings.data?.default_student_login || "EMAIL";
   const [editing, setEditing] = useState(null);
@@ -35,6 +39,7 @@ function ClassRoster({ classId }) {
     const values = Object.fromEntries(new FormData(form));
     if (!editing) {
       values.login_method = loginMethod;
+      values.login_enabled = grantLogin;
       values.email = values.email || null;
       values.login_id = values.login_id || null;
     }
@@ -64,7 +69,7 @@ function ClassRoster({ classId }) {
     </section>}
     {roster.data && <section className="teaching-panel"><h2>Class roster · {roster.data.length}</h2>
       {!roster.data.length ? <Empty>No students enrolled yet.</Empty> : <div className="table-wrapper"><table className="data-table"><thead><tr><th>Admission no.</th><th>Name</th><th>Email</th><th>Phone</th><th>Student workspace</th>{current?.can_manage && <th>Actions</th>}</tr></thead>
-        <tbody>{roster.data.map(s => <tr key={s.id}><td>{s.admission_number}</td><td>{studentName(s)}</td><td>{s.email}</td><td>{s.phone || "—"}</td><td><WorkspaceAccessButton userId={s.user_id} role="STUDENT" /></td>{current?.can_manage && <td>
+        <tbody>{roster.data.map(s => <tr key={s.id}><td>{s.admission_number}</td><td>{studentName(s)}</td><td>{s.email}</td><td>{s.phone || "—"}</td><td>{studentPortal && s.login_enabled !== false ? <WorkspaceAccessButton userId={s.user_id} role="STUDENT" /> : 'Sign-in disabled'}</td>{current?.can_manage && <td>
           <div className="teaching-actions"><button type="button" onClick={() => { setEditing(s); mutation.reset(); }}>Edit</button><button type="button" onClick={() => setRemoving(s)}>Remove from class</button>{user.role === "INSTITUTION_ADMIN" && !readOnly && <button type="button" onClick={() => setAccessStudent(s)}>Manage sign-in</button>}</div>
         </td>}</tr>)}</tbody></table></div>}
     </section>}
@@ -80,9 +85,10 @@ function ClassRoster({ classId }) {
           <Field label="First name" name="first_name" required maxLength={100} defaultValue={editing?.first_name || ""} />
           <Field label="Last name" name="last_name" required maxLength={100} defaultValue={editing?.last_name || ""} />
           {!editing && <><Field label="Admission number (institution record)" name="admission_number" required maxLength={60} />
-            <Field label="Student sign-in method" value={loginMethod} onChange={e => setLoginChoice(e.target.value)}><option value="EMAIL">Email and password</option><option value="STUDENT_ID">Student ID and password</option></Field>
-            {loginMethod === "STUDENT_ID" && <><Field label="Login student ID (unique across the platform)" name="login_id" required maxLength={60} /><p>Use letters, numbers, dots, hyphens, underscores or slashes. Use the admission number if available, or assign a unique ID. The admission number above stays unchanged.</p></>}
-            <Field label={loginMethod === "EMAIL" ? "Student email" : "Student email (optional)"} name="email" type="email" required={loginMethod === "EMAIL"} maxLength={255} /></>}
+            {studentPortal ? <label><input type="checkbox" checked={enableLogin} onChange={event => setEnableLogin(event.target.checked)} /> Enable student sign-in</label> : <p>Student portal is disabled. This creates an enrollment record without sign-in access or credentials.</p>}
+            {grantLogin && <><Field label="Student sign-in method" value={loginMethod} onChange={e => setLoginChoice(e.target.value)}><option value="EMAIL">Email and password</option><option value="STUDENT_ID">Student ID and password</option></Field>
+            {loginMethod === "STUDENT_ID" && <><Field label="Login student ID (unique across the platform)" name="login_id" required maxLength={60} /><p>Use letters, numbers, dots, hyphens, underscores or slashes. Use the admission number if available, or assign a unique ID. The admission number above stays unchanged.</p></>}</>}
+            <Field label={grantLogin && loginMethod === "EMAIL" ? "Student email" : "Student email (optional)"} name="email" type="email" required={grantLogin && loginMethod === "EMAIL"} maxLength={255} /></>}
           <Field label="Phone (optional)" name="phone" type="tel" maxLength={50} defaultValue={editing?.phone || ""} />
           {editing && <p className="teaching-muted">Account email and admission number are managed by the institution administrator.</p>}
           <div className="teaching-actions"><button className="btn btn--primary" disabled={mutation.isPending}>{mutation.isPending ? "Saving…" : editing ? "Save student" : "Create and enroll student"}</button>
@@ -93,6 +99,6 @@ function ClassRoster({ classId }) {
         <WorkspaceForm className="teaching-form" onSubmit={enroll}><Field label="Admission number" name="admission_number" required maxLength={60} /><button className="btn btn--primary" disabled={mutation.isPending}>Enroll student</button></WorkspaceForm>
       </section>
     </div>}
-    {current?.can_view_class_register && <ClassReport classId={classId} />}
+    {current?.can_view_class_register && modules.data?.modules.academic_reports && <ClassReport classId={classId} />}
   </>;
 }

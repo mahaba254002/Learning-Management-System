@@ -132,17 +132,19 @@ def assignments(subject_id: uuid.UUID | None = None, db: Session = Depends(get_d
     marks = {r.coursework_id: r for r in scoped(db, Score, ctx).filter(Score.student_id == student.id, Score.coursework_id.in_(ids)).all()}
     submissions = {r.coursework_id: r for r in scoped(db, Submission, ctx).filter(Submission.student_id == student.id, Submission.coursework_id.in_(ids)).all()}
     settings = learning_settings(db.get(Institution, ctx.institution_id))
+    from app.services.modules import institution_modules
+    can_grade = institution_modules(db.get(Institution, ctx.institution_id))['assessments']
     from app.models.pilot import AcademicYear
     closed_years = {y.name for y in scoped(db, AcademicYear, ctx).filter_by(status='CLOSED').all()}
     closed_classes = {c.id for c in scoped(db, AcademicClass, ctx).filter(AcademicClass.academic_year.in_(closed_years)).all()}
     return [dict(id=w.id, subject_id=s.id, subject_name=s.name, class_id=s.class_id, title=w.title, instructions=w.instructions,
                  kind=w.kind, due_at=as_utc(w.due_at), max_score=w.max_score, allow_late_submissions=w.allow_late_submissions,
-                 grades_released=w.grades_released, submission_locked=w.id in marks or s.class_id in closed_classes,
+                 grades_released=can_grade and w.grades_released, submission_locked=w.id in marks or s.class_id in closed_classes,
                  academic_year_closed=s.class_id in closed_classes,
-                 assessment_mode=w.assessment_mode, graded=w.grades_released and w.id in marks,
-                 competency_label=marks[w.id].competency_label if w.grades_released and w.id in marks else None,
-                 grade=grade_label(marks[w.id].score, w.max_score, settings, w.grading_bands) if w.grades_released and w.id in marks else None,
-                 score=marks[w.id].score if w.grades_released and w.id in marks else None, feedback=marks[w.id].feedback if w.grades_released and w.id in marks else "",
+                 assessment_mode=w.assessment_mode, graded=can_grade and w.grades_released and w.id in marks,
+                 competency_label=marks[w.id].competency_label if can_grade and w.grades_released and w.id in marks else None,
+                 grade=grade_label(marks[w.id].score, w.max_score, settings, w.grading_bands) if can_grade and w.grades_released and w.id in marks else None,
+                 score=marks[w.id].score if can_grade and w.grades_released and w.id in marks else None, feedback=marks[w.id].feedback if can_grade and w.grades_released and w.id in marks else "",
                  submission=submission_view(submissions.get(w.id))) for w, s in rows]
 
 

@@ -81,7 +81,7 @@ def user_page(db, tenant=None, search='', role=None, offset=0, limit=50):
     rows = q.order_by(User.created_at.desc(), User.id).offset(offset).limit(limit).all()
     return dict(total=total, items=[dict(id=u.id, institution_id=u.institution_id, first_name=u.first_name, last_name=u.last_name,
         username=u.username, email=u.email, student_login_method=u.student_login_method, student_login_id=u.student_login_id,
-        role=u.role, status=u.status, must_change_password=u.must_change_password) for u in rows])
+        role=u.role, status=u.status, login_enabled=u.login_enabled, must_change_password=u.must_change_password) for u in rows])
 
 
 @router.get('/institution/users')

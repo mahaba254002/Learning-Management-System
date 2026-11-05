@@ -1,3 +1,4 @@
+import MaterialIcon from "../components/common/MaterialIcon";
 import { Link } from "react-router-dom";
 import { getRoleLoginPath } from "../routes/roleRoutes";
 import "./LandingPage.css";
@@ -28,7 +29,7 @@ export default function PortalPickerPage() {
               <span className="feature-card__marker" aria-hidden="true" />
               <h2 className="feature-card__title">{title}</h2>
               <p className="feature-card__description">{description}</p>
-              <span className="portal-picker__action">{title} sign in <span aria-hidden="true">→</span></span>
+              <span className="portal-picker__action">{title} sign in <MaterialIcon name="arrow_forward" /></span>
             </Link>
           ))}
         </nav>

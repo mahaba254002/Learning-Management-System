@@ -1,6 +1,7 @@
 import { useEffect, useId, useRef } from "react";
 import { createPortal } from "react-dom";
 import "./Modal.css";
+import MaterialIcon from './MaterialIcon';
 
 export default function Modal({ isOpen, onClose, title, children, wide = false }) {
   const container = useRef(null);
@@ -55,7 +56,7 @@ export default function Modal({ isOpen, onClose, title, children, wide = false }
         <div className="modal-header">
           <h2 id={titleId} className="modal-title">{title}</h2>
           <button type="button" className="modal-close" onClick={onClose} aria-label="Close">
-            ×
+            <MaterialIcon name="close" />
           </button>
         </div>
         <div className="modal-body">{children}</div>

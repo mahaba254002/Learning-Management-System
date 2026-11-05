@@ -64,6 +64,7 @@ class User(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     # True until the user completes their first login and sets their own
     # password. Checked by the login flow to force a password-change step.
     must_change_password: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    login_enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, server_default="true")
 
     # Stamped every time this user's password changes (self-service change,
     # self-service reset, or admin-assisted reset). get_current_context

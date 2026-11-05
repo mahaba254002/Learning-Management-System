@@ -122,6 +122,7 @@ def confirm_create_institution(
         website=stored_payload.get("website"),
         academic_configuration=stored_payload.get('academic_configuration') or {},
         learning_settings=stored_payload.get('learning_settings') or {},
+        module_settings=stored_payload.get('module_settings') or {},
     )
     db.add(institution)
     from app.services.academic_configuration import academic_configuration

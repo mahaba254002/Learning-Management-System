@@ -4,6 +4,7 @@ from fastapi import FastAPI, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.routes import administration
+from app.api.routes import management
 from app.api.routes import product
 from app.api.routes import backups
 from app.api.routes import drafts, student_imports, academic_years
@@ -45,6 +46,7 @@ app.include_router(invitations.router)
 app.include_router(teaching.router)
 app.include_router(learning.router)
 app.include_router(administration.router)
+app.include_router(management.router)
 app.include_router(product.router)
 app.include_router(backups.router)
 app.include_router(drafts.router)

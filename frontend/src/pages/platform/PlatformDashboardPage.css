@@ -26,7 +26,7 @@
 }
 
 .section-link:hover {
-  text-decoration: underline;
+  text-decoration: none;
 }
 
 .stat-cards {
@@ -141,7 +141,7 @@
 }
 
 .table-action-link:hover {
-  text-decoration: underline;
+  text-decoration: none;
 }
 
 .credential-warning {
@@ -174,3 +174,4 @@
   border-radius: 4px;
   word-break: break-all;
 }
+.table-action-link:hover { color:#024d78; background:#edf5fb; border-radius:3px; }

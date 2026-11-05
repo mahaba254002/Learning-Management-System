@@ -6,6 +6,7 @@ import { useTeachingMutation, useTeachingQuery } from "../teacher/teachingQuerie
 import { Field, MutationState, PageHeading, QueryState } from "../teacher/TeachingUI";
 import "../teacher/TeachingWorkspace.css";
 import InstitutionAcademicSetup from './InstitutionAcademicSetup';
+import InstitutionModules from './InstitutionModules';
 
 export default function PlatformInstitutionDetailPage() {
   const { institutionId } = useParams();
@@ -23,6 +24,7 @@ function InstitutionDetail({ institutionId }) {
     {data && <><p>{data.institution.type.replaceAll("_", " ")} · {data.institution.code} · {data.institution.status} · {data.institution.official_email || "No official email"}</p>
       <div className="teaching-grid"><RecordChart title="Institution accounts" entries={Object.entries(data.users_by_role)} /><RecordChart title="Daily attendance records" entries={Object.entries(data.attendance)} /></div>
       <Billing root={root} initial={data.billing} />
+      <InstitutionModules root={root} />
       <InstitutionAcademicSetup root={root} />
       <section className="teaching-panel"><h2>Students, teachers and administrators</h2>
         <div className="teaching-toolbar"><Field label="Search institution accounts" value={search} onChange={e => { setSearch(e.target.value); setOffset(0); }} /><Field label="Role" value={role} onChange={e => { setRole(e.target.value); setOffset(0); }}><option value="">All roles</option>{["STUDENT", "TEACHER", "INSTITUTION_ADMIN"].map(r => <option key={r} value={r}>{r.replaceAll("_", " ")}</option>)}</Field></div>
