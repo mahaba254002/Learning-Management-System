@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z } from "../../lib/zod.js";
 import { passwordSchema } from "./passwordSchema.js";
 
 export const changePasswordSchema = z

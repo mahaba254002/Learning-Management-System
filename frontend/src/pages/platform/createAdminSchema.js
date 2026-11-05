@@ -1,4 +1,4 @@
- import { z } from "zod";
+ import { z } from "../../lib/zod.js";
 
 export const createAdminSchema = z.object({
   first_name: z.string().min(1, "First name is required"),

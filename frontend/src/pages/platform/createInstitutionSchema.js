@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z } from "../../lib/zod.js";
 
 export const INSTITUTION_TYPES = [
   "KINDERGARTEN",

@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z } from "../../lib/zod.js";
 
 export const passwordSchema = z.string()
   .min(8, "Use at least 8 characters")

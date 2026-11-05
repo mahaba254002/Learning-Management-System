@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z } from "../../lib/zod.js";
 
 export const studentLoginSchema = z.object({
   email: z.string().trim().min(1, "Enter your email or student ID").max(255).refine(
