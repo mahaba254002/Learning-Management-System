@@ -1,7 +1,8 @@
 import uuid
-from sqlalchemy import CheckConstraint,ForeignKeyConstraint,JSON,String,UniqueConstraint
+from decimal import Decimal
+from sqlalchemy import CheckConstraint,ForeignKeyConstraint,Numeric,String,UniqueConstraint
 from sqlalchemy.orm import Mapped,mapped_column
-from app.db.base import Base,TenantMixin,TimestampMixin,UUIDPrimaryKeyMixin
+from app.db.base import JSONType, Base,TenantMixin,TimestampMixin,UUIDPrimaryKeyMixin
 
 
 class Prerequisite(UUIDPrimaryKeyMixin,TimestampMixin,TenantMixin,Base):
@@ -12,7 +13,7 @@ class Prerequisite(UUIDPrimaryKeyMixin,TimestampMixin,TenantMixin,Base):
         CheckConstraint('course_id != required_id'))
     course_id:Mapped[uuid.UUID]=mapped_column(index=True)
     required_id:Mapped[uuid.UUID]=mapped_column(index=True)
-    minimum_percentage:Mapped[str|None]=mapped_column(String(12),nullable=True)
+    minimum_percentage:Mapped[Decimal|None]=mapped_column(Numeric(7,4),nullable=True)
 
 
 class ProgressionDecision(UUIDPrimaryKeyMixin,TimestampMixin,TenantMixin,Base):
@@ -23,7 +24,7 @@ class ProgressionDecision(UUIDPrimaryKeyMixin,TimestampMixin,TenantMixin,Base):
         ForeignKeyConstraint(['institution_id','student_id'],['students.institution_id','students.id']),
         CheckConstraint("decision IN ('ADVANCE','REPEAT','COMPLETE')"))
     source_class_id:Mapped[uuid.UUID]=mapped_column(index=True)
-    target_class_id:Mapped[uuid.UUID|None]=mapped_column(nullable=True)
+    target_class_id:Mapped[uuid.UUID|None]=mapped_column(nullable=True,index=True)
     student_id:Mapped[uuid.UUID]=mapped_column(index=True)
     decision:Mapped[str]=mapped_column(String(10))
-    snapshot:Mapped[dict]=mapped_column(JSON)
+    snapshot:Mapped[dict]=mapped_column(JSONType)

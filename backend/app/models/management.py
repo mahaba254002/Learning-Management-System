@@ -24,7 +24,7 @@ class StaffMember(UUIDPrimaryKeyMixin, TimestampMixin, TenantMixin, Base):
     last_name: Mapped[str] = mapped_column(String(100))
     category: Mapped[str] = mapped_column(String(15))
     job_title: Mapped[str] = mapped_column(String(120))
-    department_id: Mapped[uuid.UUID | None] = mapped_column(nullable=True)
+    department_id: Mapped[uuid.UUID | None] = mapped_column(nullable=True, index=True)
     teacher_user_id: Mapped[uuid.UUID | None] = mapped_column(nullable=True)
     email: Mapped[str | None] = mapped_column(String(255), nullable=True)
     phone: Mapped[str | None] = mapped_column(String(50), nullable=True)

@@ -1,6 +1,8 @@
+import uuid
 from datetime import date, datetime
 from decimal import Decimal
 from sqlalchemy import Boolean, CheckConstraint, Date, DateTime, ForeignKey, Integer, Numeric, String, UniqueConstraint
+from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from sqlalchemy.orm import Mapped, mapped_column
 from app.db.base import Base, TenantMixin, TimestampMixin, UUIDPrimaryKeyMixin
 
@@ -24,7 +26,7 @@ class SubscriptionPayment(UUIDPrimaryKeyMixin, TimestampMixin, TenantMixin, Base
     paid_on: Mapped[date] = mapped_column(Date)
     previous_due_date: Mapped[date | None] = mapped_column(Date, nullable=True)
     next_due_date: Mapped[date] = mapped_column(Date)
-    recorded_by: Mapped[str] = mapped_column(String(36))
+    recorded_by: Mapped[uuid.UUID] = mapped_column(PG_UUID(as_uuid=True), ForeignKey("users.id"))
 
 
 class BillingNotice(UUIDPrimaryKeyMixin, TimestampMixin, TenantMixin, Base):

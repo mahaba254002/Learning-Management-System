@@ -1,13 +1,18 @@
 import uuid
 from datetime import datetime, timezone
 
-from sqlalchemy import DateTime, ForeignKey
-from sqlalchemy.dialects.postgresql import UUID as PG_UUID
+from sqlalchemy import JSON, DateTime, ForeignKey
+from sqlalchemy.dialects.postgresql import JSONB, UUID as PG_UUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 
 class Base(DeclarativeBase):
     pass
+
+
+# JSONB on PostgreSQL, so stored settings and snapshots can be compared and
+# indexed. The SQLite test database falls back to plain JSON.
+JSONType = JSON().with_variant(JSONB(), "postgresql")
 
 
 def new_uuid() -> uuid.UUID:

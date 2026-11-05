@@ -28,8 +28,8 @@ staff = require_role(UserRole.TEACHER, UserRole.INSTITUTION_ADMIN)
 admin = require_role(UserRole.INSTITUTION_ADMIN)
 
 
-def scoped(db, model, ctx):
-    return db.query(model).filter(model.institution_id == ctx.institution_id)
+# Re-exported so existing "from app.api.routes.teaching import scoped" keeps working.
+from app.core.tenancy import scoped  # noqa: E402,F401
 
 
 def missing():

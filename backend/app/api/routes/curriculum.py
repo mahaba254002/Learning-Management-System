@@ -14,6 +14,7 @@ from app.schemas.academic import Input
 from app.services.academic_configuration import AcademicConfiguration, academic_configuration, template
 from app.services.learning_settings import LearningSettings, learning_settings
 from app.services.audit_service import record_audit
+from app.core import tenancy
 from app.api.routes.teaching import admin, staff, scoped, get_subject, get_class, enrolled_students, commit
 
 router = APIRouter(prefix='/api', tags=['Academic structure'])
@@ -80,10 +81,7 @@ MODELS = dict(departments=Department, programmes=Programme, levels=StudyLevel, c
 
 
 def owned(db, model, identity, tenant):
-    if identity is None: return None
-    row = db.query(model).filter_by(id=identity, institution_id=tenant).first()
-    if not row: raise HTTPException(404, 'Academic structure record not found')
-    return row
+    return tenancy.owned(db, model, identity, tenant, not_found='Academic structure record not found')
 
 
 def validate_links(db, tenant, programme_id=None, level_id=None):

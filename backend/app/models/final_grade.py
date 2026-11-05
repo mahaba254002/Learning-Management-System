@@ -1,7 +1,7 @@
 import uuid
-from sqlalchemy import Boolean, ForeignKeyConstraint, JSON, String, UniqueConstraint
+from sqlalchemy import Boolean, ForeignKeyConstraint, String, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
-from app.db.base import Base, TenantMixin, TimestampMixin, UUIDPrimaryKeyMixin
+from app.db.base import JSONType, Base, TenantMixin, TimestampMixin, UUIDPrimaryKeyMixin
 
 
 class FinalGrade(UUIDPrimaryKeyMixin, TimestampMixin, TenantMixin, Base):
@@ -13,5 +13,5 @@ class FinalGrade(UUIDPrimaryKeyMixin, TimestampMixin, TenantMixin, Base):
     student_id: Mapped[uuid.UUID] = mapped_column(index=True)
     scope: Mapped[str] = mapped_column(String(36))
     source_digest: Mapped[str] = mapped_column(String(64))
-    result: Mapped[dict] = mapped_column(JSON)
+    result: Mapped[dict] = mapped_column(JSONType)
     released: Mapped[bool] = mapped_column(Boolean,default=False)

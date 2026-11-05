@@ -17,6 +17,7 @@ from app.schemas.academic import Input
 from app.services.modules import InstitutionModules, DEPENDENCIES, institution_modules, module_presets, require_enabled
 from app.services.audit_service import record_audit
 from app.services.subscriptions import kenya_today
+from app.core import tenancy
 from app.api.routes.teaching import admin, staff, scoped, commit
 
 router = APIRouter(prefix='/api', tags=['Institution management'])
@@ -27,10 +28,8 @@ def view(row):
 
 
 def owned(db, model, identity, tenant, lock=False):
-    query = db.query(model).filter_by(id=identity, institution_id=tenant)
-    row = (query.with_for_update() if lock else query).first()
-    if not row: raise HTTPException(404, 'Management record not found')
-    return row
+    if identity is None: raise HTTPException(404, 'Management record not found')
+    return tenancy.owned(db, model, identity, tenant, lock=lock, not_found='Management record not found')
 
 
 def unchanged(row, expected):

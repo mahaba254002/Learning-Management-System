@@ -1,9 +1,9 @@
 """Durable sessions and institution academic calendars."""
 import uuid
 from datetime import date, datetime
-from sqlalchemy import Boolean, CheckConstraint, Date, DateTime, ForeignKey, ForeignKeyConstraint, JSON, String, UniqueConstraint
+from sqlalchemy import Boolean, CheckConstraint, Date, DateTime, ForeignKey, ForeignKeyConstraint, String, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
-from app.db.base import Base, TenantMixin, TimestampMixin, UUIDPrimaryKeyMixin
+from app.db.base import JSONType, Base, TenantMixin, TimestampMixin, UUIDPrimaryKeyMixin
 
 
 class AuthSession(UUIDPrimaryKeyMixin, Base):
@@ -44,5 +44,5 @@ class WorkDraft(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey('users.id'), index=True)
     kind: Mapped[str] = mapped_column(String(20))
     resource: Mapped[str] = mapped_column(String(100))
-    data: Mapped[dict] = mapped_column(JSON)
+    data: Mapped[dict] = mapped_column(JSONType)
     version: Mapped[int] = mapped_column(default=1)

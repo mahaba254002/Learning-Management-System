@@ -1,4 +1,5 @@
 import uuid
+from decimal import Decimal
 from typing import Literal
 from fastapi import APIRouter,Depends,HTTPException
 from pydantic import Field
@@ -63,7 +64,7 @@ def set_prerequisites(institution_id:uuid.UUID,course_id:uuid.UUID,body:Requirem
         if node not in visited:
             visited.add(node);pending.extend(graph.get(node,[]))
     db.query(Prerequisite).filter_by(institution_id=institution_id,course_id=course_id).delete()
-    for r in body.requirements:db.add(Prerequisite(institution_id=institution_id,course_id=course_id,required_id=r.required_id,minimum_percentage=str(r.minimum_percentage) if r.minimum_percentage is not None else None))
+    for r in body.requirements:db.add(Prerequisite(institution_id=institution_id,course_id=course_id,required_id=r.required_id,minimum_percentage=Decimal(str(r.minimum_percentage)) if r.minimum_percentage is not None else None))
     from datetime import datetime,timezone
     institution.updated_at=datetime.now(timezone.utc)
     record_audit(db,ctx,'prerequisites.updated',course_id,institution_id)

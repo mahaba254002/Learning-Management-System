@@ -1,10 +1,10 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import JSON, DateTime, String
+from sqlalchemy import DateTime, String
 from sqlalchemy.orm import Mapped, mapped_column
 
-from app.db.base import Base, TimestampMixin, UUIDPrimaryKeyMixin
+from app.db.base import JSONType, Base, TimestampMixin, UUIDPrimaryKeyMixin
 
 
 class EmailFailure(UUIDPrimaryKeyMixin, TimestampMixin, Base):
@@ -21,6 +21,6 @@ class EmailFailure(UUIDPrimaryKeyMixin, TimestampMixin, Base):
 
     # Free-form context (e.g. institution_id, user_id involved) for
     # debugging — not strictly typed since failure context varies by flow.
-    context: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    context: Mapped[dict | None] = mapped_column(JSONType, nullable=True)
 
     resolved: Mapped[bool] = mapped_column(default=False)

@@ -16,7 +16,8 @@ from app.services.learning_settings import learning_settings, grade_label
 from app.services import final_grades as finals
 from app.models.final_grade import FinalGrade
 from app.services.grading_rules import gpa
-from app.api.routes.teaching import ensure_staff, scoped
+from app.api.routes.teaching import ensure_staff
+from app.core.tenancy import scoped
 
 
 @contextmanager

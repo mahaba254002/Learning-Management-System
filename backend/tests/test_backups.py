@@ -151,7 +151,7 @@ def test_existing_financial_history_cannot_be_overwritten_and_merge_rolls_back(e
     actor = platform(env)
     tenant = env['cls'].institution_id
     env['db'].add(Subscription(institution_id=tenant, monthly_fee=2500))
-    payment = SubscriptionPayment(institution_id=tenant, amount=2500, reference='Paid-1', paid_on=date.today(), next_due_date=date.today()+timedelta(days=30), recorded_by=str(actor.id))
+    payment = SubscriptionPayment(institution_id=tenant, amount=2500, reference='Paid-1', paid_on=date.today(), next_due_date=date.today()+timedelta(days=30), recorded_by=actor.id)
     env['db'].add(payment); env['db'].commit()
     c, actor, raw = export(env, actor, ['billing'])
     payment.amount = 5000

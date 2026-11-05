@@ -230,7 +230,7 @@ def record_payment(institution_id: uuid.UUID, body: PaymentInput, db: Session = 
     if body.paid_on > kenya_today() or (row.next_due_date and body.next_due_date <= row.next_due_date):
         raise HTTPException(422, "Payment date must not be in the future and the new due date must advance")
     payment = SubscriptionPayment(institution_id=institution_id, amount=body.amount, reference=body.reference, paid_on=body.paid_on,
-        previous_due_date=row.next_due_date, next_due_date=body.next_due_date, recorded_by=str(ctx.actor_user_id or ctx.user_id))
+        previous_due_date=row.next_due_date, next_due_date=body.next_due_date, recorded_by=ctx.actor_user_id or ctx.user_id)
     db.add(payment)
     row.next_due_date = body.next_due_date
     record_audit(db, ctx, "subscription.payment_recorded", institution_id, institution_id, f"KES {body.amount}; reference {body.reference}")

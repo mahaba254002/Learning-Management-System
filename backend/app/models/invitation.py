@@ -13,11 +13,11 @@ import enum
 import uuid
 from datetime import datetime
 
-from sqlalchemy import JSON, DateTime, Enum, ForeignKey, String
+from sqlalchemy import DateTime, Enum, ForeignKey, String
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
-from app.db.base import Base, TenantMixin, TimestampMixin, UUIDPrimaryKeyMixin
+from app.db.base import JSONType, Base, TenantMixin, TimestampMixin, UUIDPrimaryKeyMixin
 
 
 class InvitationRole(str, enum.Enum):
@@ -53,7 +53,7 @@ class Invitation(UUIDPrimaryKeyMixin, TimestampMixin, TenantMixin, Base):
     )
 
     # Populated once the invited person fills out the form. Null until then.
-    submitted_data: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    submitted_data: Mapped[dict | None] = mapped_column(JSONType, nullable=True)
 
     invited_by: Mapped[uuid.UUID] = mapped_column(
         PG_UUID(as_uuid=True), ForeignKey("users.id"), nullable=False

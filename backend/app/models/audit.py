@@ -1,11 +1,13 @@
 import uuid
-from sqlalchemy import ForeignKey, String
+from sqlalchemy import ForeignKey, Index, String
 from sqlalchemy.orm import Mapped, mapped_column
 from app.db.base import Base, UUIDPrimaryKeyMixin, TimestampMixin
 
 
 class AuditEvent(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     __tablename__ = 'audit_events'
+    # Audit screens list an institution's newest events first.
+    __table_args__ = (Index('ix_audit_events_institution_created', 'institution_id', 'created_at'),)
     institution_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey('institutions.id'), index=True, nullable=True)
     actor_id: Mapped[uuid.UUID] = mapped_column(ForeignKey('users.id'), index=True)
     action: Mapped[str] = mapped_column(String(100), index=True)

@@ -77,7 +77,7 @@ def list_teachers(
 
 @router.get("/api/institution/teachers/{teacher_id}", response_model=TeacherSummary)
 def get_teacher(
-    teacher_id: str,
+    teacher_id: uuid.UUID,
     db: Session = Depends(get_db),
     ctx: AuthContext = Depends(require_role(UserRole.INSTITUTION_ADMIN)),
 ) -> TeacherSummary:
@@ -186,7 +186,7 @@ def list_invitations(
     dependencies=[Depends(forbid_delegated_credentials)],
 )
 def approve_invitation(
-    invitation_id: str,
+    invitation_id: uuid.UUID,
     db: Session = Depends(get_db),
     ctx: AuthContext = Depends(require_role(UserRole.INSTITUTION_ADMIN)),
 ) -> InvitationApprovedResponse:
@@ -297,7 +297,7 @@ def approve_invitation(
 
 @router.post("/api/institution/invitations/{invitation_id}/reject", response_model=InvitationSummary)
 def reject_invitation(
-    invitation_id: str,
+    invitation_id: uuid.UUID,
     db: Session = Depends(get_db),
     ctx: AuthContext = Depends(require_role(UserRole.INSTITUTION_ADMIN)),
 ) -> InvitationSummary:

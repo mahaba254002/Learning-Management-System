@@ -3,10 +3,10 @@ import uuid
 from datetime import date, datetime
 from decimal import Decimal
 
-from sqlalchemy import Boolean, CheckConstraint, Date, DateTime, ForeignKeyConstraint, JSON, Numeric, String, Text, UniqueConstraint
+from sqlalchemy import Boolean, CheckConstraint, Date, DateTime, ForeignKeyConstraint, Index, Numeric, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
-from app.db.base import Base, TenantMixin, TimestampMixin, UUIDPrimaryKeyMixin
+from app.db.base import JSONType, Base, TenantMixin, TimestampMixin, UUIDPrimaryKeyMixin
 
 
 class AcademicClass(UUIDPrimaryKeyMixin, TimestampMixin, TenantMixin, Base):
@@ -14,19 +14,20 @@ class AcademicClass(UUIDPrimaryKeyMixin, TimestampMixin, TenantMixin, Base):
     __table_args__ = (
         UniqueConstraint("institution_id", "id"),
         UniqueConstraint("institution_id", "name", "academic_year"),
+        Index("ix_academic_classes_institution_year", "institution_id", "academic_year"),
         ForeignKeyConstraint(["institution_id", "supervisor_id"], ["users.institution_id", "users.id"]),
         ForeignKeyConstraint(['institution_id', 'programme_id'], ['academic_programmes.institution_id', 'academic_programmes.id']),
         ForeignKeyConstraint(['institution_id', 'level_id'], ['academic_levels.institution_id', 'academic_levels.id']),
     )
     name: Mapped[str] = mapped_column(String(120))
     academic_year: Mapped[str] = mapped_column(String(30))
-    supervisor_id: Mapped[uuid.UUID | None] = mapped_column(nullable=True)
-    programme_id: Mapped[uuid.UUID | None] = mapped_column(nullable=True)
-    level_id: Mapped[uuid.UUID | None] = mapped_column(nullable=True)
+    supervisor_id: Mapped[uuid.UUID | None] = mapped_column(nullable=True, index=True)
+    programme_id: Mapped[uuid.UUID | None] = mapped_column(nullable=True, index=True)
+    level_id: Mapped[uuid.UUID | None] = mapped_column(nullable=True, index=True)
 
 
 class Subject(UUIDPrimaryKeyMixin, TimestampMixin, TenantMixin, Base):
-    grading_policy: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    grading_policy: Mapped[dict | None] = mapped_column(JSONType, nullable=True)
     __tablename__ = "teaching_subjects"
     __table_args__ = (
         UniqueConstraint("institution_id", "id"),
@@ -40,8 +41,8 @@ class Subject(UUIDPrimaryKeyMixin, TimestampMixin, TenantMixin, Base):
     class_id: Mapped[uuid.UUID] = mapped_column(index=True)
     name: Mapped[str] = mapped_column(String(120))
     teacher_id: Mapped[uuid.UUID] = mapped_column(index=True)
-    catalogue_id: Mapped[uuid.UUID | None] = mapped_column(nullable=True)
-    period_id: Mapped[uuid.UUID | None] = mapped_column(nullable=True)
+    catalogue_id: Mapped[uuid.UUID | None] = mapped_column(nullable=True, index=True)
+    period_id: Mapped[uuid.UUID | None] = mapped_column(nullable=True, index=True)
     registration_mode: Mapped[str] = mapped_column(String(12), default='COHORT', server_default='COHORT')
 
 
@@ -80,7 +81,7 @@ class Coursework(UUIDPrimaryKeyMixin, TimestampMixin, TenantMixin, Base):
         CheckConstraint("kind IN ('ASSIGNMENT', 'COURSEWORK', 'EXAM')"),
         CheckConstraint("assessment_mode IN ('NUMERIC', 'COMPETENCY')"),
     )
-    period_id: Mapped[uuid.UUID | None] = mapped_column(nullable=True)
+    period_id: Mapped[uuid.UUID | None] = mapped_column(nullable=True, index=True)
     subject_id: Mapped[uuid.UUID] = mapped_column(index=True)
     title: Mapped[str] = mapped_column(String(200))
     instructions: Mapped[str] = mapped_column(Text)
@@ -90,8 +91,8 @@ class Coursework(UUIDPrimaryKeyMixin, TimestampMixin, TenantMixin, Base):
     published: Mapped[bool] = mapped_column(Boolean, default=False)
     grades_released: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
     assessment_mode: Mapped[str] = mapped_column(String(12), default='NUMERIC', server_default='NUMERIC')
-    rubric_labels: Mapped[list] = mapped_column(JSON, default=list, server_default='[]')
-    grading_bands: Mapped[list | None] = mapped_column(JSON, nullable=True)
+    rubric_labels: Mapped[list] = mapped_column(JSONType, default=list, server_default='[]')
+    grading_bands: Mapped[list | None] = mapped_column(JSONType, nullable=True)
     allow_late_submissions: Mapped[bool] = mapped_column(Boolean, default=True, server_default="true")
 
 
@@ -115,13 +116,14 @@ class Attendance(UUIDPrimaryKeyMixin, TimestampMixin, TenantMixin, Base):
     __tablename__ = "student_attendance"
     __table_args__ = (
         UniqueConstraint("institution_id", "class_id", "scope_key", "day", "student_id"),
+        Index("ix_student_attendance_student_day", "institution_id", "student_id", "day"),
         ForeignKeyConstraint(["institution_id", "class_id"], ["academic_classes.institution_id", "academic_classes.id"]),
         ForeignKeyConstraint(["institution_id", "subject_id"], ["teaching_subjects.institution_id", "teaching_subjects.id"]),
         ForeignKeyConstraint(["institution_id", "student_id"], ["students.institution_id", "students.id"]),
         CheckConstraint("status IN ('PRESENT', 'ABSENT', 'LATE', 'EXCUSED')"),
     )
     class_id: Mapped[uuid.UUID] = mapped_column(index=True)
-    subject_id: Mapped[uuid.UUID | None] = mapped_column(nullable=True)
+    subject_id: Mapped[uuid.UUID | None] = mapped_column(nullable=True, index=True)
     # 'class' for the daily class register, otherwise the subject UUID.
     scope_key: Mapped[str] = mapped_column(String(36))
     day: Mapped[date] = mapped_column(Date)
