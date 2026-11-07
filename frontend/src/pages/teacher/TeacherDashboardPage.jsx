@@ -12,5 +12,5 @@ export default function DashboardPage(){
   const modules = query.data.modules;
   if (!modules.staff_directory) return <p>Your educator workspace is disabled for this institution. Contact your institution administrator.</p>;
   if (!modules.course_allocation) return <TeacherProfilePage />;
-  return !modules.student_records || !modules.coursework ? <TeacherAllocationsPage /> : <><TodayLessons /><UpcomingDeadlines staff /><OperationalDashboard /></>;
+  return !modules.student_records || !modules.coursework ? <TeacherAllocationsPage /> : <OperationalDashboard><TodayLessons /><UpcomingDeadlines staff /></OperationalDashboard>;
 }

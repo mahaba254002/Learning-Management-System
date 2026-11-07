@@ -4,6 +4,39 @@ The institution directory now shows institution name/code/type, contact email/ph
 
 The sidebar takes its layout cues from the separately inspected Alpha Harness project: a viewport-height navigation area, icon links, collapse control and pinned account section. Only the main workspace scrolls with page content; long navigation lists scroll independently. Mobile keeps the menu button on the right and supports Escape. A keyboard skip link reaches the workspace. No Alpha Harness files or services were changed.
 
+## Dashboard
+
+The platform dashboard shows the usual figures, then what needs attention:
+- **Waiting for you:** school requests and grading changes.
+- **Service health:** database, sign-in protection (Redis), email, SMS, M-Pesa and file storage. Each shows *Working*, *Not set up* or *Not responding*.
+- **Subscriptions due within 14 days**, and overdue ones.
+- **Terminated schools,** with the date each can be deleted.
+- **Recent activity** from the audit trail.
+
+## School requests
+
+School admins send restricted requests from **Requests to platform**:
+- deleting a teacher, student or staff account;
+- password reset;
+- account recovery (a new email, then a reset link);
+- changes to the institution's name, type, country or contact details;
+- anything else, as free text.
+
+On **Platform → School requests**, each request can be completed, approved now and completed later, or rejected. Rejecting needs a note, which the school sees. Completing carries the request out:
+- **Deletion:** anonymises the account. Sign-in ends and the name, email and phone are replaced with "Deleted user". Marks, attendance and audit history are kept, so past results don't change. This cannot be undone.
+- **Password reset:** sends a reset link to the account's email.
+- **Recovery:** changes the email, then sends a reset link there.
+- **Institution change:** applies the changes shown.
+- **Other:** marks the request done; do the work first.
+
+Every step is on the audit trail, and the school admin gets a notification. **Platform users** also has a direct *Send reset link* action.
+
+## Ending an institution
+
+On an institution's page, **End this institution**:
+1. **Terminate.** Choose how many days before it may be deleted, give a reason, and type the institution's name. Everyone at the school is signed out and locked out at once, but the data is kept. **Reactivate** reverses this at any time before deletion.
+2. **Delete permanently.** Available only after the waiting period, and only after typing the name again. It removes every account, record and uploaded file of that school. One audit entry stays on the platform (name, code, number of records removed). Download an institution backup first if the school may want its records.
+
 ## Audit logs
 
 Action type filtering works for both platform and institution administrators. Rows show actor identity, event time and observed client IP. Expand View details for event ID, actor ID, target, institution, request method/path and descriptive detail. Old events have no reconstructed IP or request metadata and display Not recorded.

@@ -7,7 +7,7 @@
 }
 
 body {
-  margin: 0;
+  margin:0;
   font-family: var(--font-body);
   color: var(--color-ink);
   background-color: var(--color-paper);
@@ -18,11 +18,11 @@ body {
 h1, h2, h3 {
   font-family: var(--font-display);
   line-height: 1.15;
-  margin: 0;
+  margin:0;
 }
 
 p {
-  margin: 0;
+  margin:0;
 }
 
 a {
@@ -52,4 +52,4 @@ input:focus-visible {
 input, select, textarea, button { font: inherit; }
 select:focus-visible, textarea:focus-visible, summary:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 3px; }
 button:disabled { cursor: not-allowed; }
-.route-loading { padding: var(--space-12); color: var(--color-ink-soft); }
+.route-loading { padding:var(--space-12); color: var(--color-ink-soft); }

@@ -607,7 +607,7 @@ def student_deadlines(db: Session = Depends(get_db), ctx: AuthContext = Depends(
         if due is None:
             continue
         upcoming = at <= due <= at + timedelta(days=30)
-        recent = at - timedelta(days=14) <= due < at and st in {'OVERDUE', 'MISSED', 'DONE'}
+        recent = at - timedelta(days=14) <= due < at and st in {'OVERDUE', 'MISSED'}
         if upcoming or recent:
             out.append(work_item(w, st, subjects[w.subject_id]))
     return sorted(out, key=lambda i: i['due_at'])

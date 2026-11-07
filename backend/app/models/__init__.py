@@ -24,3 +24,4 @@ from app.models.timetable import TimetableTerm, TimetableSlot, TimetableEntry, T
 from app.models.grading_request import GradingChangeRequest  # noqa: F401
 from app.models.messaging import MessagingSecret, SmsAllowance, GuardianMessage, MessageDelivery  # noqa: F401
 from app.models.elearning import StoredFile, QuizSettings, QuizQuestion, QuizAttempt, QuizAnswer, QuizExtraAttempt, RegistrationWindow, Notification  # noqa: F401
+from app.models.platform_request import PlatformRequest  # noqa: F401

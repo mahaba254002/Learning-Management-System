@@ -356,7 +356,7 @@ STAFF_READABLE = {
     '/api/me', '/api/staff/me', '/api/institution/modules', '/api/institution/academic-configuration',
     '/api/institution/learning-settings', '/api/institution/subscription', '/api/institution/levels', '/api/announcements',
     # Personal inbox: every signed-in person has one.
-    '/api/notifications',
+    '/api/notifications', '/api/institution/current-term',
 }
 
 

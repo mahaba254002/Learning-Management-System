@@ -8,6 +8,7 @@ import "../teacher/TeachingWorkspace.css";
 import InstitutionAcademicSetup from './InstitutionAcademicSetup';
 import InstitutionModules from './InstitutionModules';
 import InstitutionLevels from './InstitutionLevels';
+import { InstitutionLifecycle } from './PlatformLifecycle';
 
 export default function PlatformInstitutionDetailPage() {
   const { institutionId } = useParams();
@@ -28,6 +29,7 @@ function InstitutionDetail({ institutionId }) {
       <InstitutionModules root={root} />
       <InstitutionLevels root={root} institutionId={institutionId} />
       <InstitutionAcademicSetup root={root} />
+      <InstitutionLifecycle root={root} institution={data.institution} />
       <section className="teaching-panel"><h2>Students, teachers and administrators</h2>
         <div className="teaching-toolbar"><Field label="Search institution accounts" value={search} onChange={e => { setSearch(e.target.value); setOffset(0); }} /><Field label="Role" value={role} onChange={e => { setRole(e.target.value); setOffset(0); }}><option value="">All roles</option>{["STUDENT", "TEACHER", "STAFF", "INSTITUTION_ADMIN"].map(r => <option key={r} value={r}>{r.replaceAll("_", " ")}</option>)}</Field></div>
         <div className="table-wrapper"><table className="data-table"><thead><tr><th>Name</th><th>Role</th><th>Email</th><th>Status</th><th>Workspace</th></tr></thead><tbody>{data.users.items.map(user => <tr key={user.id}><td>{user.first_name} {user.last_name}</td><td>{user.role.replaceAll("_", " ")}</td><td>{user.email || "No email"}</td><td>{user.status}</td><td><WorkspaceAccessButton userId={user.id} role={user.role} /></td></tr>)}</tbody></table></div>

@@ -59,3 +59,6 @@ class Institution(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     archived_by: Mapped[uuid.UUID | None] = mapped_column(
         PG_UUID(as_uuid=True), ForeignKey("users.id"), nullable=True
     )
+    # Set when the platform terminates the institution: permanent deletion is
+    # allowed only after this time. Reactivation clears it.
+    delete_after: Mapped["DateTime | None"] = mapped_column(DateTime(timezone=True), nullable=True)

@@ -28,6 +28,7 @@ export const institutionNavItems = [
     { label: "Grading", path: "/institution/grading" },
     { label: "Announcements", path: "/institution/announcements" },
     { label: "Parent messages", path: "/institution/messages" },
+    { label: "Requests to platform", path: "/institution/requests" },
     { label: "Audit trail", path: "/institution/audit-logs" },
     { label: "Settings", path: "/institution/settings" },
     { label: "Institution package", path: "/institution/modules", icon: "settings" },

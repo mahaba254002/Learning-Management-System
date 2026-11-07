@@ -18,6 +18,9 @@ const NEXT_STATUS = { ACTIVE: ['SUSPENDED', 'DEACTIVATED'], SUSPENDED: ['ACTIVE'
 const STATUS_ACTIONS = { ACTIVE: 'Reactivate', SUSPENDED: 'Suspend', DEACTIVATED: 'Deactivate', ARCHIVED: 'Archive' };
 const STATUS_HELP = { ACTIVE: 'They can sign in again.', SUSPENDED: 'Sign-in is blocked until reactivated.', DEACTIVATED: 'Use this when someone leaves. Their records are kept.', ARCHIVED: 'The account is hidden from lists and stays read-only.' };
 
+// Show system values like INSTITUTION_ADMIN as 'Institution admin'.
+const words = value => value.charAt(0) + value.slice(1).toLowerCase().replaceAll('_', ' ');
+
 export function AdminUsersPage({ platform = false, studentsOnly = false }) {
   const scope = platform ? 'platform' : 'institution';
   const { user } = useAuth();
@@ -29,6 +32,7 @@ export function AdminUsersPage({ platform = false, studentsOnly = false }) {
   const [reason, setReason] = useState('');
   const query = useTeachingQuery(`/api/${scope}/users?${new URLSearchParams({ search, offset, ...(role ? { role } : {}), ...(archived ? { include_archived: 'true' } : {}) })}`);
   const mutation = useTeachingMutation();
+  const reset = useTeachingMutation();
   async function change() {
     try { await mutation.mutateAsync({ path: `/api/${scope}/users/${selected.user.id}/status`, method: 'PUT', body: { status: selected.target, reason } }); setSelected(null); setReason(''); } catch { /* Displayed below. */ }
   }
@@ -41,7 +45,8 @@ export function AdminUsersPage({ platform = false, studentsOnly = false }) {
     {selected && <section className="teaching-panel" aria-label="Confirm account access change"><h2>{STATUS_ACTIONS[selected.target]} {selected.user.first_name} {selected.user.last_name}?</h2><p>{STATUS_HELP[selected.target]} Existing sessions end immediately.</p>
       {['DEACTIVATED', 'ARCHIVED'].includes(selected.target) && <Field label="Reason" value={reason} onChange={e => setReason(e.target.value)} required minLength={3} maxLength={300} />}
       <div className="teaching-actions"><button disabled={mutation.isPending || (['DEACTIVATED', 'ARCHIVED'].includes(selected.target) && reason.trim().length < 3)} onClick={change}>Confirm change</button><button disabled={mutation.isPending} onClick={() => setSelected(null)}>Cancel</button></div></section>}
-    {query.data && <><div className="table-wrapper"><table className="data-table"><thead><tr><th>Name / username</th><th>Role</th><th>Status</th><th>Access</th><th>Workspace</th></tr></thead><tbody>{query.data.items.map(u => <tr key={u.id}><td>{u.first_name} {u.last_name}<div className="teaching-muted">{u.username}</div></td><td>{u.role.replaceAll('_', ' ')}</td><td>{u.status}{u.must_change_password && <div className="teaching-muted">Password change required</div>}</td><td>{u.id !== user.id && u.role !== 'PLATFORM_ADMIN' && (platform || u.role !== 'INSTITUTION_ADMIN') && u.status !== 'INVITED' && <select aria-label={`Change status for ${u.first_name} ${u.last_name}`} value="" disabled={mutation.isPending} onChange={e => { mutation.reset(); setReason(''); setSelected({ user: u, target: e.target.value }); }}><option value="">Change status…</option>{(NEXT_STATUS[u.status] || []).map(s => <option key={s} value={s}>{STATUS_ACTIONS[s]}</option>)}</select>}</td><td><WorkspaceAccessButton userId={u.id} role={u.role} disabled={u.status !== 'ACTIVE'} /></td></tr>)}</tbody></table></div>{!query.data.total && <p>No matching accounts.</p>}<Pages offset={offset} total={query.data.total} setOffset={setOffset} /></>}
+    {platform && <MutationState mutation={reset} message={reset.data?.message || 'Reset link sent.'} />}
+    {query.data && <><div className="table-wrapper"><table className="data-table"><thead><tr><th>Name / username</th><th>Role</th><th>Status</th><th>Access</th><th>Workspace</th></tr></thead><tbody>{query.data.items.map(u => <tr key={u.id}><td>{u.first_name} {u.last_name}<div className="teaching-muted">{u.username}</div></td><td>{words(u.role)}</td><td>{words(u.status)}{u.must_change_password && <div className="teaching-muted">Password change required</div>}</td><td>{u.id !== user.id && u.role !== 'PLATFORM_ADMIN' && (platform || u.role !== 'INSTITUTION_ADMIN') && u.status !== 'INVITED' && <select aria-label={`Change status for ${u.first_name} ${u.last_name}`} value="" disabled={mutation.isPending} onChange={e => { mutation.reset(); setReason(''); setSelected({ user: u, target: e.target.value }); }}><option value="">Change status…</option>{(NEXT_STATUS[u.status] || []).map(s => <option key={s} value={s}>{STATUS_ACTIONS[s]}</option>)}</select>}</td><td><WorkspaceAccessButton userId={u.id} role={u.role} disabled={u.status !== 'ACTIVE'} />{platform && u.role !== 'PLATFORM_ADMIN' && u.status === 'ACTIVE' && u.email && !u.email.endsWith('@deleted.invalid') && <button type='button' className='table-action-link' disabled={reset.isPending} onClick={() => reset.mutate({ path: `/api/platform/users/${u.id}/password-reset`, body: { reason: '' } })}>Send reset link</button>}</td></tr>)}</tbody></table></div>{!query.data.total && <p>No matching accounts.</p>}<Pages offset={offset} total={query.data.total} setOffset={setOffset} /></>}
   </>;
 }
 

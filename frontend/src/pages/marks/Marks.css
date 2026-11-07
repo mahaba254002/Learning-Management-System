@@ -1,10 +1,10 @@
 .marks-bands { max-width: 360px; }
-.marks-compare { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; margin: 12px 0; }
-.marks-compare h3 { margin: 0 0 8px; font-size: 14px; font-weight: 500; }
+.marks-compare { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap:16px; margin:12px 0; }
+.marks-compare h3 { margin:0 0 8px; font-size: 14px; font-weight: 500; }
 .marks-sheet th, .marks-sheet td { white-space: nowrap; font-variant-numeric: tabular-nums; }
-.marks-sheet td.marks-grade { color: #52525b; }
+.marks-sheet td.marks-grade { color: var(--color-ink-soft); }
 .marks-sheet .marks-sticky { position: sticky; left: 0; background: #fff; z-index: 1; }
-.marks-upload { display: grid; gap: 12px; }
+.marks-upload { display: grid; gap:12px; }
 .marks-status { font-size: 12px; }
-.marks-status--ERROR { color: #9b2c22; }
-.marks-status--NEW, .marks-status--REPLACE { color: #1d6b43; }
+.marks-status--ERROR { color: var(--color-negative); }
+.marks-status--NEW, .marks-status--REPLACE { color: var(--color-positive); }

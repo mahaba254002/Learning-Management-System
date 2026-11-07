@@ -2,4 +2,4 @@ import OperationalDashboard from "../../components/dashboard/OperationalDashboar
 import { TodayLessons } from "../timetable/TimetableViews";
 import { UpcomingDeadlines } from "../elearning/CoursesPages";
 
-export default function DashboardPage(){ return <><TodayLessons /><UpcomingDeadlines /><OperationalDashboard /></>; }
+export default function DashboardPage(){ return <OperationalDashboard><TodayLessons /><UpcomingDeadlines /></OperationalDashboard>; }

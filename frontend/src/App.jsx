@@ -63,6 +63,8 @@ const QuizAttemptPage = lazy(() => import("./pages/elearning/StudentQuizPages").
 const QuizBuilderPage = lazy(() => import("./pages/elearning/QuizBuilderPage"));
 const StudentRegistrationPage = lazy(() => import("./pages/elearning/RegistrationPages").then(m => ({ default: m.StudentRegistrationPage })));
 const RegistrationAdminPage = lazy(() => import("./pages/elearning/RegistrationPages").then(m => ({ default: m.RegistrationAdminPage })));
+const InstitutionRequestsPage = lazy(() => import("./pages/requests/RequestPages").then(m => ({ default: m.InstitutionRequestsPage })));
+const PlatformRequestsPage = lazy(() => import("./pages/requests/RequestPages").then(m => ({ default: m.PlatformRequestsPage })));
 const PlatformStoragePage = lazy(() => import("./pages/platform/PlatformStoragePage"));
 const InstitutionLayout = lazy(() => import("./pages/institution/InstitutionLayout"));
 const AcademicStructurePage = lazy(() => import('./pages/institution/AcademicStructurePage'));
@@ -177,6 +179,7 @@ function App() {
           <Route path="courses/:subjectId" element={<TeachingCoursePage />} />
           <Route path="quizzes/:quizId" element={<QuizBuilderPage />} />
           <Route path="course-registration" element={<RegistrationAdminPage />} />
+          <Route path="requests" element={<InstitutionRequestsPage />} />
           <Route path="audit-logs" element={<AdminAuditPage />} />
           <Route path="settings" element={<InstitutionSettingsPage />} />
           <Route path="account" element={<AdminAccountPage />} />
@@ -269,6 +272,7 @@ function App() {
           <Route path="grading-requests" element={<PlatformGradingRequestsPage />} />
           <Route path="messaging" element={<PlatformMessagingPage />} />
           <Route path="storage" element={<PlatformStoragePage />} />
+          <Route path="requests" element={<PlatformRequestsPage />} />
           <Route path="institutions" element={<PlatformInstitutionsPage />} />
           <Route path="institutions/:institutionId" element={<PlatformInstitutionDetailPage />} />
           <Route path="billing" element={<PlatformBillingPage />} />

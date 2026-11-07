@@ -6,10 +6,12 @@ import { FileLink } from "./files";
 import { STATUS, kindLabel, portalBase, shortDate, studentWorkLink } from "./format";
 import "./Elearning.css";
 
-function tint(text) {
+// Exercise-book covers in Skynet blues; each course keeps the same shade.
+const COVERS = ["#075c8d", "#026aa7", "#2b5f80", "#3d6a8a", "#1f4e6e"];
+function cover(text) {
   let hash = 0;
-  for (const ch of text) hash = (hash * 31 + ch.charCodeAt(0)) % 360;
-  return hash;
+  for (const ch of text) hash = (hash * 31 + ch.charCodeAt(0)) % 997;
+  return COVERS[hash % COVERS.length];
 }
 
 function CourseSearch({ search, setSearch, sort, setSort, sorts }) {
@@ -42,7 +44,7 @@ export function StudentCoursesPage() {
     {query.data?.length > 0 && <CourseSearch search={search} setSearch={setSearch} sort={sort} setSort={setSort} sorts={{ name: "Course name", due: "Next deadline" }} />}
     {query.data?.length > 0 && rows.length === 0 && <Empty>No course matches “{search}”.</Empty>}
     <div className="course-cards">{rows.map(c => <Link key={c.id} to={`/student/courses/${c.id}`} className="course-card">
-      <span className="course-card__band" style={{ "--course-hue": tint(c.name) }} aria-hidden="true" />
+      <span className="course-card__band" style={{ "--course-cover": cover(c.name) }} aria-hidden="true" />
       <span className="course-card__body"><strong>{c.name}</strong><span className="teaching-muted">{c.class_name} · {c.academic_year}</span>
         <span className="teaching-muted">{c.teacher_name}</span>
         <span className="course-card__meta">{c.to_do > 0 ? `${c.to_do} to do` : "Nothing due"}{c.materials ? ` · ${c.materials} material${c.materials === 1 ? "" : "s"}` : ""}</span>
@@ -96,7 +98,7 @@ export function TeachingCoursesPage() {
     {query.data?.length > 0 && <CourseSearch search={search} setSearch={setSearch} sort={sort} setSort={setSort} sorts={{ name: "Course name", class: "Class" }} />}
     {query.data?.length > 0 && rows.length === 0 && <Empty>No course matches “{search}”.</Empty>}
     <div className="course-cards">{rows.map(c => <Link key={c.id} to={`${base}/courses/${c.id}`} className="course-card">
-      <span className="course-card__band" style={{ "--course-hue": tint(c.name) }} aria-hidden="true" />
+      <span className="course-card__band" style={{ "--course-cover": cover(c.name) }} aria-hidden="true" />
       <span className="course-card__body"><strong>{c.name}</strong><span className="teaching-muted">{c.class_name} · {c.academic_year}</span>
         <span className="course-card__meta">{c.materials} material{c.materials === 1 ? "" : "s"} · {c.work} assessment{c.work === 1 ? "" : "s"}</span>
         {c.to_mark > 0 && <span className="course-card__due">{c.to_mark} to mark</span>}</span>

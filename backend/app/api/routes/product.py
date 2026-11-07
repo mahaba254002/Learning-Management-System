@@ -200,7 +200,8 @@ def institution_detail(institution_id: uuid.UUID, search: str = Query("", max_le
     institution = get_institution(db, institution_id)
     counts = dict(db.query(User.role, func.count(User.id)).filter(User.institution_id == institution_id).group_by(User.role).all())
     attendance = dict(db.query(Attendance.status, func.count(Attendance.id)).filter(Attendance.institution_id == institution_id, Attendance.scope_key == "class").group_by(Attendance.status).all())
-    return dict(institution=institution_view(institution), users_by_role=counts, attendance=attendance,
+    lifecycle = dict(archived_at=institution.archived_at, delete_after=institution.delete_after)
+    return dict(institution=institution_view(institution) | lifecycle, users_by_role=counts, attendance=attendance,
                 billing=billing_detail(db, institution_id), users=user_page(db, institution_id, search, role, offset, 50))
 
 

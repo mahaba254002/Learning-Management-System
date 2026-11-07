@@ -50,7 +50,7 @@ export function StudentQuizPage() {
       <h2>Before you start</h2>
       <ul className="quiz-rules">
         <li>{r.question_count} question{r.question_count === 1 ? "" : "s"}{r.time_limit_minutes ? `, ${r.time_limit_minutes} minutes in total` : ""}.</li>
-        {r.timed_questions > 0 && <li>{r.timed_questions === r.question_count ? "Every question has" : "Some questions have"} its own time limit. When the time runs out, the quiz moves to the next question.</li>}
+        {r.timed_questions > 0 && <li>{r.timed_questions === r.question_count ? "Every question has its" : "Some questions have their"} own time limit. When the time runs out, the quiz moves to the next question.</li>}
         {r.one_at_a_time && <li>Questions come one at a time. You cannot go back to an earlier question.</li>}
         {r.shuffled && <li>Questions or answers may appear in a different order for each student.</li>}
         {r.log_tab_switches && <li>Leaving this page during the quiz is recorded and shown to your teacher.</li>}

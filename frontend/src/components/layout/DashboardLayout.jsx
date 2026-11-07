@@ -1,6 +1,7 @@
 import { useState } from "react";
 import NavIcon from "./NavIcon";
 import NotificationBell from "./NotificationBell";
+import TermTag from "./TermTag";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { getRoleHomePath } from "../../routes/roleRoutes";
 import logo from "../../assets/skynet-logo.png";
@@ -65,7 +66,7 @@ export default function DashboardLayout({ navItems, children, brandLabel }) {
         <div className="dashboard-sidebar__user">
           <span className="dashboard-sidebar__avatar" aria-hidden="true">{user.first_name[0]}{user.last_name[0]}</span>
           <span className="dashboard-sidebar__name">{user.first_name} {user.last_name}</span>
-          <span className="dashboard-sidebar__role">{user.role.replace("_", " ")}</span>
+          <span className="dashboard-sidebar__role">{user.role.charAt(0) + user.role.slice(1).toLowerCase().replaceAll("_", " ")}</span>
         </div>
         <button className="dashboard-sidebar__logout" onClick={logout} aria-label="Log out" title="Log out">
           <NavIcon name="logout" /><span>Log out</span>
@@ -83,7 +84,7 @@ export default function DashboardLayout({ navItems, children, brandLabel }) {
 
       <div className="dashboard-main">
         <header className="dashboard-topbar">
-          <span className="dashboard-topbar__context">{user.role.replaceAll('_', ' ').toLowerCase()}</span>
+          <span className="dashboard-topbar__context">{user.role.charAt(0) + user.role.slice(1).toLowerCase().replaceAll('_', ' ')}</span>
           <button
             className="dashboard-topbar__menu-btn"
             aria-label={mobileNavOpen ? "Close menu" : "Open menu"}
@@ -94,6 +95,7 @@ export default function DashboardLayout({ navItems, children, brandLabel }) {
             <NavIcon name={mobileNavOpen ? 'collapse-sidebar' : 'menu'} />
           </button>
           <span className="dashboard-topbar__brand-mobile">Skynet</span>
+          {user.institution_id && <TermTag />}
           {user.institution_id && <NotificationBell />}
         </header>
 
