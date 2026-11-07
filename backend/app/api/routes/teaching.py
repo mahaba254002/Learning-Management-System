@@ -205,6 +205,21 @@ def assessment_values(db, ctx, payload, subject, current=None):
     from app.api.routes.structure import check_strand
     check_strand(db, ctx, subject, payload.strand_id)
     values = dict(**payload.model_dump(exclude={'expected_updated_at', 'assessment_mode'}), assessment_mode=mode)
+    from app.services.elearning import attachable
+    if not current or payload.paper_file_id != current.paper_file_id:
+        attachable(db, ctx.institution_id, payload.paper_file_id, purpose='PAPER', subject_id=subject.id, uploaded_by=ctx.user_id)
+    if current and payload.delivery != current.delivery:
+        raise HTTPException(409, 'An assessment cannot switch between an online quiz and handed-in work. Create a new one instead.')
+    if payload.delivery == 'QUIZ':
+        if mode != 'NUMERIC':
+            raise HTTPException(422, 'Online quizzes are marked with numbers. Choose numeric marking.')
+        from app.models.elearning import QuizQuestion
+        points = [q.points for q in scoped(db, QuizQuestion, ctx).filter_by(coursework_id=current.id).all()] if current else []
+        if payload.published and not points:
+            raise HTTPException(409, 'Add at least one question before publishing the quiz')
+        # A quiz is out of the total of its question points.
+        if points:
+            values['max_score'] = sum(points)
     if current:
         return dict(values, rubric_labels=current.rubric_labels)
     # New assessments copy the level's scale, so later scale changes never alter them.
@@ -492,7 +507,11 @@ def save_attendance(class_id: uuid.UUID, payload: RegisterInput, db: Session = D
 @router.get("/teaching/subjects/{subject_id}/coursework")
 def coursework(subject_id: uuid.UUID, db: Session = Depends(get_db), ctx: AuthContext = Depends(staff)):
     get_subject(db, subject_id, ctx)
-    return scoped(db, Coursework, ctx).filter(Coursework.subject_id == subject_id).order_by(Coursework.created_at.desc()).all()
+    rows = scoped(db, Coursework, ctx).filter(Coursework.subject_id == subject_id).order_by(Coursework.created_at.desc()).all()
+    from app.services.elearning import file_view, files_by_id
+    papers = files_by_id(db, ctx.institution_id, [r.paper_file_id for r in rows])
+    columns = [c.key for c in Coursework.__table__.columns]
+    return [dict({key: getattr(r, key) for key in columns}, paper=file_view(papers.get(r.paper_file_id))) for r in rows]
 
 
 @router.post("/teaching/subjects/{subject_id}/coursework", status_code=201)
@@ -500,6 +519,13 @@ def create_coursework(subject_id: uuid.UUID, payload: CourseworkInput, db: Sessi
     subject = get_subject(db, subject_id, ctx)
     row = Coursework(institution_id=ctx.institution_id, subject_id=subject_id, **assessment_values(db, ctx, payload, subject))
     db.add(row)
+    db.flush()
+    if row.delivery == 'QUIZ':
+        from app.models.elearning import QuizSettings
+        db.add(QuizSettings(institution_id=ctx.institution_id, coursework_id=row.id))
+    if row.published:
+        from app.services.elearning import notify_work_published
+        notify_work_published(db, ctx, row, subject)
     commit(db)
     db.refresh(row)
     return row
@@ -510,10 +536,15 @@ def edit_coursework(coursework_id: uuid.UUID, payload: CourseworkInput, db: Sess
     row, subject = get_coursework(db, coursework_id, ctx, lock=True)
     if payload.expected_updated_at is not None and payload.expected_updated_at != row.updated_at.isoformat():
         raise HTTPException(409, 'This assessment changed in another session. Reload its saved version before editing.')
-    if scoped(db, Score, ctx).filter(Score.coursework_id == row.id, Score.score > payload.max_score).first():
+    if row.delivery != 'QUIZ' and scoped(db, Score, ctx).filter(Score.coursework_id == row.id, Score.score > payload.max_score).first():
         raise HTTPException(400, "Maximum score cannot be lower than an existing score")
+    old_paper = row.paper_file_id
     for key, value in assessment_values(db, ctx, payload, subject, row).items():
         setattr(row, key, value)
+    from app.services.elearning import notify_work_published, replace_file
+    replace_file(db, ctx.institution_id, old_paper, row.paper_file_id)
+    if row.published:
+        notify_work_published(db, ctx, row, subject)
     commit(db)
     db.refresh(row)
     return row
@@ -532,10 +563,15 @@ class ResultsRelease(BaseModel):
 
 @router.put("/teaching/coursework/{coursework_id}/results-release")
 def release_results(coursework_id: uuid.UUID, body: ResultsRelease, db: Session = Depends(get_db), ctx: AuthContext = Depends(staff)):
-    work, _ = get_coursework(db, coursework_id, ctx, lock=True)
+    work, subject = get_coursework(db, coursework_id, ctx, lock=True)
     if body.released and not work.published:
         raise HTTPException(409, "Publish the assessment before releasing its results")
     work.grades_released = body.released
+    if body.released:
+        from app.services.elearning import notify_results_released
+        marked = scoped(db, Score, ctx).filter(Score.coursework_id == work.id).with_entities(Score.student_id)
+        users = [u for (u,) in scoped(db, Student, ctx).filter(Student.id.in_(marked)).with_entities(Student.user_id).all()]
+        notify_results_released(db, ctx, work, subject, users)
     record_audit(db, ctx, "assessment.results_released" if body.released else "assessment.results_withheld", work.id, ctx.institution_id)
     commit(db)
     return {"released": work.grades_released}

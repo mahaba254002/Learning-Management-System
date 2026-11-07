@@ -1,4 +1,5 @@
 import FinalGradesPanel from './FinalGradesPanel';
+import { FileLink } from "../elearning/files";
 import WorkspaceForm from "../../components/common/WorkspaceForm";
 import { useAuth } from "../../context/useAuth";
 import { useWorkDraft } from '../../hooks/useWorkDraft';
@@ -56,7 +57,7 @@ function Gradebook({ subject, work }) {
     }}>{work.grades_released ? "Withhold results" : "Release results to students"}</button>
     <QueryState query={roster} /><QueryState query={saved} /><QueryState query={submissions} /><MutationState mutation={mutation} message="Scores saved." />
     <section aria-label="Student submissions"><h3>Submitted work</h3>{submissions.data?.length === 0 && <Empty>No final submissions yet. Drafts are not listed here.</Empty>}
-      {submissions.data?.map(s => <details key={s.id} className="teaching-panel"><summary>{s.student_name} · {new Date(s.submitted_at).toLocaleString()}{s.is_late ? " · Late" : ""}</summary><p className="teaching-instructions">{s.answer}</p>{s.link_url && <a href={s.link_url} target="_blank" rel="noopener noreferrer">Open submitted document (new tab)</a>}</details>)}
+      {submissions.data?.map(s => <details key={s.id} className="teaching-panel"><summary>{s.student_name} · {new Date(s.submitted_at).toLocaleString()}{s.is_late ? " · Late" : ""}</summary><p className="teaching-instructions">{s.answer}</p>{s.link_url && <a href={s.link_url} target="_blank" rel="noopener noreferrer">Open submitted document (new tab)</a>}{s.file && <p>File: <FileLink file={s.file} /></p>}</details>)}
     </section>
     {roster.data && saved.data && (!roster.data.length ? <Empty>No students enrolled.</Empty> : <WorkspaceForm onSubmit={submit}><fieldset disabled={subject.academic_year_status === 'CLOSED' || !draft.ready || draft.blocked} className="workspace-form-fields">
       <div className="table-wrapper"><table className="data-table"><thead><tr><th>Student</th><th>Score</th><th>Feedback</th></tr></thead><tbody>{roster.data.map(s => <tr key={s.id}>

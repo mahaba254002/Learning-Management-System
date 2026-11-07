@@ -51,3 +51,13 @@ test('sidebar keeps module-free pages while modules are loading or unavailable',
   assert.equal(navItemVisible('/student/assignments', undefined), false);
   assert.equal(navItemVisible('/institution/students', { student_records: true }), true);
 });
+
+test('quiz and registration pages follow their own switches', () => {
+  const full = { ...management, student_records: true, student_portal: true, coursework: true, online_quizzes: true, registration_windows: true };
+  for (const path of ['/student/quizzes/1', '/student/quiz-attempts/1', '/teacher/quizzes/1', '/student/registration', '/institution/course-registration', '/student/courses', '/teacher/courses/1'])
+    assert.equal(pageEnabled(path, full), true, path);
+  assert.equal(pageEnabled('/student/quizzes/1', { ...full, online_quizzes: false }), false);
+  assert.equal(pageEnabled('/teacher/quizzes/1', { ...full, online_quizzes: false }), false);
+  assert.equal(pageEnabled('/student/registration', { ...full, registration_windows: false }), false);
+  assert.equal(pageEnabled('/institution/course-registration', { ...full, registration_windows: false }), false);
+});

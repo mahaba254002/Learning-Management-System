@@ -16,6 +16,7 @@ from app.models.user import User, UserRole
 from app.schemas.learning import MaterialInput, SubmissionInput
 from app.models.institution import Institution
 from app.services.learning_settings import learning_settings, grade_label
+from app.services.elearning import attachable, file_view, files_by_id, notify_material_published, replace_file
 
 router = APIRouter(prefix="/api", tags=["Student learning"])
 student_role = require_role(UserRole.STUDENT)
@@ -65,16 +66,23 @@ def as_utc(value):
     return value.replace(tzinfo=timezone.utc) if value and value.tzinfo is None else value
 
 
-def submission_view(row):
+def submission_view(row, files=None):
     if row is None:
         return None
     return dict(id=row.id, answer=row.answer, link_url=row.link_url, status=row.status,
-                submitted_at=as_utc(row.submitted_at), updated_at=as_utc(row.updated_at), is_late=row.is_late, version=row.version)
+                submitted_at=as_utc(row.submitted_at), updated_at=as_utc(row.updated_at), is_late=row.is_late, version=row.version,
+                file=file_view((files or {}).get(row.file_id)))
 
 
-def material_view(row):
-    return dict(id=row.id, subject_id=row.subject_id, title=row.title, body=row.body, link_url=row.link_url,
+def material_view(row, files=None):
+    return dict(id=row.id, subject_id=row.subject_id, title=row.title, body=row.body, link_url=row.link_url, section=row.section,
+                file=file_view((files or {}).get(row.file_id)),
                 published=row.published, created_at=as_utc(row.created_at), updated_at=as_utc(row.updated_at))
+
+
+def material_views(db, ctx, rows):
+    files = files_by_id(db, ctx.institution_id, [r.file_id for r in rows])
+    return [material_view(r, files) for r in rows]
 
 
 @router.get("/student/profile")
@@ -116,7 +124,7 @@ def attendance(subject_id: uuid.UUID | None = None, db: Session = Depends(get_db
 def materials(subject_id: uuid.UUID, db: Session = Depends(get_db), ctx: AuthContext = Depends(student_role)):
     student_subject(db, subject_id, own_student(db, ctx), ctx)
     rows = scoped(db, CourseMaterial, ctx).filter(CourseMaterial.subject_id == subject_id, CourseMaterial.published.is_(True)).order_by(CourseMaterial.created_at.desc()).all()
-    return [material_view(row) for row in rows]
+    return material_views(db, ctx, rows)
 
 
 @router.get("/student/assignments")
@@ -132,6 +140,7 @@ def assignments(subject_id: uuid.UUID | None = None, db: Session = Depends(get_d
     ids = [w.id for w, _ in rows]
     marks = {r.coursework_id: r for r in scoped(db, Score, ctx).filter(Score.student_id == student.id, Score.coursework_id.in_(ids)).all()}
     submissions = {r.coursework_id: r for r in scoped(db, Submission, ctx).filter(Submission.student_id == student.id, Submission.coursework_id.in_(ids)).all()}
+    files = files_by_id(db, ctx.institution_id, [r.file_id for r in submissions.values()] + [w.paper_file_id for w, _ in rows])
     settings = learning_settings(db.get(Institution, ctx.institution_id))
     from app.services.modules import institution_modules
     can_grade = institution_modules(db.get(Institution, ctx.institution_id))['assessments']
@@ -146,7 +155,9 @@ def assignments(subject_id: uuid.UUID | None = None, db: Session = Depends(get_d
                  competency_label=marks[w.id].competency_label if can_grade and w.grades_released and w.id in marks else None,
                  grade=grade_label(marks[w.id].score, w.max_score, settings, w.grading_bands) if can_grade and w.grades_released and w.id in marks else None,
                  score=marks[w.id].score if can_grade and w.grades_released and w.id in marks else None, feedback=marks[w.id].feedback if can_grade and w.grades_released and w.id in marks else "",
-                 submission=submission_view(submissions.get(w.id))) for w, s in rows]
+                 delivery=w.delivery, opens_at=as_utc(w.opens_at), section=w.section, paper=file_view(files.get(w.paper_file_id)),
+                 submission_file_types=w.submission_file_types,
+                 submission=submission_view(submissions.get(w.id), files)) for w, s in rows]
 
 
 @router.put("/student/assignments/{work_id}/submission")
@@ -155,6 +166,11 @@ def save_submission(work_id: uuid.UUID, payload: SubmissionInput, db: Session = 
     work, _ = student_work(db, work_id, student, ctx, lock=True)
     if work.kind == "EXAM":
         raise HTTPException(400, "This examination does not accept online submissions")
+    if work.delivery == "QUIZ":
+        raise HTTPException(400, "Answer this quiz on its quiz page")
+    if payload.file_id and not work.submission_file_types:
+        raise HTTPException(422, "This work does not accept file uploads")
+    attachable(db, ctx.institution_id, payload.file_id, purpose="SUBMISSION", subject_id=work.subject_id, uploaded_by=ctx.user_id, student_id=student.id)
     if scoped(db, Score, ctx).filter(Score.coursework_id == work.id, Score.student_id == student.id).first():
         raise HTTPException(409, "This assessment has already been graded")
     row = scoped(db, Submission, ctx).filter(Submission.coursework_id == work.id, Submission.student_id == student.id).first()
@@ -169,8 +185,10 @@ def save_submission(work_id: uuid.UUID, payload: SubmissionInput, db: Session = 
     if row is None:
         row = Submission(institution_id=ctx.institution_id, coursework_id=work.id, student_id=student.id, version=0)
         db.add(row)
+    replace_file(db, ctx.institution_id, row.file_id, payload.file_id)
     row.answer = payload.answer
     row.link_url = str(payload.link_url) if payload.link_url else None
+    row.file_id = payload.file_id
     row.version += 1
     if payload.submit:
         row.status, row.submitted_at, row.is_late = "SUBMITTED", now, is_late
@@ -178,22 +196,26 @@ def save_submission(work_id: uuid.UUID, payload: SubmissionInput, db: Session = 
         row.status = "DRAFT"
     commit(db)
     db.refresh(row)
-    return submission_view(row)
+    return submission_view(row, files_by_id(db, ctx.institution_id, [row.file_id]))
 
 
 @router.get("/teaching/subjects/{subject_id}/materials")
 def teacher_materials(subject_id: uuid.UUID, db: Session = Depends(get_db), ctx: AuthContext = Depends(staff)):
     get_subject(db, subject_id, ctx)
-    return [material_view(row) for row in scoped(db, CourseMaterial, ctx).filter(CourseMaterial.subject_id == subject_id).order_by(CourseMaterial.created_at.desc()).all()]
+    return material_views(db, ctx, scoped(db, CourseMaterial, ctx).filter(CourseMaterial.subject_id == subject_id).order_by(CourseMaterial.created_at.desc()).all())
 
 
 @router.post("/teaching/subjects/{subject_id}/materials", status_code=201)
 def create_material(subject_id: uuid.UUID, payload: MaterialInput, db: Session = Depends(get_db), ctx: AuthContext = Depends(staff)):
-    get_subject(db, subject_id, ctx)
-    row = CourseMaterial(institution_id=ctx.institution_id, subject_id=subject_id, **payload.model_dump(mode="json"))
+    subject = get_subject(db, subject_id, ctx)
+    attachable(db, ctx.institution_id, payload.file_id, purpose="MATERIAL", subject_id=subject.id, uploaded_by=ctx.user_id)
+    row = CourseMaterial(institution_id=ctx.institution_id, subject_id=subject_id, **payload.model_dump(mode="json", exclude={"file_id"}), file_id=payload.file_id)
     db.add(row)
+    db.flush()
+    if row.published:
+        notify_material_published(db, ctx, row, subject)
     commit(db)
-    return material_view(row)
+    return material_views(db, ctx, [row])[0]
 
 
 @router.put("/teaching/materials/{material_id}")
@@ -201,11 +223,17 @@ def update_material(material_id: uuid.UUID, payload: MaterialInput, db: Session 
     row = scoped(db, CourseMaterial, ctx).filter(CourseMaterial.id == material_id).first()
     if not row:
         missing()
-    get_subject(db, row.subject_id, ctx)
-    for key, value in payload.model_dump(mode="json").items():
+    subject = get_subject(db, row.subject_id, ctx)
+    if payload.file_id != row.file_id:
+        attachable(db, ctx.institution_id, payload.file_id, purpose="MATERIAL", subject_id=subject.id, uploaded_by=ctx.user_id)
+        replace_file(db, ctx.institution_id, row.file_id, payload.file_id)
+    for key, value in payload.model_dump(mode="json", exclude={"file_id"}).items():
         setattr(row, key, value)
+    row.file_id = payload.file_id
+    if row.published:
+        notify_material_published(db, ctx, row, subject)
     commit(db)
-    return material_view(row)
+    return material_views(db, ctx, [row])[0]
 
 
 @router.get("/teaching/coursework/{work_id}/submissions")
@@ -215,7 +243,8 @@ def review_submissions(work_id: uuid.UUID, db: Session = Depends(get_db), ctx: A
     rows = scoped(db, Submission, ctx).filter(Submission.coursework_id == work.id, Submission.status == "SUBMITTED").all()
     from app.api.routes.teaching import subject_students
     roster = {s.id: u for s, u in subject_students(db, subject, ctx).all()}
-    return [dict(**submission_view(row), student_id=row.student_id, student_name=f"{roster[row.student_id].first_name} {roster[row.student_id].last_name}")
+    files = files_by_id(db, ctx.institution_id, [r.file_id for r in rows])
+    return [dict(**submission_view(row, files), student_id=row.student_id, student_name=f"{roster[row.student_id].first_name} {roster[row.student_id].last_name}")
             for row in rows if row.student_id in roster]
 
 

@@ -12,6 +12,7 @@ const navItems = [
   { label: "Report cards & transcripts", path: "/teacher/reports" },
   { label: "My timetable", path: "/teacher/timetable" },
   { label: "My classes", path: "/teacher/classes" },
+  { label: "My courses", path: "/teacher/courses", icon: "classes" },
   { label: "Attendance", path: "/teacher/attendance" },
   { label: "Coursework", path: "/teacher/coursework" },
   { label: "Course materials", path: "/teacher/materials" },

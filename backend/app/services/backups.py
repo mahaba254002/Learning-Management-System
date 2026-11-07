@@ -42,14 +42,17 @@ from app.models.structure import CurriculumStrand, InstitutionLevel, OfferingTea
 from app.models.records import Announcement, DisciplineRecord, FeeStatus, Guardian, StudentGuardian
 from app.models.timetable import LessonChange, TeacherUnavailability, TimetableEntry, TimetableSlot, TimetableTerm
 from app.models.messaging import GuardianMessage, MessageDelivery
+from app.models.elearning import (Notification, QuizAnswer, QuizAttempt, QuizExtraAttempt, QuizQuestion, QuizSettings,
+                                  RegistrationWindow, StoredFile)
 
 MAX_ARCHIVE = 512 * 1024 * 1024
 MAX_INSTITUTION = 50 * 1024 * 1024
-GROUPS = {"people": [User, Student, StaffMember, Guardian, StudentGuardian, DisciplineRecord, GuardianMessage, MessageDelivery], "academics": [InstitutionLevel, Department, Programme, StudyLevel, CatalogueUnit, CurriculumStrand, Prerequisite, AcademicYear, AcademicPeriod, AcademicClass, Subject, OfferingTeacher, Enrollment, CourseRegistration, CourseCompletion, ProgressionDecision, FeeStatus, Announcement, TimetableTerm, TimetableSlot, TimetableEntry, TeacherUnavailability, LessonChange],
-          "learning": [Coursework, CourseMaterial, Score, Submission, FinalGrade, AcademicDocument], "attendance": [Attendance, StaffAttendance],
+GROUPS = {"people": [User, Student, StaffMember, Guardian, StudentGuardian, DisciplineRecord, GuardianMessage, MessageDelivery], "academics": [InstitutionLevel, Department, Programme, StudyLevel, CatalogueUnit, CurriculumStrand, Prerequisite, AcademicYear, AcademicPeriod, AcademicClass, Subject, OfferingTeacher, Enrollment, RegistrationWindow, CourseRegistration, CourseCompletion, ProgressionDecision, FeeStatus, Announcement, TimetableTerm, TimetableSlot, TimetableEntry, TeacherUnavailability, LessonChange],
+          "learning": [StoredFile, Coursework, CourseMaterial, Score, Submission, FinalGrade, AcademicDocument,
+                       QuizSettings, QuizQuestion, QuizAttempt, QuizAnswer, QuizExtraAttempt, Notification], "attendance": [Attendance, StaffAttendance],
           "billing": [Subscription, SubscriptionPayment, BillingNotice]}
-ORDER = [User, Student, Guardian, StudentGuardian, DisciplineRecord, GuardianMessage, MessageDelivery, Department, StaffMember, InstitutionLevel, Programme, StudyLevel, CatalogueUnit, CurriculumStrand, StaffAttendance, Prerequisite, AcademicYear, AcademicPeriod, AcademicClass, Subject, OfferingTeacher, Enrollment, CourseRegistration, CourseCompletion, ProgressionDecision, FeeStatus, Announcement, TimetableTerm, TimetableSlot, TimetableEntry, TeacherUnavailability, LessonChange, Coursework, CourseMaterial,
-         Score, Submission, FinalGrade, AcademicDocument, Attendance, Subscription, SubscriptionPayment, BillingNotice]
+ORDER = [User, Student, Guardian, StudentGuardian, DisciplineRecord, GuardianMessage, MessageDelivery, Department, StaffMember, InstitutionLevel, Programme, StudyLevel, CatalogueUnit, CurriculumStrand, StaffAttendance, Prerequisite, AcademicYear, AcademicPeriod, AcademicClass, Subject, OfferingTeacher, Enrollment, RegistrationWindow, CourseRegistration, CourseCompletion, ProgressionDecision, FeeStatus, Announcement, TimetableTerm, TimetableSlot, TimetableEntry, TeacherUnavailability, LessonChange, StoredFile, Coursework, CourseMaterial,
+         Score, Submission, FinalGrade, AcademicDocument, QuizSettings, QuizQuestion, QuizAttempt, QuizAnswer, QuizExtraAttempt, Notification, Attendance, Subscription, SubscriptionPayment, BillingNotice]
 MODELS = {model.__tablename__: model for model in ORDER}
 # Tables that older backups contain. Teachers become staff records on restore;
 # the short-lived allocation table never held production data and is skipped.
@@ -183,6 +186,8 @@ def export_institution(db, institution_id, groups):
 
 # Columns older backups contain that no longer exist; they are dropped on restore.
 RETIRED_COLUMNS = {"institution_subscriptions": {"grace_days"}}
+# JSON list columns added for e-learning, with the longest list each may hold.
+JSON_LISTS = {"submission_file_types": 5, "class_ids": 200, "options": 8, "correct": 8, "plan": 200, "selected": 8}
 
 
 def convert(model, raw):
@@ -203,6 +208,7 @@ def convert(model, raw):
         elif kind == Decimal: value = Decimal(value)
         elif name == 'rubric_labels' and isinstance(value, list) and len(value) <= 12 and all(isinstance(s, str) and 0 < len(s) <= 60 for s in value): pass
         elif name == 'grading_bands' and isinstance(value, list) and len(value) <= 20: pass
+        elif name in JSON_LISTS and isinstance(value, list) and len(value) <= JSON_LISTS[name]: pass
         elif hasattr(column.type, "enum_class") and column.type.enum_class: value = column.type.enum_class(value)
         elif not isinstance(value, kind): raise ValueError("Wrong value type")
         if isinstance(value, str) and getattr(column.type, "length", None) and len(value) > column.type.length: raise ValueError("Value too long")

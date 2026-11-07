@@ -55,6 +55,15 @@ class Settings(BaseSettings):
     # Secret path segment for delivery reports, which carry no signature.
     AT_CALLBACK_SECRET: str = ""
 
+    # Uploaded files. "r2" = Cloudflare R2, "local" = a folder (development and
+    # tests only), empty = uploads switched off.
+    STORAGE_BACKEND: str = ""
+    LOCAL_STORAGE_DIR: str = "uploads"
+    R2_ACCOUNT_ID: str = ""
+    R2_ACCESS_KEY_ID: str = ""
+    R2_SECRET_ACCESS_KEY: str = ""
+    R2_BUCKET: str = ""
+
     @model_validator(mode="after")
     def _fail_closed(self):
         if self.ENVIRONMENT not in ENVIRONMENTS:
@@ -72,6 +81,10 @@ class Settings(BaseSettings):
             raise ValueError("AT_ENVIRONMENT must be sandbox or production")
         if self.MPESA_ENVIRONMENT not in {"sandbox", "production"}:
             raise ValueError("MPESA_ENVIRONMENT must be sandbox or production")
+        if self.STORAGE_BACKEND not in {"", "r2", "local"}:
+            raise ValueError("STORAGE_BACKEND must be r2, local or empty")
+        if self.STORAGE_BACKEND == "local" and not self.is_development:
+            raise ValueError("Local file storage is for development only; use r2")
         return self
 
     @property

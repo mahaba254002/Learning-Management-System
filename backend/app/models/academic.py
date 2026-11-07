@@ -91,6 +91,8 @@ class Coursework(UUIDPrimaryKeyMixin, TimestampMixin, TenantMixin, Base):
         CheckConstraint("max_score > 0 AND max_score <= 10000"),
         CheckConstraint("kind IN ('ASSIGNMENT', 'COURSEWORK', 'EXAM')"),
         CheckConstraint("assessment_mode IN ('NUMERIC', 'COMPETENCY')"),
+        CheckConstraint("delivery IN ('STANDARD', 'QUIZ')", name='ck_coursework_delivery'),
+        ForeignKeyConstraint(['institution_id', 'paper_file_id'], ['stored_files.institution_id', 'stored_files.id'], name='fk_coursework_paper_file'),
     )
     period_id: Mapped[uuid.UUID | None] = mapped_column(nullable=True, index=True)
     subject_id: Mapped[uuid.UUID] = mapped_column(index=True)
@@ -108,6 +110,14 @@ class Coursework(UUIDPrimaryKeyMixin, TimestampMixin, TenantMixin, Base):
     strand_id: Mapped[uuid.UUID | None] = mapped_column(nullable=True, index=True)
     # The scale whose bands were copied into grading_bands / rubric_labels.
     scale_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey('assessment_scales.id'), nullable=True, index=True)
+    # STANDARD work is handed in as text, a link or a file; QUIZ is answered online question by question.
+    delivery: Mapped[str] = mapped_column(String(10), default='STANDARD', server_default='STANDARD')
+    opens_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    section: Mapped[str] = mapped_column(String(120), default='', server_default='')
+    # A question paper students download (PDF, Word...).
+    paper_file_id: Mapped[uuid.UUID | None] = mapped_column(nullable=True)
+    # File groups students may hand in, e.g. ["pdf", "word"]. Empty = no file uploads.
+    submission_file_types: Mapped[list] = mapped_column(JSONType, default=list, server_default='[]')
 
 
 class Score(UUIDPrimaryKeyMixin, TimestampMixin, TenantMixin, Base):

@@ -1,7 +1,8 @@
 """Tenant-scoped academic catalogue, admissions groups and course registrations."""
 import uuid
+from datetime import datetime
 from decimal import Decimal
-from sqlalchemy import Boolean, CheckConstraint, ForeignKeyConstraint, Numeric, String, UniqueConstraint
+from sqlalchemy import Boolean, CheckConstraint, DateTime, ForeignKeyConstraint, Numeric, String, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 from app.db.base import Base, TenantMixin, TimestampMixin, UUIDPrimaryKeyMixin
 
@@ -63,10 +64,18 @@ class CourseRegistration(UUIDPrimaryKeyMixin, TimestampMixin, TenantMixin, Base)
     __tablename__ = 'course_registrations'
     __table_args__ = (UniqueConstraint('institution_id', 'subject_id', 'student_id'),
         ForeignKeyConstraint(['institution_id', 'subject_id'], ['teaching_subjects.institution_id', 'teaching_subjects.id']),
-        ForeignKeyConstraint(['institution_id', 'student_id'], ['students.institution_id', 'students.id']))
+        ForeignKeyConstraint(['institution_id', 'student_id'], ['students.institution_id', 'students.id']),
+        ForeignKeyConstraint(['institution_id', 'window_id'], ['registration_windows.institution_id', 'registration_windows.id'], name='fk_course_registrations_window'),
+        CheckConstraint("status IN ('APPROVED', 'PENDING', 'REJECTED', 'DROPPED')", name='ck_course_registrations_status'))
     subject_id: Mapped[uuid.UUID] = mapped_column(index=True)
     student_id: Mapped[uuid.UUID] = mapped_column(index=True)
     active: Mapped[bool] = mapped_column(Boolean, default=True)
+    # Student choices made in a registration window wait for approval. Access follows `active`.
+    status: Mapped[str] = mapped_column(String(10), default='APPROVED', server_default='APPROVED')
+    window_id: Mapped[uuid.UUID | None] = mapped_column(nullable=True, index=True)
+    decided_by: Mapped[uuid.UUID | None] = mapped_column(nullable=True)
+    decided_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    decision_note: Mapped[str] = mapped_column(String(300), default='', server_default='')
 
 
 class CourseCompletion(UUIDPrimaryKeyMixin, TimestampMixin, TenantMixin, Base):

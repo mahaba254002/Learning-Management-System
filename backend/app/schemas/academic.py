@@ -79,6 +79,25 @@ class CourseworkInput(Input):
     expected_updated_at: str | None = Field(default=None, max_length=60)
     assessment_mode: Literal['NUMERIC', 'COMPETENCY'] | None = None
     strand_id: uuid.UUID | None = None
+    # STANDARD = handed in as text, a link or a file. QUIZ = answered online.
+    delivery: Literal['STANDARD', 'QUIZ'] = 'STANDARD'
+    opens_at: AwareDatetime | None = None
+    section: str = Field(default='', max_length=120)
+    paper_file_id: uuid.UUID | None = None
+    submission_file_types: list[Literal['pdf', 'word', 'powerpoint', 'excel', 'image']] = Field(default_factory=list, max_length=5)
+
+    @model_validator(mode='after')
+    def quiz_rules(self):
+        self.section = self.section.strip()
+        self.submission_file_types = sorted(set(self.submission_file_types))
+        if self.opens_at and self.due_at and self.opens_at >= self.due_at:
+            raise ValueError('The opening time must be before the closing time')
+        if self.delivery == 'QUIZ':
+            if self.due_at is None:
+                raise ValueError('Set a closing time for the quiz')
+            if self.submission_file_types:
+                raise ValueError('Online quizzes are answered on Skynet, not by file upload')
+        return self
 
 
 class ScoreInput(Input):

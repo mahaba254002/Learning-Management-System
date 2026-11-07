@@ -194,8 +194,9 @@ def register(subject_id: uuid.UUID, body: RegistrationInput, db: Session = Depen
     row = scoped(db, CourseRegistration, ctx).filter_by(subject_id=subject.id, student_id=body.student_id).first()
     from app.services.progression import assert_course
     if body.active and (not row or not row.active): assert_course(db, ctx.institution_id, body.student_id, subject)
-    if row: row.active = body.active
-    else: db.add(CourseRegistration(institution_id=ctx.institution_id, subject_id=subject.id, student_id=body.student_id, active=body.active))
+    status = 'APPROVED' if body.active else 'DROPPED'
+    if row: row.active, row.status = body.active, status
+    else: db.add(CourseRegistration(institution_id=ctx.institution_id, subject_id=subject.id, student_id=body.student_id, active=body.active, status=status))
     record_audit(db, ctx, 'course.registration_changed', subject.id, ctx.institution_id, f'{body.student_id}: {body.active}')
     commit(db)
     return dict(active=body.active)

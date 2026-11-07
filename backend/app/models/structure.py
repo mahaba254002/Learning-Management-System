@@ -110,6 +110,7 @@ STAFF_PERMISSIONS = {
     'staff_attendance.manage': 'Take and correct staff attendance',
     'students.view': 'View student records',
     'fees.manage': 'View and update student fee status',
+    'registrations.approve': 'Approve course registration choices made by students',
 }
 
 

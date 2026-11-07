@@ -13,10 +13,12 @@ class InstitutionModules(Input):
     student_portal: bool = True
     learning_materials: bool = True
     coursework: bool = True
+    online_quizzes: bool = True
     assessments: bool = True
     # Report cards and transcripts are off unless the platform admin switches them on.
     academic_reports: bool = False
     progression: bool = True
+    registration_windows: bool = True
 
     @model_validator(mode='after')
     def dependencies(self):
@@ -36,9 +38,11 @@ DEPENDENCIES = {
     'student_portal': ['student_records'],
     'learning_materials': ['course_allocation'],
     'coursework': ['student_records'],
+    'online_quizzes': ['coursework'],
     'assessments': ['coursework'],
     'academic_reports': ['assessments'],
     'progression': ['student_records'],
+    'registration_windows': ['student_records'],
 }
 
 
@@ -83,6 +87,8 @@ def path_modules(path):
     if 'attendance' in parts and 'management' not in parts:
         required.append('student_attendance')
     if 'materials' in parts: required.append('learning_materials')
+    if any(key in parts for key in ('quizzes', 'quiz-attempts')): required.extend(['coursework', 'online_quizzes'])
+    if 'course-registration' in parts or 'registration' in parts: required.append('registration_windows')
     if any(key in parts for key in ('coursework', 'assignments', 'submissions')):
         required.append('coursework')
     if any(key in parts for key in ('scores', 'results-release', 'final-grades', 'completion', 'academic-record', 'marks')):
@@ -128,6 +134,7 @@ def dashboard_link_enabled(href, modules):
         'classes': 'student_records', 'students': 'student_records', 'student-imports': 'student_records',
         'course-enrollment': 'student_records', 'student-records': 'student_records', 'fees': 'student_records', 'guardians': 'student_records', 'timetable': 'course_allocation', 'marksheets': 'assessments', 'academic-years': 'course_allocation', 'academic-structure': 'course_allocation',
         'attendance': 'student_attendance', 'materials': 'learning_materials', 'assignments': 'coursework',
+        'quizzes': 'online_quizzes', 'course-registration': 'registration_windows', 'registration': 'registration_windows',
         'coursework': 'coursework', 'scores': 'assessments', 'grades': 'assessments',
         'reports': 'academic_reports', 'academic-record': 'assessments', 'progression': 'progression',
     }.get(key)

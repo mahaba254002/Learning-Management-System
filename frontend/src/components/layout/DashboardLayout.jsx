@@ -1,5 +1,6 @@
 import { useState } from "react";
 import NavIcon from "./NavIcon";
+import NotificationBell from "./NotificationBell";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { getRoleHomePath } from "../../routes/roleRoutes";
 import logo from "../../assets/skynet-logo.png";
@@ -93,6 +94,7 @@ export default function DashboardLayout({ navItems, children, brandLabel }) {
             <NavIcon name={mobileNavOpen ? 'collapse-sidebar' : 'menu'} />
           </button>
           <span className="dashboard-topbar__brand-mobile">Skynet</span>
+          {user.institution_id && <NotificationBell />}
         </header>
 
         {mobileNavOpen && (

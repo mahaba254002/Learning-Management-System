@@ -26,8 +26,12 @@ function SubjectCoursework({ subject }) {
   async function submit(event) {
     event.preventDefault();
     const form = event.currentTarget;
-    const data = Object.fromEntries(new FormData(form));
-    const body = { ...data, period_id: data.period_id || null, strand_id: data.strand_id || null, max_score: data.max_score, published: data.published === "on", allow_late_submissions: data.allow_late_submissions === "on", due_at: data.due_at ? new Date(data.due_at).toISOString() : null };
+    const formData = new FormData(form);
+    const data = Object.fromEntries(formData);
+    const iso = value => (value ? new Date(value).toISOString() : null);
+    const body = { ...data, period_id: data.period_id || null, strand_id: data.strand_id || null, max_score: data.max_score, published: data.published === "on",
+      allow_late_submissions: data.delivery === "QUIZ" ? false : data.allow_late_submissions === "on", due_at: iso(data.due_at), opens_at: iso(data.opens_at),
+      paper_file_id: data.paper_file_id || null, submission_file_types: formData.getAll("submission_file_types"), section: (data.section || "").trim() };
     try {
       await mutation.mutateAsync({ path: editing ? `/api/teaching/coursework/${editing.id}` : `/api/teaching/subjects/${subject.id}/coursework`, method: editing ? "PUT" : "POST", body });
       setEditing(null);
@@ -42,9 +46,9 @@ function SubjectCoursework({ subject }) {
     </section>
     <section><h2 className="section-header">Assessments for {subject.name}</h2>{query.data?.length === 0 && <Empty>No assessments yet.</Empty>}
       {query.data?.map(w => <article className="teaching-panel" key={w.id}><div className="section-header"><h3>{w.title}</h3><span className={`status-badge status-badge--${w.published ? "active" : "archived"}`}>{w.published ? "Published" : "Draft"}</span></div>
-        <p className="teaching-muted">{w.kind.toLowerCase()} · {w.assessment_mode === "COMPETENCY" ? "Competency observation" : `Out of ${w.max_score}`} · {w.due_at ? `Due ${new Date(w.due_at).toLocaleString()}` : "No due date"}</p>
+        <p className="teaching-muted">{w.delivery === "QUIZ" ? "online quiz" : w.kind.toLowerCase()}{w.section ? ` · ${w.section}` : ""} · {w.assessment_mode === "COMPETENCY" ? "Competency observation" : `Out of ${w.max_score}`} · {w.due_at ? `Due ${new Date(w.due_at).toLocaleString()}` : "No due date"}</p>
         <p className="teaching-instructions">{w.instructions}</p>
-        <div className="teaching-actions"><button type="button" disabled={readOnly || subject.academic_year_status === "CLOSED"} onClick={() => { setEditing(w); mutation.reset(); }}>Edit assessment</button><Link to={`/${portal}/scores?subject=${subject.id}&assessment=${w.id}`}>View / enter scores</Link></div>
+        <div className="teaching-actions"><button type="button" disabled={readOnly || subject.academic_year_status === "CLOSED"} onClick={() => { setEditing(w); mutation.reset(); }}>Edit assessment</button>{w.delivery === "QUIZ" && <Link to={`/${portal}/quizzes/${w.id}`}>Questions, rules & results</Link>}<Link to={`/${portal}/scores?subject=${subject.id}&assessment=${w.id}`}>View / enter scores</Link></div>
       </article>)}
     </section>
   </>;

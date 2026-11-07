@@ -45,3 +45,6 @@ backend/scripts/repair_seed_accounts.py
 .venv/
 tmp/
 frontend/.wrangler/
+
+# Development file storage (STORAGE_BACKEND=local)
+backend/uploads/

@@ -7,9 +7,11 @@ export const moduleLabels = {
   student_portal: ['Student portal', 'Allow student sign-in and access to enabled student features.'],
   learning_materials: ['Learning materials', 'Publish resources and course content.'],
   coursework: ['Coursework and submissions', 'Prepare assignments and review student submissions.'],
+  online_quizzes: ['Online quizzes', 'Timed multiple-choice and true/false quizzes, marked automatically.'],
   assessments: ['Marks and outcomes', 'Record marks, competencies and approved course outcomes.'],
   academic_reports: ['Academic reports', 'Report cards, transcripts and class reports.'],
   progression: ['Student progression', 'Progression decisions and academic year promotions.'],
+  registration_windows: ['Course registration windows', 'Students choose optional units in a set period; staff approve them.'],
 };
 
 export const presetLabels = { MANAGEMENT: 'Management Only', MANAGEMENT_WITH_STUDENTS: 'Management + Student Records', FULL: 'Management + Learning' };
@@ -41,7 +43,9 @@ export function pageModules(path) {
     attendance: ['student_attendance'], materials: ['learning_materials'], coursework: ['coursework'],
     assignments: ['coursework'], scores: ['assessments'], grades: ['assessments'],
     reports: ['academic_reports'], progression: ['progression'], 'academic-record': ['assessments'],
-    subjects: ['course_allocation'],
+    subjects: ['course_allocation'], courses: ['course_allocation'],
+    quizzes: ['coursework', 'online_quizzes'], 'quiz-attempts': ['coursework', 'online_quizzes'],
+    registration: ['registration_windows'], 'course-registration': ['registration_windows'],
   }[section] || [];
   return path.startsWith('/student/') ? ['student_portal', ...required] : required;
 }

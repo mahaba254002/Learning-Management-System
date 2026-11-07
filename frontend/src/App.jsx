@@ -1,5 +1,5 @@
 import { lazy, Suspense } from "react";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useParams } from "react-router-dom";
 import NotFoundPage from "./pages/NotFoundPage";
 const LoginPage = lazy(() => import("./pages/auth/LoginPage"));
 import ProtectedRoute from "./routes/ProtectedRoute";
@@ -29,8 +29,6 @@ const InstitutionClassesPage = lazy(() => import("./pages/institution/Institutio
 const StudentCourseworkPage = lazy(() => import("./pages/student/StudentCourseworkPage"));
 const StudentLayout = lazy(() => import("./pages/student/StudentLayout"));
 const StudentDashboardPage = lazy(() => import("./pages/student/StudentDashboardPage"));
-const StudentSubjectsPage = lazy(() => import("./pages/student/StudentSubjectsPage"));
-const StudentSubjectPage = lazy(() => import("./pages/student/StudentSubjectsPage").then(module => ({ default: module.StudentSubjectPage })));
 const StudentAttendancePage = lazy(() => import("./pages/student/StudentAttendancePage"));
 const StudentProfilePage = lazy(() => import("./pages/student/StudentProfilePage"));
 const StudentAssignmentPage = lazy(() => import("./pages/student/StudentAssignmentPage"));
@@ -55,6 +53,17 @@ const GradingPage = lazy(() => import("./pages/marks/GradingPage"));
 const PlatformGradingRequestsPage = lazy(() => import("./pages/platform/PlatformGradingRequestsPage"));
 const MessagesPage = lazy(() => import("./pages/messaging/MessagesPage"));
 const PlatformMessagingPage = lazy(() => import("./pages/platform/PlatformMessagingPage"));
+const CoursesPages = () => import("./pages/elearning/CoursesPages");
+const StudentCoursesPage = lazy(() => CoursesPages().then(m => ({ default: m.StudentCoursesPage })));
+const StudentCoursePage = lazy(() => CoursesPages().then(m => ({ default: m.StudentCoursePage })));
+const TeachingCoursesPage = lazy(() => CoursesPages().then(m => ({ default: m.TeachingCoursesPage })));
+const TeachingCoursePage = lazy(() => CoursesPages().then(m => ({ default: m.TeachingCoursePage })));
+const StudentQuizPage = lazy(() => import("./pages/elearning/StudentQuizPages").then(m => ({ default: m.StudentQuizPage })));
+const QuizAttemptPage = lazy(() => import("./pages/elearning/StudentQuizPages").then(m => ({ default: m.QuizAttemptPage })));
+const QuizBuilderPage = lazy(() => import("./pages/elearning/QuizBuilderPage"));
+const StudentRegistrationPage = lazy(() => import("./pages/elearning/RegistrationPages").then(m => ({ default: m.StudentRegistrationPage })));
+const RegistrationAdminPage = lazy(() => import("./pages/elearning/RegistrationPages").then(m => ({ default: m.RegistrationAdminPage })));
+const PlatformStoragePage = lazy(() => import("./pages/platform/PlatformStoragePage"));
 const InstitutionLayout = lazy(() => import("./pages/institution/InstitutionLayout"));
 const AcademicStructurePage = lazy(() => import('./pages/institution/AcademicStructurePage'));
 const CourseRegistrationsPage = lazy(() => import('./pages/institution/CourseRegistrationsPage'));
@@ -84,6 +93,12 @@ const StudentResetPasswordPage = lazy(() => import("./pages/student/StudentReset
 const TeacherLoginPage = lazy(() => import("./pages/teacher/TeacherLoginPage"));
 const TeacherForgotPasswordPage = lazy(() => import("./pages/teacher/TeacherForgotPasswordPage"));
 const TeacherResetPasswordPage = lazy(() => import("./pages/teacher/TeacherResetPasswordPage"));
+
+// Old subject links (bookmarks, notifications) open the matching course page.
+function StudentSubjectRedirect() {
+  const { subjectId } = useParams();
+  return <Navigate to={`/student/courses/${subjectId}`} replace />;
+}
 
 function App() {
   return (
@@ -158,6 +173,10 @@ function App() {
           <Route path="coursework" element={<TeacherCourseworkPage />} />
           <Route path="materials" element={<TeacherMaterialsPage />} />
           <Route path="scores" element={<TeacherScoresPage />} />
+          <Route path="courses" element={<TeachingCoursesPage />} />
+          <Route path="courses/:subjectId" element={<TeachingCoursePage />} />
+          <Route path="quizzes/:quizId" element={<QuizBuilderPage />} />
+          <Route path="course-registration" element={<RegistrationAdminPage />} />
           <Route path="audit-logs" element={<AdminAuditPage />} />
           <Route path="settings" element={<InstitutionSettingsPage />} />
           <Route path="account" element={<AdminAccountPage />} />
@@ -186,6 +205,9 @@ function App() {
           <Route path="announcements" element={<AnnouncementsPage />} />
           <Route path="timetable" element={<MyTimetablePage />} />
           <Route path="marks" element={<MarksPage />} />
+          <Route path="courses" element={<TeachingCoursesPage />} />
+          <Route path="courses/:subjectId" element={<TeachingCoursePage />} />
+          <Route path="quizzes/:quizId" element={<QuizBuilderPage />} />
         </Route>
         <Route
           path="/student"
@@ -198,8 +220,13 @@ function App() {
           <Route index element={<Navigate to="dashboard" replace />} />
           <Route path="dashboard" element={<StudentDashboardPage />} />
           <Route path="reports" element={<AcademicDocumentsPage />} />
-          <Route path="subjects" element={<StudentSubjectsPage />} />
-          <Route path="subjects/:subjectId" element={<StudentSubjectPage />} />
+          <Route path="subjects" element={<Navigate to="/student/courses" replace />} />
+          <Route path="subjects/:subjectId" element={<StudentSubjectRedirect />} />
+          <Route path="courses" element={<StudentCoursesPage />} />
+          <Route path="courses/:subjectId" element={<StudentCoursePage />} />
+          <Route path="quizzes/:quizId" element={<StudentQuizPage />} />
+          <Route path="quiz-attempts/:attemptId" element={<QuizAttemptPage />} />
+          <Route path="registration" element={<StudentRegistrationPage />} />
           <Route path="attendance" element={<StudentAttendancePage />} />
           <Route path="assignments" element={<StudentCourseworkPage />} />
           <Route path="assignments/:assignmentId" element={<StudentAssignmentPage />} />
@@ -224,6 +251,7 @@ function App() {
           <Route path="staff-attendance" element={<StaffPermissionGate permission="staff_attendance.manage"><StaffAttendancePage /></StaffPermissionGate>} />
           <Route path="students" element={<StaffPermissionGate permission="students.view"><StudentRecordsPage /></StaffPermissionGate>} />
           <Route path="fees" element={<StaffPermissionGate permission="fees.manage"><FeeStatusPage /></StaffPermissionGate>} />
+          <Route path="course-registration" element={<StaffPermissionGate permission="registrations.approve"><RegistrationAdminPage /></StaffPermissionGate>} />
           <Route path="announcements" element={<AnnouncementsPage />} />
         </Route>
         <Route path="/teacher/login" element={<TeacherLoginPage />} />
@@ -240,6 +268,7 @@ function App() {
           <Route path="dashboard" element={<PlatformDashboardPage />} />
           <Route path="grading-requests" element={<PlatformGradingRequestsPage />} />
           <Route path="messaging" element={<PlatformMessagingPage />} />
+          <Route path="storage" element={<PlatformStoragePage />} />
           <Route path="institutions" element={<PlatformInstitutionsPage />} />
           <Route path="institutions/:institutionId" element={<PlatformInstitutionDetailPage />} />
           <Route path="billing" element={<PlatformBillingPage />} />

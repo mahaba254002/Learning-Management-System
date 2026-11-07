@@ -24,6 +24,7 @@ from app.models.pilot import AcademicPeriod, AcademicYear
 from app.models.timetable import LessonChange, TeacherUnavailability, TimetableEntry, TimetableSlot
 from app.models.records import Announcement, DisciplineRecord, Guardian
 from app.models.messaging import GuardianMessage
+from app.models.elearning import QuizAttempt, RegistrationWindow, StoredFile
 
 ALLOWED = {400, 403, 404, 405, 409, 422}
 # Public invitation links are found by their secret token, not by tenant.
@@ -76,7 +77,14 @@ def foreign_records(env):
     change = LessonChange(institution_id=other, entry_id=entry.id, lesson_date=date(2030, 1, 7), kind="CANCELLED", created_by=env["outsider"].id)
     db.add(change)
     message = GuardianMessage(institution_id=other, kind="ANNOUNCEMENT", title="Other notice", template="Hello", audience={}, created_by=env["outsider"].id)
-    db.add(message)
+    stored = StoredFile(institution_id=other, uploaded_by=env["outsider"].id, purpose="MATERIAL", subject_id=env["other_subject"].id,
+                        filename="private.pdf", content_type="application/pdf", size_bytes=10, sha256="0" * 64, storage_key=f"{other}/private.pdf")
+    now = datetime.now(timezone.utc)
+    attempt = QuizAttempt(institution_id=other, coursework_id=env["other_work"].id, student_id=env["other_student"].id, number=1,
+                          status="IN_PROGRESS", started_at=now, ends_at=now + timedelta(hours=1), plan=[], max_score=1)
+    window = RegistrationWindow(institution_id=other, title="Other window", opens_at=now - timedelta(days=1), closes_at=now + timedelta(days=1),
+                                min_units=0, max_units=3, class_ids=[])
+    db.add_all([message, stored, attempt, window])
     db.commit()
     return dict(
         class_id=env["other_cls"].id, subject_id=env["other_subject"].id, student_id=env["other_student"].id,
@@ -88,7 +96,7 @@ def foreign_records(env):
         prompt_id=prompt.id, sequence=1, transaction_id=uuid.uuid4(), secret="x" * 40,
         guardian_id=guardian.id, discipline_id=discipline.id, announcement_id=notice.id,
         period_id=period.id, slot_id=slot.id, entry_id=entry.id, unavailability_id=away.id, change_id=change.id,
-        request_id=uuid.uuid4(), message_id=message.id,
+        request_id=uuid.uuid4(), message_id=message.id, file_id=stored.id, attempt_id=attempt.id, window_id=window.id,
     )
 
 
