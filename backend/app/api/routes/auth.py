@@ -388,6 +388,7 @@ def _forgot_password(
     allowed_roles: frozenset[UserRole],
     reset_link_path: str,
 ) -> ForgotPasswordResponse:
+    limit_identity(key_prefix="forgot", identity=payload.email, max_requests=3, window_seconds=3600)
     user = db.query(User).filter(func.lower(User.email) == payload.email.strip().lower()).first()
 
     if user is not None and user.role in allowed_roles and user.status == UserStatus.ACTIVE:

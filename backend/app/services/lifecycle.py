@@ -83,12 +83,11 @@ def _tenant_tables():
 
 
 def purge_institution(db, institution):
-    """Delete everything belonging to an institution, then the institution. Returns rows removed per table."""
+    """Delete everything belonging to an institution, then the institution.
+    Returns rows removed per table and the stored file keys, which the caller deletes after committing."""
     from app.models.elearning import StoredFile
-    from app.services import storage
     tenant = institution.id
-    for key, in db.query(StoredFile.storage_key).filter(StoredFile.institution_id == tenant).all():
-        storage.delete(key)
+    file_keys = [key for (key,) in db.query(StoredFile.storage_key).filter(StoredFile.institution_id == tenant).all()]
     users = select(User.id).where(User.institution_id == tenant).scalar_subquery()
     pending = _tenant_tables()
     removed = {}
@@ -117,4 +116,4 @@ def purge_institution(db, institution):
         pending = still
     db.delete(institution)
     db.flush()
-    return removed
+    return removed, file_keys

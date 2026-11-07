@@ -3,6 +3,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "../../api/client";
 import { Field } from "../teacher/TeachingUI";
 import PasswordInput from "../../components/common/PasswordInput";
+import { SecretAnswer } from "./PlatformSecret";
 import NavIcon from "../../components/layout/NavIcon";
 import "./PlatformOperations.css";
 
@@ -32,7 +33,7 @@ export default function PlatformRestorePage() {
     <section className="operations-card"><div className="operations-card-heading"><h2>Choose backup</h2></div><div className="operations-card-body"><form className="operations-form" onSubmit={preview}><label htmlFor="restore-file">Original Skynet backup archive (.zip)</label><input id="restore-file" className="operations-file" type="file" accept=".zip,application/zip" required disabled={busy} onChange={e => { setFile(e.target.files[0] || null); setPlan(null); setNotice(""); setError(""); }} /><button className="btn btn--primary" disabled={busy || !file}>{busy ? "Working…" : "Preview restore"}</button></form></div></section>
     {plan && <section className="operations-card"><div className="operations-card-heading"><h2>Review recovery</h2></div><div className="operations-card-body"><p><strong>Destination:</strong> {plan.destination}</p><p><strong>Backup created:</strong> {new Date(plan.created_at).toLocaleString()}</p><div className="operations-warning">{plan.mode}</div>
       {Object.keys(plan.counts).length > 0 && <div className="table-wrapper" role="region" aria-label="Recovery data sets" tabIndex={0}><table className="data-table"><thead><tr><th>Data set</th><th>Records</th></tr></thead><tbody>{Object.entries(plan.counts).map(([name, count]) => <tr key={name}><td>{name.replaceAll('_', ' ')}</td><td>{count}</td></tr>)}</tbody></table></div>}
-      <form className="operations-form" onSubmit={restore}><Field label={`Type ${plan.confirmation} to confirm`} name="confirmation" required autoComplete="off" /><label htmlFor="restore-password">Your current platform administrator password</label><PasswordInput id="restore-password" name="password" required autoComplete="current-password" /><button className="btn btn--primary" disabled={busy}>{busy ? "Restoring…" : "Confirm and restore reviewed backup"}</button></form>
+      <form className="operations-form" onSubmit={restore}><Field label={`Type ${plan.confirmation} to confirm`} name="confirmation" required autoComplete="off" /><label htmlFor="restore-password">Your current platform administrator password</label><PasswordInput id="restore-password" name="password" required autoComplete="current-password" /><SecretAnswer /><button className="btn btn--primary" disabled={busy}>{busy ? "Restoring…" : "Confirm and restore reviewed backup"}</button></form>
     </div></section>}
   </div>;
 }

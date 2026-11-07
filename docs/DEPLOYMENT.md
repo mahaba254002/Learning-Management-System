@@ -83,6 +83,7 @@ Rehearse the exact upgrade from the live starting revision, not only from an emp
 | MPESA_CALLBACK_BASE_URL / MPESA_CALLBACK_SECRET | Public HTTPS API address and a random secret of at least 32 characters. The secret is part of the callback path, so it appears in access logs; rotate it if logs leak |
 | AT_USERNAME / AT_API_KEY / AT_ENVIRONMENT / AT_SENDER_ID / AT_CALLBACK_SECRET | Africa's Talking SMS for parent messages; see [PARENT_MESSAGES.md](PARENT_MESSAGES.md). Without them SMS is off and only email copies can go out |
 | STORAGE_BACKEND / R2_ACCOUNT_ID / R2_ACCESS_KEY_ID / R2_SECRET_ACCESS_KEY / R2_BUCKET | Cloudflare R2 file storage for uploads (materials, question papers, students' files); see [ELEARNING.md](ELEARNING.md). Without them uploads are off |
+| STORAGE_USER_DAILY_MB / STORAGE_SCHOOL_LIMIT_MB | Upload quotas: per person per day (default 200) and per institution in total (default 2048). See [PRODUCTION_READINESS.md](PRODUCTION_READINESS.md) |
 | MPESA_ALLOWED_IPS | Optional comma-separated Safaricom callback addresses |
 | BACKUP_SIGNING_KEY | Dedicated strong production key, retained securely alongside key-version records; needed to read old archives |
 | PG_DUMP_PATH / PG_RESTORE_PATH or PATH | Compatible PostgreSQL client binaries actually installed; Python dependencies alone do not supply them |

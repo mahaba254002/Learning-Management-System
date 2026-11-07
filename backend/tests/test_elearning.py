@@ -323,3 +323,9 @@ def test_answering_the_last_timed_question_counts_it(env):
         q = state['question']
         state = s.put(f'/api/student/quiz-attempts/{attempt_id}/answer', json=dict(question_id=q['id'], selected=right[q['prompt']])).json()
     assert float(state['score']) == 6 and not state['auto_submitted']
+
+
+def test_upload_quota_per_person_per_day(env, monkeypatch):
+    monkeypatch.setattr(settings, 'STORAGE_USER_DAILY_MB', 0)
+    response = teacher(env).post(f"/api/teaching/subjects/{env['subject'].id}/files?filename=a.pdf", content=PDF)
+    assert response.status_code == 429 and 'last day' in response.json()['detail']

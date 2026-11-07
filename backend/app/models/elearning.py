@@ -26,6 +26,8 @@ class StoredFile(UUIDPrimaryKeyMixin, TimestampMixin, TenantMixin, Base):
         CheckConstraint('size_bytes > 0 AND size_bytes <= 10485760', name='ck_stored_files_size'),
         CheckConstraint("(purpose = 'SUBMISSION') = (student_id IS NOT NULL)", name='ck_stored_files_student'),
         Index('ix_stored_files_usage', 'institution_id', 'deleted_at'),
+        Index('ix_stored_files_student', 'institution_id', 'student_id'),
+        Index('ix_stored_files_uploader', 'institution_id', 'uploaded_by', 'created_at'),
     )
     uploaded_by: Mapped[uuid.UUID] = mapped_column(PG_UUID(as_uuid=True))
     purpose: Mapped[str] = mapped_column(String(12))
@@ -115,6 +117,7 @@ class QuizAnswer(UUIDPrimaryKeyMixin, TimestampMixin, TenantMixin, Base):
         UniqueConstraint('institution_id', 'attempt_id', 'question_id'),
         ForeignKeyConstraint(['institution_id', 'attempt_id'], ['quiz_attempts.institution_id', 'quiz_attempts.id'], ondelete='CASCADE'),
         ForeignKeyConstraint(['institution_id', 'question_id'], ['quiz_questions.institution_id', 'quiz_questions.id']),
+        Index('ix_quiz_answers_question', 'institution_id', 'question_id'),
     )
     attempt_id: Mapped[uuid.UUID] = mapped_column(PG_UUID(as_uuid=True), index=True)
     question_id: Mapped[uuid.UUID] = mapped_column(PG_UUID(as_uuid=True))
@@ -129,6 +132,7 @@ class QuizExtraAttempt(UUIDPrimaryKeyMixin, TimestampMixin, TenantMixin, Base):
         ForeignKeyConstraint(['institution_id', 'coursework_id'], ['coursework.institution_id', 'coursework.id'], ondelete='CASCADE'),
         ForeignKeyConstraint(['institution_id', 'student_id'], ['students.institution_id', 'students.id']),
         ForeignKeyConstraint(['institution_id', 'granted_by'], ['users.institution_id', 'users.id']),
+        Index('ix_quiz_extra_attempts_student', 'institution_id', 'student_id'),
     )
     coursework_id: Mapped[uuid.UUID] = mapped_column(PG_UUID(as_uuid=True), index=True)
     student_id: Mapped[uuid.UUID] = mapped_column(PG_UUID(as_uuid=True))

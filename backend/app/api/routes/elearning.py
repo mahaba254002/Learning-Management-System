@@ -47,10 +47,25 @@ async def read_upload(request):
     return bytes(data)
 
 
+def check_quota(db, ctx, size):
+    from datetime import datetime, timedelta, timezone
+    mb = 1024 * 1024
+    since = datetime.now(timezone.utc) - timedelta(days=1)
+    today = db.query(func.coalesce(func.sum(StoredFile.size_bytes), 0)).filter(
+        StoredFile.institution_id == ctx.institution_id, StoredFile.uploaded_by == ctx.user_id, StoredFile.created_at >= since).scalar()
+    if today + size > storage.settings.STORAGE_USER_DAILY_MB * mb:
+        raise HTTPException(429, f'You have uploaded {storage.settings.STORAGE_USER_DAILY_MB} MB in the last day. Try again tomorrow.')
+    school = db.query(func.coalesce(func.sum(StoredFile.size_bytes), 0)).filter(
+        StoredFile.institution_id == ctx.institution_id, StoredFile.deleted_at.is_(None)).scalar()
+    if school + size > storage.settings.STORAGE_SCHOOL_LIMIT_MB * mb:
+        raise HTTPException(409, 'Your institution has used all its file space. Ask the platform administrator for more.')
+
+
 def save_file(db, ctx, data, filename, *, purpose, subject_id, student_id=None, allowed=None):
     storage.require_enabled()
     name = storage.clean_name(filename)
     content_type = storage.check_file(name, data, allowed)
+    check_quota(db, ctx, len(data))
     file_id = uuid.uuid4()
     key = f'{ctx.institution_id}/{subject_id}/{file_id}.{storage.extension(name)}'
     storage.put(key, data, content_type)

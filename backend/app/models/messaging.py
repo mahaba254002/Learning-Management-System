@@ -62,6 +62,7 @@ class MessageDelivery(UUIDPrimaryKeyMixin, TimestampMixin, TenantMixin, Base):
     __tablename__ = 'message_deliveries'
     __table_args__ = (
         UniqueConstraint('institution_id', 'message_id', 'channel', 'address', 'student_id', name='uq_message_deliveries_once'),
+        Index('ix_message_deliveries_student', 'institution_id', 'student_id'),
         ForeignKeyConstraint(['institution_id', 'message_id'], ['guardian_messages.institution_id', 'guardian_messages.id'], ondelete='CASCADE'),
         ForeignKeyConstraint(['institution_id', 'student_id'], ['students.institution_id', 'students.id']),
         CheckConstraint("channel IN ('SMS', 'EMAIL')", name='ck_message_deliveries_channel'),

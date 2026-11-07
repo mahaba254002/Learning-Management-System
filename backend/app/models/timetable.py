@@ -48,6 +48,7 @@ class TimetableEntry(UUIDPrimaryKeyMixin, TimestampMixin, TenantMixin, Base):
     """One weekly lesson: a subject offering, its teacher, a day and a lesson period."""
     __tablename__ = 'timetable_entries'
     __table_args__ = (
+        Index('ix_timetable_entries_subject', 'institution_id', 'subject_id'),
         UniqueConstraint('institution_id', 'id', name='uq_timetable_entries_tenant_id'),
         UniqueConstraint('institution_id', 'slot_id', 'weekday', 'subject_id', name='uq_timetable_entries_lesson'),
         ForeignKeyConstraint(['institution_id', 'period_id'], ['academic_periods.institution_id', 'academic_periods.id'], ondelete='CASCADE'),

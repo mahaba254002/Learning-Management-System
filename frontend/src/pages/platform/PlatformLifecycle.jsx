@@ -4,6 +4,7 @@ import { useTeachingMutation, useTeachingQuery } from "../teacher/teachingQuerie
 import { Empty, Field, MutationState, QueryState } from "../teacher/TeachingUI";
 import { shortDate } from "../elearning/format";
 import "../elearning/Elearning.css";
+import { SecretAnswer } from "./PlatformSecret";
 import "../records/Records.css";
 
 /** Terminate, reactivate and permanently delete an institution. */
@@ -12,25 +13,28 @@ export function InstitutionLifecycle({ root, institution }) {
   const [days, setDays] = useState(30);
   const [reason, setReason] = useState("");
   const [name, setName] = useState("");
+  const [answer, setAnswer] = useState("");
   const terminated = institution.status === "ARCHIVED";
   const deletable = terminated && institution.delete_after && new Date(institution.delete_after) <= new Date();
   const matches = name.trim() === institution.name;
   return <section className="teaching-panel danger-zone" aria-labelledby="lifecycle"><h2 id="lifecycle">End this institution</h2>
     <MutationState mutation={mutation} message="Saved." />
-    {!terminated ? <form className="teaching-form" onSubmit={e => { e.preventDefault(); mutation.mutate({ path: `${root}/terminate`, body: { days: Number(days), reason, confirm_name: name } }); }}>
+    {!terminated ? <form className="teaching-form" onSubmit={e => { e.preventDefault(); mutation.mutate({ path: `${root}/terminate`, body: { days: Number(days), reason, confirm_name: name, answer } }); }}>
       <p>Terminating locks everyone at this institution out straight away. Its data is kept until the deletion date, and you can reactivate it until then. Download a backup first if the school may want its records.</p>
       <Field label="Days before it can be permanently deleted" type="number" min="1" max="3650" required value={days} onChange={e => setDays(e.target.value)} />
       <Field label="Reason (kept on the audit trail)" required minLength={3} maxLength={300} value={reason} onChange={e => setReason(e.target.value)} />
       <Field label={`Type "${institution.name}" to confirm`} required value={name} onChange={e => setName(e.target.value)} />
-      <div className="teaching-actions"><button className="btn btn--danger" disabled={!matches || reason.trim().length < 3 || mutation.isPending}>Terminate institution</button></div>
+      <SecretAnswer value={answer} onChange={setAnswer} />
+      <div className="teaching-actions"><button className="btn btn--danger" disabled={!matches || reason.trim().length < 3 || !answer || mutation.isPending}>Terminate institution</button></div>
     </form> : <>
       <p>Terminated {shortDate(institution.archived_at)}. {deletable ? "The waiting period is over; it can now be permanently deleted." : `It can be permanently deleted after ${shortDate(institution.delete_after)}.`}</p>
       <div className="teaching-actions"><button type="button" className="btn" disabled={mutation.isPending} onClick={() => mutation.mutate({ path: `${root}/reactivate` })}>Reactivate</button>
         <Link to="/platform/backup">Download a backup</Link></div>
-      {deletable && <form className="teaching-form" onSubmit={e => { e.preventDefault(); mutation.mutate({ path: `${root}/permanent-delete`, body: { confirm_name: name } }); }}>
+      {deletable && <form className="teaching-form" onSubmit={e => { e.preventDefault(); mutation.mutate({ path: `${root}/permanent-delete`, body: { confirm_name: name, answer } }); }}>
         <p className="teaching-notice">Permanent deletion removes every account, record and uploaded file of this institution. It cannot be undone.</p>
         <Field label={`Type "${institution.name}" to confirm`} required value={name} onChange={e => setName(e.target.value)} />
-        <div className="teaching-actions"><button className="btn btn--danger" disabled={!matches || mutation.isPending}>Delete permanently</button></div>
+        <SecretAnswer value={answer} onChange={setAnswer} />
+        <div className="teaching-actions"><button className="btn btn--danger" disabled={!matches || !answer || mutation.isPending}>Delete permanently</button></div>
       </form>}
     </>}
   </section>;

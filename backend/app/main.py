@@ -23,6 +23,8 @@ from app.schemas.auth import UserSummary
 from app.api.routes import auth, invitations, platform, teaching, learning, contact, workspace_access, structure, billing, records, timetable, marks, messaging, elearning, registration, requests
 
 logging.basicConfig(level=logging.INFO)
+from app.core.log_redaction import install as _redact_logs  # noqa: E402
+_redact_logs()
 
 # Interactive API docs are for local development only; production hides them.
 _docs = settings.is_development

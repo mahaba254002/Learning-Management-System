@@ -28,6 +28,7 @@ from app.models.user import User, UserRole, UserStatus
 from app.schemas.academic import Input
 from app.services.audit_service import record_audit
 from app.services.elearning import notify
+from app.services import platform_secret
 
 router = APIRouter(prefix='/api', tags=['Requests and oversight'])
 institution_admin = require_role(UserRole.INSTITUTION_ADMIN)
@@ -115,7 +116,7 @@ def institution_target(db, ctx, user_id, kind):
     if user is None:
         missing()
     allowed = {UserRole.TEACHER, UserRole.STUDENT, UserRole.STAFF}
-    if kind != 'ACCOUNT_DELETION':
+    if kind == 'PASSWORD_RESET':
         allowed.add(UserRole.INSTITUTION_ADMIN)
     if user.role not in allowed or user.id == ctx.user_id:
         raise HTTPException(409, 'This request cannot be made for that account')
@@ -269,10 +270,12 @@ class TerminateInput(Input):
     days: int = Field(ge=1, le=3650)
     reason: str = Field(min_length=3, max_length=300)
     confirm_name: str = Field(max_length=255)
+    answer: str = Field(default='', max_length=200)
 
 
 class ConfirmInput(Input):
     confirm_name: str = Field(max_length=255)
+    answer: str = Field(default='', max_length=200)
 
 
 def locked_institution(db, institution_id, confirm_name=None):
@@ -294,6 +297,7 @@ def terminate(institution_id: uuid.UUID, body: TerminateInput, db: Session = Dep
     row = locked_institution(db, institution_id, body.confirm_name)
     if row.status == InstitutionStatus.ARCHIVED:
         raise HTTPException(409, 'This institution is already terminated')
+    platform_secret.check(db, ctx, body.answer, 'terminate institution')
     at = now()
     row.status, row.archived_at, row.archived_by, row.delete_after = InstitutionStatus.ARCHIVED, at, ctx.user_id, at + timedelta(days=body.days)
     tenant_users = db.query(User.id).filter(User.institution_id == row.id)
@@ -323,11 +327,16 @@ def permanent_delete(institution_id: uuid.UUID, body: ConfirmInput, db: Session 
         raise HTTPException(409, 'Terminate the institution first')
     if now() < utc(row.delete_after):
         raise HTTPException(409, f'This institution can be deleted after {utc(row.delete_after):%d %b %Y, %H:%M} UTC')
+    platform_secret.check(db, ctx, body.answer, 'delete institution')
     name, code = row.name, row.code
-    removed = purge_institution(db, row)
+    removed, file_keys = purge_institution(db, row)
     # Kept without an institution link, so the platform still knows what was deleted and by whom.
     record_audit(db, ctx, 'institution.deleted', institution_id, None, f'{name} ({code}); {sum(removed.values())} records removed')
     commit(db)
+    # Files go only once the records are gone for good.
+    from app.services import storage
+    for key in file_keys:
+        storage.delete(key)
     return dict(deleted=True, records=sum(removed.values()))
 
 
@@ -393,3 +402,40 @@ def current_term(db: Session = Depends(get_db), ctx: AuthContext = Depends(requi
     period = db.query(AcademicPeriod).filter(AcademicPeriod.institution_id == ctx.institution_id, AcademicPeriod.year_id == year.id,
                                              AcademicPeriod.start_date <= today, AcademicPeriod.end_date >= today).first()
     return dict(year=year.name, period=period.name if period else None)
+
+
+# --- The platform admin's secret question ------------------------------------------------------
+
+class SecretInput(Input):
+    password: str = Field(min_length=1, max_length=256)
+    question: str = Field(min_length=5, max_length=200)
+    answer: str = Field(min_length=3, max_length=200)
+    model_config = {"extra": "forbid", "str_strip_whitespace": False}
+
+
+@router.get('/platform/secret')
+def my_secret(db: Session = Depends(get_db), ctx: AuthContext = Depends(require_platform_admin)):
+    from app.models.platform_secret import PlatformSecret
+    row = db.get(PlatformSecret, ctx.user_id)
+    return dict(set=row is not None, question=row.question if row else None)
+
+
+@router.put('/platform/secret', dependencies=[Depends(rate_limit(max_requests=5, window_seconds=300, key_prefix='platform-secret'))])
+def set_my_secret(body: SecretInput, db: Session = Depends(get_db), ctx: AuthContext = Depends(require_platform_admin)):
+    from app.core.security import hash_password, verify_password
+    from app.models.platform_secret import PlatformSecret
+    user = db.get(User, ctx.user_id)
+    if not verify_password(body.password, user.password_hash):
+        raise HTTPException(403, 'Your password is not correct')
+    answer = platform_secret.normalise(body.answer)
+    if len(answer) < 3 or answer in platform_secret.normalise(body.question):
+        raise HTTPException(422, 'Use an answer of at least 3 characters that does not appear in the question')
+    row = db.get(PlatformSecret, ctx.user_id)
+    if row is None:
+        row = PlatformSecret(user_id=ctx.user_id)
+        db.add(row)
+    row.question, row.answer_hash = body.question.strip(), hash_password(answer)
+    row.failed_attempts, row.locked_until = 0, None
+    record_audit(db, ctx, 'platform.secret_set', ctx.user_id, None)
+    commit(db)
+    return dict(set=True, question=row.question)

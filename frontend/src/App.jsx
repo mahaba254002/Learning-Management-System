@@ -65,6 +65,7 @@ const StudentRegistrationPage = lazy(() => import("./pages/elearning/Registratio
 const RegistrationAdminPage = lazy(() => import("./pages/elearning/RegistrationPages").then(m => ({ default: m.RegistrationAdminPage })));
 const InstitutionRequestsPage = lazy(() => import("./pages/requests/RequestPages").then(m => ({ default: m.InstitutionRequestsPage })));
 const PlatformRequestsPage = lazy(() => import("./pages/requests/RequestPages").then(m => ({ default: m.PlatformRequestsPage })));
+const PlatformSecretSettings = lazy(() => import("./pages/platform/PlatformSecret").then(m => ({ default: m.PlatformSecretSettings })));
 const PlatformStoragePage = lazy(() => import("./pages/platform/PlatformStoragePage"));
 const InstitutionLayout = lazy(() => import("./pages/institution/InstitutionLayout"));
 const AcademicStructurePage = lazy(() => import('./pages/institution/AcademicStructurePage'));
@@ -284,7 +285,7 @@ function App() {
           <Route path="usage" element={<PlatformUsagePage />} />
           <Route path="revenue" element={<Navigate to="/platform/usage" replace />} />
           <Route path="audit-logs" element={<AdminAuditPage platform />} />
-          <Route path="settings" element={<AdminAccountPage />} />
+          <Route path="settings" element={<><AdminAccountPage /><PlatformSecretSettings /></>} />
         </Route>
         <Route path="*" element={<NotFoundPage />} />
       </Routes>

@@ -48,3 +48,6 @@ frontend/.wrangler/
 
 # Development file storage (STORAGE_BACKEND=local)
 backend/uploads/
+
+# Private operational files (seeded logins)
+private/

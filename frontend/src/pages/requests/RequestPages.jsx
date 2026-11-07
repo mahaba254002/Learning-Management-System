@@ -41,7 +41,8 @@ function RequestCard({ r, children }) {
 function AccountPicker({ value, onChange, kind }) {
   const [search, setSearch] = useState("");
   const query = useTeachingQuery(search.trim().length >= 2 ? `/api/institution/users?${new URLSearchParams({ search: search.trim(), limit: 10 })}` : null);
-  const roles = kind === "ACCOUNT_DELETION" ? ["TEACHER", "STUDENT", "STAFF"] : ["TEACHER", "STUDENT", "STAFF", "INSTITUTION_ADMIN"];
+  // Another admin can only be helped with a reset link; changing their email could hand over their account.
+  const roles = kind === "PASSWORD_RESET" ? ["TEACHER", "STUDENT", "STAFF", "INSTITUTION_ADMIN"] : ["TEACHER", "STUDENT", "STAFF"];
   const options = (query.data?.items || []).filter(u => roles.includes(u.role));
   return <div className="form-field">
     <Field label="Find the account (name, username or email)" type="search" value={search} onChange={e => { setSearch(e.target.value); onChange(null); }} />

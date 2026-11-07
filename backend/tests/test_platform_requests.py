@@ -157,3 +157,41 @@ def test_current_term_for_the_top_bar(env):
     db.add(AcademicPeriod(institution_id=tenant, year_id=year.id, name='Term 3', start_date=today - timedelta(days=5), end_date=today + timedelta(days=50)))
     db.commit()
     assert env['as_user'](env['teacher']).get('/api/institution/current-term').json() == dict(year='2026', period='Term 3')
+
+
+@pytest.mark.real_secret
+def test_destructive_and_export_actions_need_the_secret_answer(env):
+    from app.core.security import hash_password
+    p_user = platform(env)
+    p_user.password_hash = hash_password('Owner-pass-2026')
+    env['db'].commit()
+    p = env['as_user'](p_user)
+    tenant = env['institutions'][1].id
+    terminate = dict(days=30, reason='Contract ended', confirm_name='School 1')
+    assert p.post(f'/api/platform/institutions/{tenant}/terminate', json=terminate).status_code == 409  # no question set yet
+    assert p.post('/api/platform/backups/institution', json=dict(institution_id=str(tenant), groups=['people'])).status_code == 409
+    assert p.put('/api/platform/secret', json=dict(password='wrong', question='First school I taught at?', answer='Kakamega')).status_code == 403
+    assert p.put('/api/platform/secret', json=dict(password='Owner-pass-2026', question='Kakamega?', answer='kakamega')).status_code == 422
+    saved = p.put('/api/platform/secret', json=dict(password='Owner-pass-2026', question='First school I taught at?', answer='  Kakamega  Boys '))
+    assert saved.status_code == 200 and p.get('/api/platform/secret').json() == dict(set=True, question='First school I taught at?')
+    from app.models.platform_secret import PlatformSecret
+    assert 'Kakamega' not in env['db'].get(PlatformSecret, p_user.id).answer_hash
+    assert p.post(f'/api/platform/institutions/{tenant}/terminate', json=dict(terminate, answer='Nairobi')).status_code == 403
+    # Case and spacing do not matter.
+    assert p.post(f'/api/platform/institutions/{tenant}/terminate', json=dict(terminate, answer='kakamega boys')).status_code == 200
+    assert p.post('/api/platform/backups/platform', json=dict(answer='wrong')).status_code == 403
+    for _ in range(4):
+        p.post('/api/platform/backups/platform', json=dict(answer='wrong'))
+    # Five wrong answers lock the actions, even with the right answer.
+    assert p.post('/api/platform/backups/institution', json=dict(institution_id=str(tenant), groups=['people'], answer='kakamega boys')).status_code == 423
+
+
+def test_recovery_cannot_target_another_admin(env):
+    from app.models.user import UserRole
+    db = env['db']
+    peer = User(institution_id=env['institutions'][0].id, username='peeradmin', first_name='Peer', last_name='Admin', email='peer@example.test',
+                role=UserRole.INSTITUTION_ADMIN, password_hash='x', must_change_password=False)
+    db.add(peer); db.commit()
+    c = admin(env)
+    assert c.post('/api/institution/requests', json=dict(kind='ACCOUNT_RECOVERY', target_user_id=str(peer.id), changes=dict(email='mine@example.test'))).status_code == 409
+    assert c.post('/api/institution/requests', json=dict(kind='PASSWORD_RESET', target_user_id=str(peer.id))).status_code == 201

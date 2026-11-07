@@ -13,6 +13,7 @@ from app.core.config import settings
 from app.core.deps import AuthContext, require_platform_admin
 from app.core.rate_limit import rate_limit
 from app.core.security import decode_token, verify_password
+from app.services import platform_secret
 from app.db.session import get_db
 from app.models.user import User
 from app.models.institution import Institution
@@ -34,12 +35,18 @@ class BackupFileResponse(FileResponse):
 class ExportInput(Input):
     institution_id: uuid.UUID
     groups: list[str] = Field(min_length=1, max_length=5)
+    answer: str = Field(default='', max_length=200)
+
+
+class AnswerInput(Input):
+    answer: str = Field(default='', max_length=200)
 
 
 class AuthorizeInput(Input):
     plan_token: str = Field(max_length=10000)
     password: str = Field(min_length=1, max_length=1024)
     confirmation: str = Field(max_length=100)
+    answer: str = Field(default='', max_length=200)
     # Password whitespace is significant.
     model_config = {"extra": "forbid", "str_strip_whitespace": False}
 
@@ -73,6 +80,7 @@ def download(raw, filename):
 
 @router.post("/institution", dependencies=[Depends(rate_limit(max_requests=5, window_seconds=300, key_prefix="backup-export"))])
 def institution_backup(body: ExportInput, db: Session = Depends(get_db), ctx: AuthContext = Depends(require_platform_admin)):
+    platform_secret.check(db, ctx, body.answer, 'export institution')
     raw = backups.export_institution(db, body.institution_id, body.groups)
     record_audit(db, ctx, "backup.institution_exported", body.institution_id, body.institution_id, ", ".join(sorted(set(body.groups))))
     db.commit()
@@ -80,7 +88,8 @@ def institution_backup(body: ExportInput, db: Session = Depends(get_db), ctx: Au
 
 
 @router.post("/platform", dependencies=[Depends(rate_limit(max_requests=2, window_seconds=300, key_prefix="backup-full"))])
-def platform_backup(db: Session = Depends(get_db), ctx: AuthContext = Depends(require_platform_admin)):
+def platform_backup(body: AnswerInput | None = None, db: Session = Depends(get_db), ctx: AuthContext = Depends(require_platform_admin)):
+    platform_secret.check(db, ctx, body.answer if body else '', 'full backup')
     path = backups.full_backup()
     try:
         record_audit(db, ctx, "backup.platform_exported", "platform", detail="Signed PostgreSQL snapshot generated")
@@ -153,6 +162,7 @@ def authorize_restore(body: AuthorizeInput, db: Session = Depends(get_db), ctx: 
     actor = db.get(User, ctx.user_id)
     if not verify_password(body.password, actor.password_hash): raise HTTPException(401, "The current administrator password is incorrect.")
     if body.confirmation != plan["confirmation"]: raise HTTPException(422, "The restore confirmation does not match.")
+    platform_secret.check(db, ctx, body.answer, 'restore backup')
     return {"restore_token": signed_token(plan, ctx.user_id, "restore-execute", minutes=10)}
 
 

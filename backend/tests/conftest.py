@@ -22,3 +22,17 @@ def reports_enabled():
     event.listen(Institution, 'before_insert', enable)
     yield
     event.remove(Institution, 'before_insert', enable)
+
+
+@pytest.fixture(autouse=True)
+def platform_secret_passes(request, monkeypatch):
+    """Most tests are about what an action does, not the secret question in front of it.
+    Tests marked `real_secret` exercise the question itself."""
+    if request.node.get_closest_marker('real_secret'):
+        return
+    from app.services import platform_secret
+    monkeypatch.setattr(platform_secret, 'check', lambda db, ctx, answer, action: None)
+
+
+def pytest_configure(config):
+    config.addinivalue_line('markers', 'real_secret: run the platform secret question for real')

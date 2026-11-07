@@ -63,6 +63,9 @@ class Settings(BaseSettings):
     R2_ACCESS_KEY_ID: str = ""
     R2_SECRET_ACCESS_KEY: str = ""
     R2_BUCKET: str = ""
+    # Upload quotas, so one person or school cannot fill the shared storage.
+    STORAGE_USER_DAILY_MB: int = 200
+    STORAGE_SCHOOL_LIMIT_MB: int = 2048
 
     @model_validator(mode="after")
     def _fail_closed(self):
