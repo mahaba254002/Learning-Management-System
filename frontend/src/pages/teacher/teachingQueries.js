@@ -8,7 +8,6 @@ export function useTeachingQuery(path, options = {}) {
     queryKey: ["teaching", user.id, path],
     queryFn: () => apiRequest(path),
     enabled: Boolean(path),
-    retry: false,
     ...options,
   });
 }

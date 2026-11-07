@@ -53,7 +53,7 @@ function Composer({ overview, row, onDone }) {
   const [template, setTemplate] = useState(row?.template || STARTERS.FEES);
   const [audience, setAudience] = useState(row?.audience || { scope: "SCHOOL", class_id: null, student_ids: [], period_id: overview.periods[0]?.id || null, exam: "", fee_statuses: ["PARTIAL", "UNPAID"], all_guardians: false });
   const set = (key, value) => setAudience(old => ({ ...old, [key]: value }));
-  const sheet = useTeachingQuery(kind === "RESULTS" && audience.class_id && audience.period_id ? `/api/marks/classes/${audience.class_id}/marksheet?period_id=${audience.period_id}` : null, { retry: false });
+  const sheet = useTeachingQuery(kind === "RESULTS" && audience.class_id && audience.period_id ? `/api/marks/classes/${audience.class_id}/marksheet?period_id=${audience.period_id}` : null);
   function changeKind(next) {
     setKind(next);
     if (!template.trim() || Object.values(STARTERS).includes(template)) setTemplate(STARTERS[next]);

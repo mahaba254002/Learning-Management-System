@@ -8,7 +8,7 @@ import "./Timetable.css";
 
 function ClassTimetable({ classes }) {
   const [classId, setClassId] = useState(classes[0]?.id || "");
-  const query = useTeachingQuery(classId ? `/api/timetable/classes/${classId}` : null, { retry: false });
+  const query = useTeachingQuery(classId ? `/api/timetable/classes/${classId}` : null);
   return <section className="teaching-panel" aria-labelledby="class-timetable"><h2 id="class-timetable">Class timetable{query.data ? ` · ${query.data.period_name}` : ""}</h2>
     {classes.length > 1 && <Field label="Class" value={classId} onChange={e => setClassId(e.target.value)}>{classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</Field>}
     {query.isError ? <Empty>No timetable has been published for this class yet.</Empty> : <QueryState query={query} />}

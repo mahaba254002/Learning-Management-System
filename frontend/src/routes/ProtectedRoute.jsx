@@ -1,4 +1,5 @@
 import { Navigate, useLocation } from "react-router-dom";
+import ConnectionScreen from "../components/common/ConnectionScreen";
 import { useAuth } from "../context/useAuth";
 import { getProtectedRouteRedirect } from "./roleRoutes";
 
@@ -9,15 +10,14 @@ import { getProtectedRouteRedirect } from "./roleRoutes";
  * just not authorized for this specific page).
  */
 export default function ProtectedRoute({ children, allowedRoles }) {
-  const { isLoading, user, workspace } = useAuth();
-  const { pathname } = useLocation();
+  const { isLoading, user, workspace, connection } = useAuth();
+  const { pathname, search } = useLocation();
 
-  if (isLoading) {
-    return <p style={{ padding: "var(--space-8)" }}>Loading...</p>;
-  }
+  if (isLoading || connection === "unreachable") return <ConnectionScreen />;
 
   const redirect = getProtectedRouteRedirect(user, allowedRoles, pathname, Boolean(workspace));
-  if (redirect) return <Navigate to={redirect} replace />;
+  // Signed-out visitors come back to the page they asked for after signing in.
+  if (redirect) return <Navigate to={redirect} replace state={!user ? { from: pathname + search } : undefined} />;
 
   return children;
 }

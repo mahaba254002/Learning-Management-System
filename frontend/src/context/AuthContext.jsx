@@ -1,5 +1,6 @@
 import { createContext, useEffect, useState, useCallback, useRef } from "react";
 import { apiRequest, setWorkspaceAccess } from "../api/client";
+import { isTemporary, retryDelay, MAX_RETRIES } from "../api/errors";
 import { useQueryClient } from '@tanstack/react-query';
 import SessionRecovery from '../components/common/SessionRecovery';
 
@@ -10,6 +11,9 @@ export function AuthProvider({ children }) {
   const queryClient = useQueryClient();
   const [user, setUser] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  // "waking" while the API is starting up; "unreachable" if it never answered.
+  const [connection, setConnection] = useState("ok");
+  const [attempt, setAttempt] = useState(0);
   const [workspace, setWorkspace] = useState(null);
   const [isWorkspaceChanging, setIsWorkspaceChanging] = useState(false);
   const workspaceTransition = useRef(false);
@@ -26,14 +30,21 @@ export function AuthProvider({ children }) {
     let isMounted = true;
 
     async function check() {
-      try {
-        const data = await apiRequest("/api/me");
-        if (isMounted) { setUser(data); setActor(data); }
-      } catch {
-        if (isMounted) setUser(null);
-      } finally {
-        if (isMounted) setIsLoading(false);
+      setIsLoading(true); setConnection("ok");
+      for (let tries = 0; ; tries++) {
+        try {
+          const data = await apiRequest("/api/me");
+          if (isMounted) { setUser(data); setActor(data); setConnection("ok"); }
+          break;
+        } catch (error) {
+          if (!isMounted) return;
+          if (!isTemporary(error)) { setUser(null); setConnection("ok"); break; }
+          if (tries >= MAX_RETRIES) { setConnection("unreachable"); break; }
+          setConnection("waking");
+          await new Promise(resolve => setTimeout(resolve, retryDelay(tries)));
+        }
       }
+      if (isMounted) setIsLoading(false);
     }
 
     check();
@@ -41,7 +52,7 @@ export function AuthProvider({ children }) {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [attempt]);
 
   // loginPath lets callers choose the staff or student door while sharing
   // this one method — the actual portal enforcement happens server-side
@@ -133,6 +144,8 @@ export function AuthProvider({ children }) {
   const value = {
     user,
     isLoading,
+    connection,
+    retryConnection: () => setAttempt(n => n + 1),
     isAuthenticated: user !== null,
     login,
     logout,

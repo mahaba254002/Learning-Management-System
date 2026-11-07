@@ -40,7 +40,7 @@ export function LessonItem({ lesson, teacher }) {
 export function TodayLessons() {
   const { user } = useAuth();
   const today = kenyaToday();
-  const query = useTeachingQuery(`/api/timetable/me?start=${today}&days=1`, { retry: false });
+  const query = useTeachingQuery(`/api/timetable/me?start=${today}&days=1`);
   const lessons = query.data?.lessons || [];
   if (!lessons.length) return null;
   const base = user.role === "TEACHER" ? "/teacher" : "/student";

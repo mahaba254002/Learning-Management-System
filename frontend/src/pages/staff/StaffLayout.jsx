@@ -1,7 +1,7 @@
 import { Link, Outlet } from "react-router-dom";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import { STAFF_PAGES, useStaffProfile } from "./staffPages";
-import { PageHeading, QueryState } from "../teacher/TeachingUI";
+import { AccessDenied, PageHeading, QueryState } from "../teacher/TeachingUI";
 import "../teacher/TeachingWorkspace.css";
 
 export default function StaffLayout() {
@@ -27,6 +27,6 @@ export function StaffDashboardPage() {
 export function RequirePermission({ permission, children }) {
   const profile = useStaffProfile();
   if (!profile.data) return <QueryState query={profile} />;
-  if (!profile.data.permissions.includes(permission)) return <p className="form-error" role="alert">You do not have access to this page.</p>;
+  if (!profile.data.permissions.includes(permission)) return <AccessDenied text="Your administrator has not given you access to this page." />;
   return children;
 }

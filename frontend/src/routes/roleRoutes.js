@@ -15,6 +15,14 @@ export function getRoleHomePath(role) {
   return ROLE_HOME_PATH[role] || "/";
 }
 
+/** After sign-in, go back to the page asked for, but only inside the person's own portal. */
+export function returnPath(from, role) {
+  const home = getRoleHomePath(role);
+  const portal = home.split("/").slice(0, 2).join("/") + "/";
+  if (typeof from === "string" && from.startsWith(portal) && !from.startsWith("//") && !from.includes("change-password")) return from;
+  return home;
+}
+
 export function getRoleLoginPath(role) {
   if (role === "TEACHER" || role === "STAFF") return "/teacher/login";
   if (role === "STUDENT") return "/student/login";

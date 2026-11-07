@@ -83,7 +83,9 @@ export async function apiRequest(path, { method = "GET", body, rawBody, response
     });
   } catch (error) {
     if (!(error instanceof TypeError)) throw error;
-    throw new ApiError(0, 'Unable to connect. Check your connection and try again. Your changes have not been confirmed.');
+    throw new ApiError(0, SAFE_METHODS.has(method)
+      ? "Can't reach Skynet. Check your internet connection and try again."
+      : "Can't reach Skynet, so your change may not have been saved. Check your internet connection and try again.");
   }
 
   // The delegated token has its own lifetime. Renewing the owner's session

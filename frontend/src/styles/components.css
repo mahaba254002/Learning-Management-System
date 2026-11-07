@@ -4,3 +4,17 @@
 .btn { display: inline-block; padding: 12px 22px; border: 1px solid transparent; border-radius: 4px; font: 500 14px var(--font-body); text-decoration: none; cursor: pointer; }
 .btn--primary { background: var(--color-accent); color: var(--color-white); }
 .btn--primary:hover { background: var(--color-accent-hover); }
+
+/* Loading, error and access messages shared by every page. */
+.state-message { max-width: 720px; padding: 16px 20px; margin: 0 0 16px; border: 1px solid #e4e4e7; border-left: 3px solid #a1a1aa; border-radius: 8px; background: #fff; color: #27272a; line-height: 1.5; overflow-wrap: anywhere; }
+.state-message strong { display: block; font-weight: 600; margin-bottom: 4px; }
+.state-message p { margin: 0; }
+p.state-message strong { display: inline; }
+.state-message--offline, .state-message--unavailable { border-left-color: #c48a1c; }
+.state-message--server, .state-message--other, .state-message--session { border-left-color: #c2413b; }
+.state-message--denied, .state-message--feature, .state-message--missing { border-left-color: #52525b; }
+.state-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.connection-screen { min-height: 60vh; display: grid; place-content: center; gap: 12px; padding: 32px 16px; text-align: center; color: #3f3f46; }
+.connection-screen h1 { margin: 0; font-size: 22px; font-weight: 500; color: #18181b; }
+.connection-screen p { margin: 0; max-width: 32rem; }
+.connection-screen .btn { justify-self: center; }

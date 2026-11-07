@@ -6,7 +6,7 @@ import { useAuth } from "../../context/useAuth";
 import { ApiError } from "../../api/client";
 import { loginSchema } from "./loginSchema";
 import { studentLoginSchema } from "../student/studentLoginSchema";
-import { getRoleHomePath, getRoleChangePasswordPath } from "../../routes/roleRoutes";
+import { getRoleChangePasswordPath, returnPath } from "../../routes/roleRoutes";
 import PasswordInput from "../../components/common/PasswordInput";
 import MaterialIcon from '../../components/common/MaterialIcon';
 import ProductEnquiryDialog from "../../components/common/ProductEnquiryDialog";
@@ -32,7 +32,7 @@ export default function LoginPage({ student = false }) {
     setServerError(null);
     try {
       const result = await login(values.email, values.password, `/api/auth${prefix}/login`, values.remember_me);
-      navigate(result.must_change_password ? getRoleChangePasswordPath(result.user.role) : getRoleHomePath(result.user.role), { replace: true });
+      navigate(result.must_change_password ? getRoleChangePasswordPath(result.user.role) : returnPath(state?.from, result.user.role), { replace: true });
     } catch (err) {
       setServerError(err instanceof ApiError
         ? err.status === 429 ? "Too many attempts. Please wait a few minutes and try again."

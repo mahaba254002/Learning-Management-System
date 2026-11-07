@@ -18,9 +18,9 @@ export default function DashboardLayout({ navItems, children, brandLabel }) {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
   const [returnError, setReturnError] = useState("");
-  const terminology = useQuery({ queryKey: ["teaching", user.id, "/api/institution/learning-settings"], queryFn: () => apiRequest("/api/institution/learning-settings"), enabled: Boolean(user.institution_id), retry: false });
+  const terminology = useQuery({ queryKey: ["teaching", user.id, "/api/institution/learning-settings"], queryFn: () => apiRequest("/api/institution/learning-settings"), enabled: Boolean(user.institution_id) });
   const labels = terminology.data;
-  const modules = useQuery({ queryKey: ["teaching", user.id, "/api/institution/modules"], queryFn: () => apiRequest("/api/institution/modules"), enabled: Boolean(user.institution_id), refetchInterval: 30000, retry: false });
+  const modules = useQuery({ queryKey: ["teaching", user.id, "/api/institution/modules"], queryFn: () => apiRequest("/api/institution/modules"), enabled: Boolean(user.institution_id), refetchInterval: 30000 });
   const plural = label => `${label}${label.endsWith("s") ? "es" : "s"}`;
   const navigationLabel = label => labels ? label.replace(/students/gi, plural(labels.student_label)).replace(/teachers/gi, plural(labels.teacher_label)).replace(/classes/gi, plural(labels.class_label)).replace(/subjects/gi, plural(labels.subject_label)) : label;
 

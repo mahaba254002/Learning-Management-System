@@ -127,7 +127,7 @@ test('connection failure is actionable and never replays a submission', async ()
   let calls = 0;
   globalThis.fetch = async () => { calls++; throw new TypeError('Failed to fetch'); };
   try {
-    await assert.rejects(apiRequest('/api/test/save', { method: 'POST', body: {} }), error => error.status === 0 && error.message.includes('not been confirmed'));
+    await assert.rejects(apiRequest('/api/test/save', { method: 'POST', body: {} }), error => error.status === 0 && error.message.includes('may not have been saved'));
     assert.equal(calls, 1);
   } finally { globalThis.fetch = oldFetch; globalThis.document = oldDocument; }
 });
