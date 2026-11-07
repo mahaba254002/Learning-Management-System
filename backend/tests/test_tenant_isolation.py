@@ -6,7 +6,8 @@ to the second institution, and staff of the first institution make the call.
 Any successful (2xx) response or server error fails the test."""
 import re
 import uuid
-from datetime import date, datetime, timedelta, timezone
+from app.models.subscription import MpesaStkRequest
+from datetime import date, datetime, time, timedelta, timezone
 from decimal import Decimal
 
 import pytest
@@ -19,7 +20,9 @@ from app.models.invitation import Invitation, InvitationRole
 from app.models.learning import CourseMaterial
 from app.models.management import StaffMember
 from app.models.structure import AssessmentScale, CurriculumStrand, OfferingTeacher
-from app.models.pilot import AcademicYear
+from app.models.pilot import AcademicPeriod, AcademicYear
+from app.models.timetable import LessonChange, TeacherUnavailability, TimetableEntry, TimetableSlot
+from app.models.records import Announcement, DisciplineRecord, Guardian
 
 ALLOWED = {400, 403, 404, 405, 409, 422}
 # Public invitation links are found by their secret token, not by tenant.
@@ -52,7 +55,25 @@ def foreign_records(env):
     invitation = Invitation(institution_id=other, invited_role=InvitationRole.TEACHER, email="invitee@other.test",
                             invite_token=uuid.uuid4().hex, invited_by=env["outsider"].id,
                             expires_at=datetime.now(timezone.utc) + timedelta(days=3))
-    db.add_all([allocation, invitation, strand, scale])
+    prompt = MpesaStkRequest(institution_id=other, requested_by=env["outsider"].id, phone="254712345678", amount=100,
+                             checkout_request_id="ws_CO_other")
+    guardian = Guardian(institution_id=other, full_name="Other parent", phone="+254700000999")
+    discipline = DisciplineRecord(institution_id=other, student_id=env["other_student"].id, occurred_on=date.today(),
+                                  category="Lateness", description="Other school record", recorded_by=env["outsider"].id)
+    notice = Announcement(institution_id=other, title="Other notice", body="Private", audience="EVERYONE", created_by=env["outsider"].id)
+    db.add_all([allocation, invitation, strand, scale, prompt, guardian, discipline, notice])
+    db.flush()
+    period = AcademicPeriod(institution_id=other, year_id=year.id, name="Other term", start_date=date(2030, 1, 1), end_date=date(2030, 4, 1))
+    db.add(period); db.flush()
+    slot = TimetableSlot(institution_id=other, period_id=period.id, label="Lesson 1", start_time=time(8), end_time=time(8, 40))
+    db.add(slot); db.flush()
+    entry = TimetableEntry(institution_id=other, period_id=period.id, slot_id=slot.id, weekday=1, subject_id=env["other_subject"].id,
+                           class_id=env["other_cls"].id, teacher_id=env["outsider"].id)
+    away = TeacherUnavailability(institution_id=other, period_id=period.id, teacher_id=env["outsider"].id, weekday=2,
+                                 start_time=time(8), end_time=time(9))
+    db.add_all([entry, away]); db.flush()
+    change = LessonChange(institution_id=other, entry_id=entry.id, lesson_date=date(2030, 1, 7), kind="CANCELLED", created_by=env["outsider"].id)
+    db.add(change)
     db.commit()
     return dict(
         class_id=env["other_cls"].id, subject_id=env["other_subject"].id, student_id=env["other_student"].id,
@@ -61,6 +82,10 @@ def foreign_records(env):
         course_id=course.id, staff_id=staff.id, allocation_id=allocation.id, year_id=year.id,
         material_id=material.id, invitation_id=invitation.id, document_id=uuid.uuid4(),
         kind="departments", token=invitation.invite_token, strand_id=strand.id, scale_id=scale.id,
+        prompt_id=prompt.id, sequence=1, transaction_id=uuid.uuid4(), secret="x" * 40,
+        guardian_id=guardian.id, discipline_id=discipline.id, announcement_id=notice.id,
+        period_id=period.id, slot_id=slot.id, entry_id=entry.id, unavailability_id=away.id, change_id=change.id,
+        request_id=uuid.uuid4(),
     )
 
 

@@ -8,12 +8,14 @@ import { useAcademicNavigation } from '../../hooks/useAcademicNavigation';
 const navItems = [
   { label: "Dashboard", path: "/student/dashboard" },
   { label: "Report cards & transcripts", path: "/student/reports" },
+  { label: "Timetable", path: "/student/timetable" },
   { label: "My subjects", path: "/student/subjects" },
   { label: "Assignments", path: "/student/assignments" },
   { label: "Attendance", path: "/student/attendance" },
   { label: "Grades & feedback", path: "/student/grades" },
   { label: "Academic record", path: "/student/academic-record" },
   { label: "My progression", path: "/student/progression" },
+  { label: "Announcements", path: "/student/announcements" },
   { label: "My profile", path: "/student/profile" },
 ];
 

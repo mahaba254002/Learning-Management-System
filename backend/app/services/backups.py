@@ -39,13 +39,15 @@ from app.models.final_grade import FinalGrade
 from app.models.progression import Prerequisite, ProgressionDecision
 from app.models.management import StaffMember, StaffAttendance
 from app.models.structure import CurriculumStrand, InstitutionLevel, OfferingTeacher
+from app.models.records import Announcement, DisciplineRecord, FeeStatus, Guardian, StudentGuardian
+from app.models.timetable import LessonChange, TeacherUnavailability, TimetableEntry, TimetableSlot, TimetableTerm
 
 MAX_ARCHIVE = 512 * 1024 * 1024
 MAX_INSTITUTION = 50 * 1024 * 1024
-GROUPS = {"people": [User, Student, StaffMember], "academics": [InstitutionLevel, Department, Programme, StudyLevel, CatalogueUnit, CurriculumStrand, Prerequisite, AcademicYear, AcademicPeriod, AcademicClass, Subject, OfferingTeacher, Enrollment, CourseRegistration, CourseCompletion, ProgressionDecision],
+GROUPS = {"people": [User, Student, StaffMember, Guardian, StudentGuardian, DisciplineRecord], "academics": [InstitutionLevel, Department, Programme, StudyLevel, CatalogueUnit, CurriculumStrand, Prerequisite, AcademicYear, AcademicPeriod, AcademicClass, Subject, OfferingTeacher, Enrollment, CourseRegistration, CourseCompletion, ProgressionDecision, FeeStatus, Announcement, TimetableTerm, TimetableSlot, TimetableEntry, TeacherUnavailability, LessonChange],
           "learning": [Coursework, CourseMaterial, Score, Submission, FinalGrade, AcademicDocument], "attendance": [Attendance, StaffAttendance],
           "billing": [Subscription, SubscriptionPayment, BillingNotice]}
-ORDER = [User, Student, Department, StaffMember, InstitutionLevel, Programme, StudyLevel, CatalogueUnit, CurriculumStrand, StaffAttendance, Prerequisite, AcademicYear, AcademicPeriod, AcademicClass, Subject, OfferingTeacher, Enrollment, CourseRegistration, CourseCompletion, ProgressionDecision, Coursework, CourseMaterial,
+ORDER = [User, Student, Guardian, StudentGuardian, DisciplineRecord, Department, StaffMember, InstitutionLevel, Programme, StudyLevel, CatalogueUnit, CurriculumStrand, StaffAttendance, Prerequisite, AcademicYear, AcademicPeriod, AcademicClass, Subject, OfferingTeacher, Enrollment, CourseRegistration, CourseCompletion, ProgressionDecision, FeeStatus, Announcement, TimetableTerm, TimetableSlot, TimetableEntry, TeacherUnavailability, LessonChange, Coursework, CourseMaterial,
          Score, Submission, FinalGrade, AcademicDocument, Attendance, Subscription, SubscriptionPayment, BillingNotice]
 MODELS = {model.__tablename__: model for model in ORDER}
 # Tables that older backups contain. Teachers become staff records on restore;
@@ -178,8 +180,13 @@ def export_institution(db, institution_id, groups):
                            groups=groups, counts={key: len(rows) for key, rows in tables.items()})
 
 
+# Columns older backups contain that no longer exist; they are dropped on restore.
+RETIRED_COLUMNS = {"institution_subscriptions": {"grace_days"}}
+
+
 def convert(model, raw):
     columns = {column.name: column for column in model.__table__.columns}
+    raw = {name: value for name, value in raw.items() if name not in RETIRED_COLUMNS.get(model.__tablename__, ())}
     if set(raw) - columns.keys(): raise ValueError("Unsupported columns")
     values = {}
     for name, value in raw.items():

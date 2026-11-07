@@ -109,6 +109,7 @@ STAFF_PERMISSIONS = {
     'staff.view': 'View the staff directory',
     'staff_attendance.manage': 'Take and correct staff attendance',
     'students.view': 'View student records',
+    'fees.manage': 'View and update student fee status',
 }
 
 

@@ -52,7 +52,9 @@ def edit_body(record, **changes):
 
 def test_presets_defaults_configuration_permissions_and_conflict(env):
     client = env['as_user'](env['admin'])
-    assert all(client.get('/api/institution/modules').json()['modules'].values())
+    # Everything is on by default except report cards, which the platform admin switches on.
+    modules = client.get('/api/institution/modules').json()['modules']
+    assert modules.pop('academic_reports') is False and all(modules.values())
     owner = platform(env)
     root = f"/api/platform/institutions/{env['cls'].institution_id}/modules"
     assert env['as_user'](env['admin']).get(root).status_code == 403

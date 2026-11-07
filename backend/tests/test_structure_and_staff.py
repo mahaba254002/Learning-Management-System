@@ -259,7 +259,7 @@ def test_staff_permissions_grant_only_what_is_ticked(env):
     client = env['as_user'](env['admin'])
     saved = client.put(f"/api/management/staff/{data['id']}/permissions", json=dict(permissions=['staff.view', 'students.view']))
     assert saved.status_code == 200, saved.text
-    assert client.put(f"/api/management/staff/{data['id']}/permissions", json=dict(permissions=['fees.manage'])).status_code == 422
+    assert client.put(f"/api/management/staff/{data['id']}/permissions", json=dict(permissions=['payroll.manage'])).status_code == 422
     staff = env['as_user'](user)
     assert staff.get('/api/management/staff').status_code == 200
     assert staff.get('/api/management/students').json()['items'][0]['admission_number'] == 'A001'
@@ -354,7 +354,7 @@ def test_approved_invitation_creates_staff_record_and_setup_link(env, outbox):
 # Routes any signed-in staff account may read, whatever its permissions.
 STAFF_READABLE = {
     '/api/me', '/api/staff/me', '/api/institution/modules', '/api/institution/academic-configuration',
-    '/api/institution/learning-settings', '/api/institution/subscription', '/api/institution/levels',
+    '/api/institution/learning-settings', '/api/institution/subscription', '/api/institution/levels', '/api/announcements',
 }
 
 
@@ -369,7 +369,9 @@ def test_staff_without_permissions_reads_nothing_else(env):
                student_id=env['student'].id, user_id=env['pupil'].id, teacher_id=uuid.uuid4(), staff_id=uuid.UUID(data['id']),
                institution_id=tenant(env), document_id=uuid.uuid4(), course_id=uuid.uuid4(), department_id=uuid.uuid4(),
                record_id=uuid.uuid4(), allocation_id=uuid.uuid4(), year_id=uuid.uuid4(), material_id=uuid.uuid4(),
-               invitation_id=uuid.uuid4(), strand_id=uuid.uuid4(), scale_id=uuid.uuid4(), kind='departments', token='x' * 40)
+               invitation_id=uuid.uuid4(), strand_id=uuid.uuid4(), scale_id=uuid.uuid4(), kind='departments', token='x' * 40, prompt_id=uuid.uuid4(), sequence=1, transaction_id=uuid.uuid4(),
+               guardian_id=uuid.uuid4(), discipline_id=uuid.uuid4(), announcement_id=uuid.uuid4(),
+               period_id=uuid.uuid4(), slot_id=uuid.uuid4(), entry_id=uuid.uuid4(), unavailability_id=uuid.uuid4(), change_id=uuid.uuid4(), request_id=uuid.uuid4())
     staff = env['as_user'](user)
     leaks = []
     for route in app.routes:

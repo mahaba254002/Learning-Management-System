@@ -14,7 +14,8 @@ class InstitutionModules(Input):
     learning_materials: bool = True
     coursework: bool = True
     assessments: bool = True
-    academic_reports: bool = True
+    # Report cards and transcripts are off unless the platform admin switches them on.
+    academic_reports: bool = False
     progression: bool = True
 
     @model_validator(mode='after')
@@ -75,19 +76,22 @@ def path_modules(path):
     if 'teacher' in parts or 'teachers' in parts or 'invitations' in parts:
         required.append('staff_directory')
     if 'staff-allocations' in parts: required.append('course_allocation')
-    if 'teaching' in parts:
+    if 'teaching' in parts or 'timetable' in parts:
         required.append('course_allocation')
-    if any(key in parts for key in ('students', 'enrollments', 'registrations', 'student-imports')):
+    if any(key in parts for key in ('students', 'enrollments', 'registrations', 'student-imports', 'records')):
         required.append('student_records')
     if 'attendance' in parts and 'management' not in parts:
         required.append('student_attendance')
     if 'materials' in parts: required.append('learning_materials')
     if any(key in parts for key in ('coursework', 'assignments', 'submissions')):
         required.append('coursework')
-    if any(key in parts for key in ('scores', 'results-release', 'final-grades', 'completion', 'academic-record')):
+    if any(key in parts for key in ('scores', 'results-release', 'final-grades', 'completion', 'academic-record', 'marks')):
         required.append('assessments')
-    if 'academic-documents' in parts or 'report' in parts:
+    if 'academic-documents' in parts:
         required.append('academic_reports')
+    # A class's marks overview is part of assessments, not report cards.
+    if 'report' in parts:
+        required.append('assessments')
     if 'progression' in parts or 'promotion' in parts:
         required.append('progression')
     # Draft endpoints must follow the same restrictions as their live resources.
@@ -122,7 +126,7 @@ def dashboard_link_enabled(href, modules):
         'staff': 'staff_directory', 'departments': 'staff_directory', 'teachers': 'staff_directory',
         'allocations': 'course_allocation', 'staff-attendance': 'staff_attendance',
         'classes': 'student_records', 'students': 'student_records', 'student-imports': 'student_records',
-        'course-enrollment': 'student_records', 'academic-years': 'course_allocation', 'academic-structure': 'course_allocation',
+        'course-enrollment': 'student_records', 'student-records': 'student_records', 'fees': 'student_records', 'guardians': 'student_records', 'timetable': 'course_allocation', 'marksheets': 'assessments', 'academic-years': 'course_allocation', 'academic-structure': 'course_allocation',
         'attendance': 'student_attendance', 'materials': 'learning_materials', 'assignments': 'coursework',
         'coursework': 'coursework', 'scores': 'assessments', 'grades': 'assessments',
         'reports': 'academic_reports', 'academic-record': 'assessments', 'progression': 'progression',

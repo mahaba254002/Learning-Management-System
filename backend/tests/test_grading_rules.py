@@ -12,6 +12,8 @@ from app.models.institution import InstitutionType
 from app.models.user import User, UserRole
 from app.services.grading_rules import GradingRules,calculate,gpa
 
+pytestmark = pytest.mark.usefixtures('reports_enabled')
+
 
 def policy(**changes):
     return GradingRules(enabled=True,name='Test institution v1',weights={'ASSIGNMENT':20,'COURSEWORK':30,'EXAM':50},

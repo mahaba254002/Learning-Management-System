@@ -27,7 +27,7 @@ def platform(env):
 
 
 def subscription(env, **changes):
-    row = Subscription(institution_id=env['cls'].institution_id, monthly_fee=Decimal('2500'), grace_days=5,
+    row = Subscription(institution_id=env['cls'].institution_id, monthly_fee=Decimal('2500'),
         enforcement_enabled=True, next_due_date=kenya_today(), support_email='support@example.test', **changes)
     env['db'].add(row); env['db'].commit()
     return row
@@ -162,15 +162,15 @@ def test_freeze_deadline_boundaries(env):
     due = row.next_due_date
     assert subscription_view(row, due - timedelta(days=1))['status'] == 'CURRENT'
     assert subscription_view(row, due)['status'] == 'GRACE'
-    assert not subscription_view(row, due + timedelta(days=4))['frozen']
-    assert subscription_view(row, due + timedelta(days=5))['frozen']
+    assert not subscription_view(row, due + timedelta(days=2))['frozen']
+    assert subscription_view(row, due + timedelta(days=3))['frozen']
     row.enforcement_enabled = False
     assert not subscription_view(row, due + timedelta(days=50))['frozen']
     row.manually_frozen = True
     assert subscription_view(row, due)['frozen']
 
 
-def test_freeze_blocks_login_sessions_and_regular_workspace_not_owner(env):
+def test_freeze_blocks_work_but_not_sign_in_or_owner_workspace(env):
     row = subscription(env)
     c = env['as_user'](env['teacher'])
     assert c.get('/api/teaching/classes').status_code == 200
@@ -179,7 +179,9 @@ def test_freeze_blocks_login_sessions_and_regular_workspace_not_owner(env):
     assert c.get('/api/institution/subscription').json()['frozen']
     assert 'payments' not in c.get('/api/institution/subscription').json()
     env['teacher'].password_hash = hash_password('Valid-password-123!'); env['db'].commit()
-    assert c.post('/api/auth/teacher/login', json=dict(email=env['teacher'].email, password='Valid-password-123!')).status_code == 403
+    assert c.post('/api/auth/teacher/login', json=dict(email=env['teacher'].email, password='Valid-password-123!')).status_code == 200
+    assert c.get('/api/institution/subscription').json() == {'status': 'FROZEN', 'frozen': True}
+    assert c.get('/api/teaching/classes').status_code == 403
     owner = platform(env)
     c = env['as_user'](owner)
     result = c.post('/api/workspace-access/start', json={'reason': 'Support request in tests', 'target_user_id': str(env['teacher'].id)})
@@ -191,7 +193,7 @@ def test_freeze_blocks_login_sessions_and_regular_workspace_not_owner(env):
 def test_payment_and_configuration_platform_only_and_atomic(env):
     owner = platform(env)
     root = f"/api/platform/institutions/{env['cls'].institution_id}"
-    body = dict(monthly_fee='2500', next_due_date=str(kenya_today() - timedelta(days=10)), grace_days=5,
+    body = dict(monthly_fee='2500', next_due_date=str(kenya_today() - timedelta(days=10)),
                 enforcement_enabled=True, support_email='support@example.test')
     assert env['as_user'](env['admin']).put(root + '/subscription', json=body).status_code == 403
     c = env['as_user'](owner)
@@ -224,7 +226,7 @@ def test_reminders_dry_run_deduplication_and_retry(env, monkeypatch):
     assert len(deliveries) == 1 and env['db'].query(BillingNotice).count() == 1
     def failure(**kwargs): raise billing_reminders.EmailSendError('simulated')
     monkeypatch.setattr(billing_reminders, 'send_email', failure)
-    later = row.next_due_date + timedelta(days=5)
+    later = row.next_due_date + timedelta(days=3)
     assert send_billing_reminders(env['db'], deliver=True, today=later)['failed'] == 1
     assert env['db'].query(BillingNotice).count() == 1
     monkeypatch.setattr(billing_reminders, 'send_email', lambda **kwargs: deliveries.append(kwargs))

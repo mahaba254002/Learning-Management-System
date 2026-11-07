@@ -4,7 +4,8 @@ import { useTeachingQuery } from "../teacher/teachingQueries";
 export const STAFF_PAGES = [
   { label: "Staff directory", path: "/staff/staff", icon: "staff", permission: "staff.view" },
   { label: "Staff attendance", path: "/staff/staff-attendance", icon: "staff-attendance", permission: "staff_attendance.manage" },
-  { label: "Students", path: "/staff/students", icon: "students", permission: "students.view" },
+  { label: "Student records", path: "/staff/students", icon: "students", permission: "students.view" },
+  { label: "Fee status", path: "/staff/fees", icon: "billing", permission: "fees.manage" },
 ];
 
 export function useStaffProfile() {

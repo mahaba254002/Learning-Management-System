@@ -125,7 +125,7 @@ export async function apiRequest(path, { method = "GET", body, rawBody, response
       (data && (data.detail || data.message)) ||
       `Request failed with status ${response.status}`;
     const validation = Array.isArray(message) ? message.map(issue => `${issue.loc?.filter(part => part !== 'body').join(' · ') || 'Input'}: ${issue.msg}`).join('; ') : null;
-    throw new ApiError(response.status, typeof message === "string" ? message : validation || "Request failed", data);
+    throw new ApiError(response.status, typeof message === "string" ? message : validation || message?.message || "Request failed", data);
   }
 
   return data;

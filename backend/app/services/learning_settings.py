@@ -16,6 +16,8 @@ class LearningSettings(Input):
     period_label: str = Field(default="Academic year", min_length=1, max_length=30)
     default_student_login: Literal["EMAIL", "STUDENT_ID"] = "EMAIL"
     grade_bands: list[GradeBand] = Field(default_factory=list, max_length=20)
+    # A late arrival this close to the end of a lesson counts as missed unless the reason is accepted.
+    late_cutoff_minutes: int = Field(default=30, ge=0, le=240)
 
     @model_validator(mode="after")
     def distinct_bands(self):

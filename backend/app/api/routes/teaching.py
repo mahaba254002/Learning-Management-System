@@ -396,6 +396,8 @@ def enroll(class_id: uuid.UUID, payload: EnrollInput, db: Session = Depends(get_
     student = scoped(db, Student, ctx).filter(Student.admission_number == payload.admission_number).first()
     if not student:
         missing()
+    if student.status != 'ACTIVE':
+        raise HTTPException(409, f"This student is marked {student.status.lower()}. Return them to active in Student records first.")
     row = scoped(db, Enrollment, ctx).filter(Enrollment.class_id == class_id, Enrollment.student_id == student.id).first()
     # Enrolling gives a class's staff access to the student's records, so only an
     # institution admin can bring in a student who was never in this class.
@@ -467,6 +469,11 @@ def save_attendance(class_id: uuid.UUID, payload: RegisterInput, db: Session = D
     existing = {r.student_id: r for r in scoped(db, Attendance, ctx).filter(
         Attendance.class_id == class_id, Attendance.scope_key == scope, Attendance.day == payload.day).all()}
     check_revision(existing.values(), payload.expected_revision)
+    from app.services.attendance import outcome
+    from app.services.learning_settings import learning_settings
+    cutoff = learning_settings(db.get(Institution, ctx.institution_id))['late_cutoff_minutes']
+    if payload.lesson_end and payload.subject_id is None:
+        raise HTTPException(400, "Lesson end times apply to subject registers only")
     for entry in payload.entries:
         row = existing.get(entry.student_id)
         if row is None:
@@ -474,6 +481,9 @@ def save_attendance(class_id: uuid.UUID, payload: RegisterInput, db: Session = D
                              scope_key=scope, day=payload.day, student_id=entry.student_id)
             db.add(row)
         row.status, row.note = entry.status, entry.note
+        row.arrived_at, row.reason_accepted = entry.arrived_at, entry.reason_accepted
+        row.lesson_end = payload.lesson_end if entry.status == 'LATE' else None
+        row.outcome = outcome(entry.status, entry.arrived_at, row.lesson_end, entry.reason_accepted, cutoff)
     record_audit(db, ctx, 'attendance.register_saved', class_id, ctx.institution_id, f'{payload.day}; {len(payload.entries)} entries')
     commit(db)
     return {"message": "Attendance saved"}
@@ -545,11 +555,22 @@ def save_scores(coursework_id: uuid.UUID, payload: ScoresInput, db: Session = De
         raise HTTPException(400, "A score cannot exceed the assessment maximum")
     existing = {r.student_id: r for r in scoped(db, Score, ctx).filter(Score.coursework_id == coursework_id).all()}
     check_revision(existing.values(), payload.expected_revision)
-    for entry in payload.entries:
+    write_scores(db, ctx, work, subject, payload.entries, existing)
+    record_audit(db, ctx, 'assessment.outcomes_saved', work.id, ctx.institution_id, f'{len(payload.entries)} outcomes; {work.assessment_mode}')
+    commit(db)
+    return {"message": "Scores saved"}
+
+
+def write_scores(db, ctx, work, subject, entries, existing=None):
+    """Save marks for one assessment. Callers check the roster and limits first."""
+    if existing is None:
+        existing = {r.student_id: r for r in scoped(db, Score, ctx).filter(Score.coursework_id == work.id).all()}
+    for entry in entries:
         row = existing.get(entry.student_id)
         if row is None:
-            row = Score(institution_id=ctx.institution_id, coursework_id=coursework_id, student_id=entry.student_id)
+            row = Score(institution_id=ctx.institution_id, coursework_id=work.id, student_id=entry.student_id)
             db.add(row)
+            existing[entry.student_id] = row
         row.score, row.competency_label, row.feedback = entry.score, entry.competency_label, entry.feedback
     if work.grading_bands is None:
         # The first marks fix the bands this assessment is graded with.
@@ -559,9 +580,6 @@ def save_scores(coursework_id: uuid.UUID, payload: ScoresInput, db: Session = De
         bands = scale_bands(db, scale) if scale is not None and work.assessment_mode == 'NUMERIC' else None
         work.grading_bands = bands if bands is not None else learning_settings(db.get(Institution, ctx.institution_id))['grade_bands']
         if bands is not None: work.scale_id = scale.id
-    record_audit(db, ctx, 'assessment.outcomes_saved', work.id, ctx.institution_id, f'{len(payload.entries)} outcomes; {work.assessment_mode}')
-    commit(db)
-    return {"message": "Scores saved"}
 
 
 @router.get("/student/coursework")

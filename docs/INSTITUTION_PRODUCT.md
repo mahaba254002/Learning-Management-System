@@ -15,21 +15,38 @@
 
 ## Subscription rules
 
-Configure a subscription from Platform → Institutions → institution name. Currency is KES. Existing institutions have enforcement disabled until configured. Enabling enforcement requires a due date and support email. The default grace period is five days.
+Configure a subscription from Platform → Institutions → institution name. Currency is KES. Existing institutions have enforcement disabled until configured. Enabling enforcement requires a due date and support email. The grace period is a fixed three days and cannot be edited.
 
-Deadlines use Africa/Nairobi calendar dates. A payment due on 1 October with five grace days freezes access at 00:00 on 6 October. Every protected academic request checks the current subscription, so enforcement works even if a reminder worker is down. Existing sessions are blocked too. The frozen screen and login rejection show the configured support address, initially mahaba955@gmail.com. Institution records are preserved.
+Deadlines use Africa/Nairobi calendar dates. A payment due on 1 October freezes access at 00:00 on 4 October. Every protected request checks the current subscription, so enforcement works even if the reminder worker is down. Existing sessions are paused too. Institution records are preserved.
+
+While frozen, everyone can still sign in. The institution administrator sees a dialog with the reason, the amount owed and the M-Pesa details, then can continue to the Billing page or sign out; nothing else in the workspace opens. Teachers, staff and students see a notice that access is paused and that everything returns once the subscription is settled, without amounts. When a payment covers the overdue months, access returns on the next request.
 
 Manual freeze is separate from automatic overdue freeze and from institution suspension/archive. A received payment advances the next due date but does not clear a manual freeze. Platform administrators retain access for support and billing; institution accounts remain blocked. An inactive or archived institution remains inactive regardless of payment.
 
-Record verified payments with amount, date, unique reference and the next agreed due date. This does not collect money or integrate M-Pesa. Payment records are append-only through the API. Duplicate references are rejected, and stale due dates produce a conflict. Subscription changes and payment recording are serialized on the institution row and audited under the real administrator.
+Platform administrators can still record verified payments by hand, with amount, date, unique reference and the next agreed due date. Manual payment records are append-only through the API. Duplicate references are rejected, and stale due dates produce a conflict. Subscription changes and payment recording are serialized on the institution row and audited under the real administrator.
+
+## M-Pesa payments
+
+Only Safaricom Daraja is supported; bank transfer is not implemented. The institution administrator pays from Billing in two ways:
+
+- **Phone prompt (STK push).** Enter a Safaricom number and amount (defaults to the amount owed, rounded up). The phone shows the M-Pesa PIN prompt and the page waits for Safaricom. A success callback is never trusted alone: the server asks Safaricom for the result before applying money.
+- **Paybill from the phone menu.** The business number is the configured shortcode and the account number is the institution code. Payments with an unknown account are held as unmatched until a platform administrator assigns them under Platform → Payment records. A till number can be configured instead of a paybill; then there is no account number and only phone prompts match automatically.
+
+Money goes into the institution's credit. Each whole monthly fee in credit pays one month and moves the due date forward a month; anything left over stays as credit. The amount owed covers every due date already reached, plus the next one when it is within three days.
+
+## Payment records (evidence log)
+
+Platform → Payment records lists every reminder email, receipt email, phone prompt, Safaricom callback, status check, paybill payment, assignment, manual payment and subscription change, with the exact message received or sent. Entries are append-only: PostgreSQL refuses updates, deletes and truncation, and each entry carries a SHA-256 seal that includes the previous entry's seal. "Check the record is untouched" recomputes the chain and names the first altered entry. Filter by institution, type, receipt or date and download a CSV for disputes. Downloads are audited.
 
 ## Reminder delivery and deployment
 
-The reminder command is `python billing_reminders.py` from `backend`; the default is a dry run. `--send` delivers notices to each institution's official email three days before the due date, when overdue, and when frozen. Notices use durable keys per due date/stage. Failed sends remain retryable. Delivery is at least once: a crash after sending but before committing may repeat one notice. Run one scheduled worker. Missing official email is reported as a failed run instead of silently pretending delivery.
+The reminder command is `python billing_reminders.py` from `backend`; the default is a dry run. `--send` delivers notices to each institution's official email three days before the due date, when overdue, and when frozen. Each notice states the amount and how to pay by M-Pesa, and is logged in Payment records. Institution administrators also see an in-app banner from three days before the due date until it is paid. Notices use durable keys per due date/stage. Failed sends remain retryable. Delivery is at least once: a crash after sending but before committing may repeat one notice. Run one scheduled worker. Missing official email is reported as a failed run instead of silently pretending delivery.
 
 An optional hourly Render service definition is in [deploy/render-billing.yaml](../deploy/render-billing.yaml), following [Render's cron job configuration](https://render.com/docs/cronjobs). Deploy it only after the API migration, with the same database and verified email credentials. It is not deployed by local development or the main Blueprint. No live reminder emails were sent during implementation. Request-time freezing does not depend on deploying this worker.
 
-Migration: `c5e6f7a8b9d0`. Test against an isolated PostgreSQL branch/copy before running `alembic upgrade head` with the direct connection in `DATABASE_URL_UNPOOLED`. It adds nullable student emails, login constraints, case-insensitive unique emails, learning settings, results release and subscription tables. Resolve any existing email addresses that differ only by letter case before migration. Downgrade refuses to make email mandatory while ID-only accounts exist; assign valid unique emails first. PostgreSQL retains the added KINDERGARTEN enum value on downgrade.
+M-Pesa migration: `n6d7e8f9a0b1`. It removes `grace_days`, adds credit and payment source, creates `mpesa_stk_requests`, `mpesa_transactions` and `payment_messages`, and installs the append-only trigger. Downgrade refuses once any M-Pesa payment or evidence entry exists. Old backups that still contain `grace_days` restore normally.
+
+Earlier migration: `c5e6f7a8b9d0`. Test against an isolated PostgreSQL branch/copy before running `alembic upgrade head` with the direct connection in `DATABASE_URL_UNPOOLED`. It adds nullable student emails, login constraints, case-insensitive unique emails, learning settings, results release and subscription tables. Resolve any existing email addresses that differ only by letter case before migration. Downgrade refuses to make email mandatory while ID-only accounts exist; assign valid unique emails first. PostgreSQL retains the added KINDERGARTEN enum value on downgrade.
 
 ## Local preview used for QA
 

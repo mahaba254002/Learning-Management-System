@@ -31,6 +31,20 @@ class Settings(BaseSettings):
     PG_RESTORE_PATH: str = ""
     RESTORE_DATABASE_URL: str = ""
     FRONTEND_BASE_URL: str = "http://localhost:5173"
+    # Safaricom Daraja. Empty keys switch M-Pesa payments off.
+    MPESA_ENVIRONMENT: str = "sandbox"
+    MPESA_CONSUMER_KEY: str = ""
+    MPESA_CONSUMER_SECRET: str = ""
+    MPESA_SHORTCODE: str = ""
+    MPESA_PASSKEY: str = ""
+    # Set for a Buy Goods till; leave empty for a paybill.
+    MPESA_TILL_NUMBER: str = ""
+    # Public API address Safaricom calls back, e.g. https://api.example.com
+    MPESA_CALLBACK_BASE_URL: str = ""
+    # Secret path segment in callback URLs; Daraja callbacks carry no signature.
+    MPESA_CALLBACK_SECRET: str = ""
+    # Optional comma-separated Safaricom callback addresses.
+    MPESA_ALLOWED_IPS: str = ""
 
     @model_validator(mode="after")
     def _fail_closed(self):
@@ -41,6 +55,10 @@ class Settings(BaseSettings):
                 raise ValueError(f"JWT_SECRET_KEY must be at least {MIN_SECRET_LENGTH} characters outside development")
             if self.PROXY_SHARED_SECRET and len(self.PROXY_SHARED_SECRET) < MIN_SECRET_LENGTH:
                 raise ValueError(f"PROXY_SHARED_SECRET must be at least {MIN_SECRET_LENGTH} characters")
+            if self.MPESA_CALLBACK_SECRET and len(self.MPESA_CALLBACK_SECRET) < MIN_SECRET_LENGTH:
+                raise ValueError(f"MPESA_CALLBACK_SECRET must be at least {MIN_SECRET_LENGTH} characters")
+        if self.MPESA_ENVIRONMENT not in {"sandbox", "production"}:
+            raise ValueError("MPESA_ENVIRONMENT must be sandbox or production")
         return self
 
     @property

@@ -37,6 +37,7 @@ export function pageModules(path) {
     invitations: ['staff_directory'], teachers: ['staff_directory'],
     classes: ['student_records'], 'academic-structure': ['course_allocation'], 'academic-years': ['course_allocation'],
     'course-enrollment': ['student_records'], students: ['student_records'], 'student-imports': ['student_records'],
+    'student-records': ['student_records'], fees: ['student_records'], timetable: ['course_allocation'], marks: ['assessments'],
     attendance: ['student_attendance'], materials: ['learning_materials'], coursework: ['coursework'],
     assignments: ['coursework'], scores: ['assessments'], grades: ['assessments'],
     reports: ['academic_reports'], progression: ['progression'], 'academic-record': ['assessments'],

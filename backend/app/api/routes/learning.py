@@ -107,7 +107,8 @@ def attendance(subject_id: uuid.UUID | None = None, db: Session = Depends(get_db
     if subject_id is not None:
         student_subject(db, subject_id, student, ctx)
         q = q.filter(Attendance.subject_id == subject_id)
-    return [dict(id=r.id, class_id=r.class_id, subject_id=r.subject_id, day=r.day, status=r.status, note=r.note)
+    return [dict(id=r.id, class_id=r.class_id, subject_id=r.subject_id, day=r.day, status=r.status, note=r.note,
+                 arrived_at=r.arrived_at, outcome=r.outcome)
             for r in q.order_by(Attendance.day.desc()).all()]
 
 

@@ -125,8 +125,7 @@ def get_current_context(
         if institution is None or institution.status != InstitutionStatus.ACTIVE:
             raise _unauthorized("Institution is no longer active")
         from app.services.subscriptions import check_subscription_access
-        if request.url.path not in {"/api/me", "/api/auth/logout", "/api/auth/change-password", "/api/institution/subscription", "/api/workspace-access/stop"}:
-            check_subscription_access(db, institution_id)
+        check_subscription_access(db, institution_id, user.role, request.url.path)
 
     # Server-side enforcement of the forced password change. The frontend
     # redirect to /change-password is a UX nicety, not a security

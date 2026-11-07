@@ -78,6 +78,10 @@ Rehearse the exact upgrade from the live starting revision, not only from an emp
 | RESEND_API_KEY / EMAIL_FROM_ADDRESS | Valid key and verified sender; controlled delivery test |
 | PRODUCT_ENQUIRY_EMAIL | Confirm recipient; configured contact inbox is required for successful enquiries |
 | BILLING_SUPPORT_EMAIL | Confirm support contact; currently defaults to mahaba955@gmail.com |
+| MPESA_ENVIRONMENT / MPESA_CONSUMER_KEY / MPESA_CONSUMER_SECRET / MPESA_SHORTCODE / MPESA_PASSKEY | Daraja app keys; `sandbox` or `production`. Without them M-Pesa stays off and only manual payments work |
+| MPESA_TILL_NUMBER | Only when paying to a till instead of a paybill |
+| MPESA_CALLBACK_BASE_URL / MPESA_CALLBACK_SECRET | Public HTTPS API address and a random secret of at least 32 characters. The secret is part of the callback path, so it appears in access logs; rotate it if logs leak |
+| MPESA_ALLOWED_IPS | Optional comma-separated Safaricom callback addresses |
 | BACKUP_SIGNING_KEY | Dedicated strong production key, retained securely alongside key-version records; needed to read old archives |
 | PG_DUMP_PATH / PG_RESTORE_PATH or PATH | Compatible PostgreSQL client binaries actually installed; Python dependencies alone do not supply them |
 | RESTORE_DATABASE_URL | Optional separate empty recovery target; never the running DB |
@@ -112,7 +116,7 @@ Take an encrypted/offsite recoverable pre-release database backup, record its ti
 - Save/recover unfinished work; preview and commit a small student import; reject a bad batch without partial creation.
 - Coursework/material visibility, submission, attendance, marks; withheld outcomes invisible to students; approve/release and verify report/GPA values against a known example.
 - Progression preview, stale-review rejection, advancement/repetition/completion, prerequisite/retake rejection and preserved source history.
-- Manual subscription payment/due date and freeze/unfreeze on a synthetic institution only. Verify grace and support message; do not test by freezing a real customer.
+- Manual subscription payment/due date and freeze/unfreeze on a synthetic institution only. Verify the three-day grace, the admin pay dialog and the staff notice; do not test by freezing a real customer. Run migrations `o7e8f9a0b1c2`, `p8f9a0b1c2d3` and `q9a0b1c2d3e4` after `n6d7e8f9a0b1`. Report cards become off by default; switch *Academic reports* on for any institution that already issues them before deploying. On a synthetic institution, record a late arrival near the end of a lesson and check the percentage, record a fee status, then publish a one-class timetable and open a lesson's register from My timetable. In Daraja sandbox, send a phone prompt and a paybill payment, then confirm both in Payment records and run the integrity check. After production keys are set, click Register paybill once.
 - Audit event with action/IP/detail; signed backup export and controlled recovery rehearsal; invitation/recovery/contact email to an agreed test mailbox.
 - Observe error rates, response time, database/Redis capacity, email failures and cron logs against agreed thresholds. Monitoring thresholds and alert ownership must be established before release.
 

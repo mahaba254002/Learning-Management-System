@@ -12,7 +12,7 @@ Request metadata comes from the ASGI request peer, not directly from visitor-sup
 
 ## Billing
 
-Billing has its own sidebar page with recorded monthly payment totals, grace/frozen subscription counts, subscription chart and institution due dates. Open an institution to configure its subscription or record a verified payment. The previous five-day grace rule and separate manual freeze controls remain unchanged.
+Billing has its own sidebar page with recorded monthly payment totals, grace/frozen subscription counts, subscription chart and institution due dates. Open an institution to configure its subscription or record a verified payment. The grace period is a fixed three days; manual freeze controls are unchanged. Payment records holds the M-Pesa setup, unmatched paybill payments and the tamper-evident message log.
 
 ## Institution backups
 

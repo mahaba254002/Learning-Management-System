@@ -7,7 +7,7 @@ import "../teacher/TeachingWorkspace.css";
 export default function StaffLayout() {
   const profile = useStaffProfile();
   const granted = new Set(profile.data?.permissions || []);
-  const nav = [{ label: "Dashboard", path: "/staff/dashboard" }, ...STAFF_PAGES.filter(page => granted.has(page.permission))];
+  const nav = [{ label: "Dashboard", path: "/staff/dashboard" }, ...STAFF_PAGES.filter(page => granted.has(page.permission)), { label: "Announcements", path: "/staff/announcements" }];
   return <DashboardLayout navItems={nav} brandLabel="Staff portal"><Outlet /></DashboardLayout>;
 }
 

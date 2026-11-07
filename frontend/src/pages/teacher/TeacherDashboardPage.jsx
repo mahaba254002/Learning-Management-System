@@ -3,6 +3,7 @@ import TeacherAllocationsPage from './TeacherAllocationsPage';
 import TeacherProfilePage from './TeacherProfilePage';
 import { useTeachingQuery } from './teachingQueries';
 import { QueryState } from './TeachingUI';
+import { TodayLessons } from "../timetable/TimetableViews";
 
 export default function DashboardPage(){
   const query = useTeachingQuery('/api/institution/modules');
@@ -10,5 +11,5 @@ export default function DashboardPage(){
   const modules = query.data.modules;
   if (!modules.staff_directory) return <p>Your educator workspace is disabled for this institution. Contact your institution administrator.</p>;
   if (!modules.course_allocation) return <TeacherProfilePage />;
-  return !modules.student_records || !modules.coursework ? <TeacherAllocationsPage /> : <OperationalDashboard />;
+  return !modules.student_records || !modules.coursework ? <TeacherAllocationsPage /> : <><TodayLessons /><OperationalDashboard /></>;
 }

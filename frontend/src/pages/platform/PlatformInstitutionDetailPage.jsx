@@ -55,7 +55,7 @@ function Billing({ root, initial }) {
     } catch { /* Keep inputs on failure. */ }
   }
   return <section className="teaching-panel"><h2>Subscription · {initial.status.replaceAll("_", " ")}</h2>
-    <p>KES {Number(initial.monthly_fee).toLocaleString()} per month · Next due: {initial.next_due_date || "Not configured"} · Grace: {initial.grace_days} days</p>
+    <p>KES {Number(initial.monthly_fee).toLocaleString()} per month · Next due: {initial.next_due_date || "Not configured"} · Grace period: {initial.grace_days} days · Amount owed now: KES {Number(initial.amount_due || 0).toLocaleString()}</p>
     <p>{initial.freeze_date ? `Access freezes at 00:00 Kenya time on ${initial.freeze_date} if unpaid.` : "Automatic freezing is disabled until a subscription is configured."} Support: {initial.support_email || "Not set"}</p>
     {initial.frozen && <p role="status">Academic access is frozen. Recording payment advances the due date; any manual freeze must also be cleared.</p>}
     <MutationState mutation={mutation} message="Subscription updated." />
@@ -63,11 +63,10 @@ function Billing({ root, initial }) {
     {editing && <form className="teaching-form" onSubmit={save}>
       <Field label="Monthly subscription (KES)" type="number" name="monthly_fee" required min="0" max="100000000" step="0.01" defaultValue={initial.monthly_fee} />
       <Field label="Next due date" type="date" name="next_due_date" defaultValue={initial.next_due_date || ""} />
-      <Field label="Grace days" type="number" name="grace_days" required min="0" max="90" defaultValue={initial.grace_days} />
       <Field label="Support email" type="email" name="support_email" required maxLength={255} defaultValue={initial.support_email} />
       <label><input type="checkbox" name="enforcement_enabled" defaultChecked={initial.enforcement_enabled} /> Automatically freeze overdue access</label>
       <label><input type="checkbox" name="manually_frozen" defaultChecked={initial.manually_frozen} /> Freeze access manually</label>
-      <p>Saving an overdue due date with enforcement enabled, or selecting manual freeze, immediately blocks institution access.</p>
+      <p>Saving an overdue due date with enforcement enabled, or selecting manual freeze, immediately pauses institution access. Administrators can still sign in to pay; everyone else sees a paused notice.</p>
       <button className="btn btn--primary" disabled={mutation.isPending}>Save subscription</button>
     </form>}
     {initial.status !== "NOT_CONFIGURED" && <details><summary>Record a received payment</summary><p>Record verified payments only. This records a payment; it does not collect money. Set the next agreed monthly due date explicitly.</p>

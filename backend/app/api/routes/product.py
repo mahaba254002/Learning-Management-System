@@ -16,6 +16,7 @@ from app.schemas.academic import Input, StudentAccessInput
 from app.services.subscriptions import kenya_today, subscription_view
 from app.services.learning_settings import LearningSettings, learning_settings, grade_label
 from app.services.audit_service import record_audit
+from app.services.payment_ledger import record_message
 from app.api.routes.teaching import commit, staff, get_class, enrolled_students, scoped, ensure_staff
 from app.api.routes.administration import institution_view, user_page
 
@@ -147,7 +148,6 @@ def class_report(class_id: uuid.UUID, db: Session = Depends(get_db), ctx: AuthCo
 class SubscriptionInput(Input):
     monthly_fee: Decimal = Field(ge=0, le=100000000, max_digits=12, decimal_places=2)
     next_due_date: date | None = None
-    grace_days: int = Field(default=5, ge=0, le=90)
     enforcement_enabled: bool = False
     manually_frozen: bool = False
     support_email: str = Field(default="", max_length=255)
@@ -182,15 +182,16 @@ def billing_detail(db, institution_id):
     subscription = db.query(Subscription).filter(Subscription.institution_id == institution_id).first()
     payments = db.query(SubscriptionPayment).filter(SubscriptionPayment.institution_id == institution_id).order_by(SubscriptionPayment.created_at.desc()).limit(50).all()
     return dict(**subscription_view(subscription), currency="KES", payments=[dict(id=p.id, amount=p.amount, reference=p.reference,
-        paid_on=p.paid_on, previous_due_date=p.previous_due_date, next_due_date=p.next_due_date) for p in payments])
+        paid_on=p.paid_on, previous_due_date=p.previous_due_date, next_due_date=p.next_due_date, source=p.source) for p in payments])
 
 
 @router.get("/institution/subscription")
 def institution_subscription(db: Session = Depends(get_db), ctx: AuthContext = Depends(require_tenant_user)):
     if ctx.role == UserRole.INSTITUTION_ADMIN:
-        return billing_detail(db, ctx.institution_id)
+        from app.api.routes.billing import billing_extras
+        return dict(**billing_detail(db, ctx.institution_id), **billing_extras(db, db.get(Institution, ctx.institution_id)))
     state = subscription_view(db.query(Subscription).filter(Subscription.institution_id == ctx.institution_id).first())
-    return {key: state[key] for key in ("status", "frozen", "next_due_date", "freeze_date", "support_email")}
+    return {key: state[key] for key in ("status", "frozen")}
 
 
 @router.get("/platform/institutions/{institution_id}/detail")
@@ -216,6 +217,9 @@ def configure_subscription(institution_id: uuid.UUID, body: SubscriptionInput, d
     for key, value in body.model_dump(exclude={"expected_due_date"}).items():
         setattr(row, key, value)
     record_audit(db, ctx, "subscription.configured", institution_id, institution_id, str(body.next_due_date))
+    record_message(db, kind="SUBSCRIPTION_CHANGED", direction="SYS", institution_id=institution_id, amount=body.monthly_fee,
+                   summary=f"Fee KES {body.monthly_fee}/month, next due {body.next_due_date}, enforcement {'on' if body.enforcement_enabled else 'off'}"
+                           f"{', frozen manually' if body.manually_frozen else ''}", payload=body.model_dump(mode="json"))
     commit(db)
     return billing_detail(db, institution_id)
 
@@ -231,9 +235,12 @@ def record_payment(institution_id: uuid.UUID, body: PaymentInput, db: Session = 
     if body.paid_on > kenya_today() or (row.next_due_date and body.next_due_date <= row.next_due_date):
         raise HTTPException(422, "Payment date must not be in the future and the new due date must advance")
     payment = SubscriptionPayment(institution_id=institution_id, amount=body.amount, reference=body.reference, paid_on=body.paid_on,
-        previous_due_date=row.next_due_date, next_due_date=body.next_due_date, recorded_by=ctx.actor_user_id or ctx.user_id)
+        previous_due_date=row.next_due_date, next_due_date=body.next_due_date, source="MANUAL", recorded_by=ctx.actor_user_id or ctx.user_id)
     db.add(payment)
     row.next_due_date = body.next_due_date
     record_audit(db, ctx, "subscription.payment_recorded", institution_id, institution_id, f"KES {body.amount}; reference {body.reference}")
+    record_message(db, kind="PAYMENT_RECORDED_MANUALLY", direction="SYS", institution_id=institution_id, reference=body.reference, amount=body.amount,
+                   summary=f"Payment recorded by platform administrator; due date {payment.previous_due_date} moved to {body.next_due_date}",
+                   payload=body.model_dump(mode="json"))
     commit(db)
     return billing_detail(db, institution_id)

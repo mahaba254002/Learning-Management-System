@@ -28,6 +28,8 @@ function SettingsForm({ initial }) {
   return <WorkspaceForm className="teaching-form" onSubmit={submit}>
     {[['student_label', 'Learner label'], ['teacher_label', 'Educator label'], ['class_label', 'Class / cohort label'], ['subject_label', 'Subject / course label'], ['period_label', 'Academic period label']].map(([key, label]) => <Field key={key} label={label} name={key} defaultValue={initial[key]} required maxLength={30} />)}
     <Field label="Default new student login" name="default_student_login" defaultValue={initial.default_student_login}><option value="EMAIL">Email and password</option><option value="STUDENT_ID">Student ID and password</option></Field>
+    <Field label="Late arrival cut-off (minutes)" name="late_cutoff_minutes" type="number" min="0" max="240" step="1" defaultValue={initial.late_cutoff_minutes ?? 30} required
+      description="A student who arrives this close to the end of a lesson is counted absent unless the teacher accepts a reason." />
     <label htmlFor="grade-bands">Grading bands (optional)</label><textarea id="grade-bands" value={bands} onChange={e => setBands(e.target.value)} rows={6} maxLength={2000} aria-describedby="grade-help" />
     <p id="grade-help">Use one minimum percentage: grade label per line. Include a band starting at 0. Leave blank to report numeric marks only. Use your institution’s approved grading policy.</p>
     {error && <p role="alert" className="form-error">{error}</p>}<MutationState mutation={mutation} message="Learning configuration saved." />

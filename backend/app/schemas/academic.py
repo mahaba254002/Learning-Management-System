@@ -1,5 +1,5 @@
 import uuid
-from datetime import date
+from datetime import date, time
 from decimal import Decimal
 from typing import Annotated, Literal
 
@@ -108,11 +108,22 @@ class AttendanceInput(Input):
     student_id: uuid.UUID
     status: Literal["PRESENT", "ABSENT", "LATE", "EXCUSED"]
     note: str = Field(default="", max_length=500)
+    arrived_at: time | None = None
+    reason_accepted: bool = False
+
+    @model_validator(mode="after")
+    def late_details(self):
+        if self.status != "LATE":
+            self.arrived_at, self.reason_accepted = None, False
+        if self.reason_accepted and len(self.note.strip()) < 3:
+            raise ValueError("Write the reason in the note before accepting it")
+        return self
 
 
 class RegisterInput(Input):
     day: date
     subject_id: uuid.UUID | None = None
+    lesson_end: time | None = None
     entries: list[AttendanceInput] = Field(min_length=1, max_length=500)
     expected_revision: str | None = Field(default=None, max_length=100000)
 

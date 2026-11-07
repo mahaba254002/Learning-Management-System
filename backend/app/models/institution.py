@@ -1,4 +1,5 @@
 import enum
+from datetime import datetime
 import uuid
 
 from sqlalchemy import DateTime, Enum, ForeignKey, String
@@ -31,6 +32,8 @@ class Institution(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     learning_settings: Mapped[dict] = mapped_column(JSONType, nullable=False, default=dict, server_default="{}")
     module_settings: Mapped[dict] = mapped_column(JSONType, nullable=False, default=dict, server_default="{}")
     academic_configuration: Mapped[dict] = mapped_column(JSONType, nullable=False, default=dict, server_default="{}")
+    # Set when the institution admin first saves their grading; later changes need platform approval.
+    grading_locked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     code: Mapped[str] = mapped_column(String(20), unique=True, nullable=False, index=True)
 

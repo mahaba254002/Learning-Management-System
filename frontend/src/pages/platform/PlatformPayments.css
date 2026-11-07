@@ -1,0 +1,14 @@
+.payments-integrity { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-bottom: 24px; }
+.payments-integrity p { display: flex; align-items: center; gap: 8px; margin: 0; }
+.payments-filters { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px 16px; align-items: end; margin-bottom: 24px; }
+.payments-filter-actions { display: flex; gap: 8px; }
+.payments-table td { vertical-align: top; }
+.payments-link { background: none; border: 0; padding: 0; color: inherit; font: inherit; text-align: left; text-decoration: underline; text-underline-offset: 2px; cursor: pointer; }
+.payments-entry { margin-bottom: 24px; }
+.payments-entry-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.payments-subheading { font-size: 15px; font-weight: 500; margin: 24px 0 12px; }
+.payments-payload { max-height: 320px; overflow: auto; padding: 16px; border-radius: 8px; border: 1px solid var(--border, #e4e4e7);
+  font-family: var(--mono, ui-monospace, Consolas, monospace); font-size: 12px; line-height: 1.5; white-space: pre-wrap; word-break: break-word; }
+.payments-hash { word-break: break-all; }
+.payments-assign { display: flex; gap: 8px; }
+.payments-assign select { min-width: 160px; }

@@ -1,9 +1,9 @@
 """Teaching allocations are granted by admins, never by a teacher's request body."""
 import uuid
-from datetime import date, datetime
+from datetime import date, datetime, time
 from decimal import Decimal
 
-from sqlalchemy import Boolean, CheckConstraint, Date, DateTime, ForeignKey, ForeignKeyConstraint, Index, Numeric, String, Text, UniqueConstraint
+from sqlalchemy import Boolean, CheckConstraint, Date, DateTime, Time, ForeignKey, ForeignKeyConstraint, Index, Numeric, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import JSONType, Base, TenantMixin, TimestampMixin, UUIDPrimaryKeyMixin
@@ -57,10 +57,16 @@ class Student(UUIDPrimaryKeyMixin, TimestampMixin, TenantMixin, Base):
         UniqueConstraint("institution_id", "admission_number"),
         UniqueConstraint("user_id"),
         ForeignKeyConstraint(["institution_id", "user_id"], ["users.institution_id", "users.id"]),
+        CheckConstraint("status IN ('ACTIVE', 'TRANSFERRED', 'GRADUATED', 'WITHDRAWN')", name='ck_students_status'),
+        CheckConstraint("(status = 'ACTIVE') = (left_on IS NULL)", name='ck_students_left_on'),
     )
     user_id: Mapped[uuid.UUID] = mapped_column()
     admission_number: Mapped[str] = mapped_column(String(60))
     phone: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    # Leaving keeps every record; the student just drops out of active lists.
+    status: Mapped[str] = mapped_column(String(12), default='ACTIVE', server_default='ACTIVE')
+    left_on: Mapped[date | None] = mapped_column(Date, nullable=True)
+    status_note: Mapped[str] = mapped_column(String(300), default='', server_default='')
 
 
 class Enrollment(UUIDPrimaryKeyMixin, TimestampMixin, TenantMixin, Base):
@@ -129,6 +135,9 @@ class Attendance(UUIDPrimaryKeyMixin, TimestampMixin, TenantMixin, Base):
         ForeignKeyConstraint(["institution_id", "subject_id"], ["teaching_subjects.institution_id", "teaching_subjects.id"]),
         ForeignKeyConstraint(["institution_id", "student_id"], ["students.institution_id", "students.id"]),
         CheckConstraint("status IN ('PRESENT', 'ABSENT', 'LATE', 'EXCUSED')"),
+        CheckConstraint("outcome IN ('ATTENDED', 'MISSED', 'EXCUSED')", name='ck_student_attendance_outcome'),
+        CheckConstraint("status = 'LATE' OR arrived_at IS NULL", name='ck_student_attendance_arrival'),
+        Index("ix_student_attendance_summary", "institution_id", "class_id", "scope_key", "day"),
     )
     class_id: Mapped[uuid.UUID] = mapped_column(index=True)
     subject_id: Mapped[uuid.UUID | None] = mapped_column(nullable=True, index=True)
@@ -138,3 +147,9 @@ class Attendance(UUIDPrimaryKeyMixin, TimestampMixin, TenantMixin, Base):
     student_id: Mapped[uuid.UUID] = mapped_column(index=True)
     status: Mapped[str] = mapped_column(String(10))
     note: Mapped[str] = mapped_column(String(500), default="")
+    # Late arrivals: the arrival time, and the lesson's end when known.
+    arrived_at: Mapped[time | None] = mapped_column(Time, nullable=True)
+    lesson_end: Mapped[time | None] = mapped_column(Time, nullable=True)
+    reason_accepted: Mapped[bool] = mapped_column(Boolean, default=False, server_default='false')
+    # What the record counts as in percentages, fixed when it is saved.
+    outcome: Mapped[str] = mapped_column(String(8), default='ATTENDED', server_default='ATTENDED')

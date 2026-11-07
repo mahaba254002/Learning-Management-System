@@ -11,6 +11,8 @@ from app.models.pilot import AcademicYear, AcademicPeriod
 from app.models.user import UserRole
 from app.services.academic_configuration import template
 
+pytestmark = pytest.mark.usefixtures('reports_enabled')
+
 ROOT='/api/academic-documents'
 
 

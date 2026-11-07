@@ -45,7 +45,14 @@ const SetPasswordPage = lazy(() => import("./pages/auth/SetPasswordPage"));
 const StaffLayout = lazy(() => import("./pages/staff/StaffLayout"));
 const StaffDashboardPage = lazy(() => import("./pages/staff/StaffLayout").then(module => ({ default: module.StaffDashboardPage })));
 const StaffPermissionGate = lazy(() => import("./pages/staff/StaffLayout").then(module => ({ default: module.RequirePermission })));
-const StaffStudentsPage = lazy(() => import("./pages/staff/StaffStudentsPage"));
+const StudentRecordsPage = lazy(() => import("./pages/records/StudentRecordsPage"));
+const FeeStatusPage = lazy(() => import("./pages/records/FeeStatusPage"));
+const AnnouncementsPage = lazy(() => import("./pages/records/AnnouncementsPage"));
+const TimetableAdminPage = lazy(() => import("./pages/timetable/TimetableAdminPage"));
+const MyTimetablePage = lazy(() => import("./pages/timetable/MyTimetablePage"));
+const MarksPage = lazy(() => import("./pages/marks/MarksPage"));
+const GradingPage = lazy(() => import("./pages/marks/GradingPage"));
+const PlatformGradingRequestsPage = lazy(() => import("./pages/platform/PlatformGradingRequestsPage"));
 const InstitutionLayout = lazy(() => import("./pages/institution/InstitutionLayout"));
 const AcademicStructurePage = lazy(() => import('./pages/institution/AcademicStructurePage'));
 const CourseRegistrationsPage = lazy(() => import('./pages/institution/CourseRegistrationsPage'));
@@ -62,6 +69,8 @@ const StaffDirectoryPage = lazy(() => import('./pages/institution/StaffDirectory
 const StaffAllocationsPage = lazy(() => import('./pages/institution/StaffAllocationsPage'));
 const StaffAttendancePage = lazy(() => import('./pages/institution/StaffAttendancePage'));
 const InstitutionModulesPage = lazy(() => import('./pages/institution/InstitutionModulesPage'));
+const InstitutionBillingPage = lazy(() => import('./pages/institution/InstitutionBillingPage'));
+const PlatformPaymentsPage = lazy(() => import('./pages/platform/PlatformPaymentsPage'));
 const DepartmentsPage = lazy(() => import('./pages/institution/DepartmentsPage'));
 const InstitutionTeacherDetailPage = lazy(() => import("./pages/institution/InstitutionTeacherDetailPage"));
 
@@ -121,6 +130,7 @@ function App() {
           <Route path="allocations" element={<StaffAllocationsPage />} />
           <Route path="staff-attendance" element={<StaffAttendancePage />} />
           <Route path="modules" element={<InstitutionModulesPage />} />
+          <Route path="billing" element={<InstitutionBillingPage />} />
           <Route path="reports" element={<AcademicDocumentsPage />} />
           <Route path="invitations" element={<InstitutionInvitationsPage />} />
           <Route path="teachers" element={<InstitutionTeachersPage />} />
@@ -134,6 +144,12 @@ function App() {
           <Route path="classes/:classId" element={<ClassStudentsPage />} />
           <Route index element={<Navigate to="dashboard" replace />} />
           <Route path="students" element={<AdminUsersPage key="students" studentsOnly />} />
+          <Route path="student-records" element={<StudentRecordsPage />} />
+          <Route path="fees" element={<FeeStatusPage />} />
+          <Route path="announcements" element={<AnnouncementsPage />} />
+          <Route path="timetable" element={<TimetableAdminPage />} />
+          <Route path="marks" element={<MarksPage />} />
+          <Route path="grading" element={<GradingPage />} />
           <Route path="users" element={<AdminUsersPage key="institution-users" />} />
           <Route path="attendance" element={<TeacherAttendancePage />} />
           <Route path="coursework" element={<TeacherCourseworkPage />} />
@@ -162,6 +178,11 @@ function App() {
           <Route path="coursework" element={<TeacherCourseworkPage />} />
           <Route path="materials" element={<TeacherMaterialsPage />} />
           <Route path="scores" element={<TeacherScoresPage />} />
+          <Route path="student-records" element={<StudentRecordsPage />} />
+          <Route path="fees" element={<FeeStatusPage />} />
+          <Route path="announcements" element={<AnnouncementsPage />} />
+          <Route path="timetable" element={<MyTimetablePage />} />
+          <Route path="marks" element={<MarksPage />} />
         </Route>
         <Route
           path="/student"
@@ -183,6 +204,8 @@ function App() {
           <Route path="profile" element={<StudentProfilePage />} />
           <Route path="progression" element={<StudentProgressionPage />} />
           <Route path="academic-record" element={<AcademicRecordPage />} />
+          <Route path="announcements" element={<AnnouncementsPage />} />
+          <Route path="timetable" element={<MyTimetablePage />} />
         </Route>
         <Route
           path="/staff"
@@ -196,7 +219,9 @@ function App() {
           <Route path="dashboard" element={<StaffDashboardPage />} />
           <Route path="staff" element={<StaffPermissionGate permission="staff.view"><StaffDirectoryPage readOnly /></StaffPermissionGate>} />
           <Route path="staff-attendance" element={<StaffPermissionGate permission="staff_attendance.manage"><StaffAttendancePage /></StaffPermissionGate>} />
-          <Route path="students" element={<StaffPermissionGate permission="students.view"><StaffStudentsPage /></StaffPermissionGate>} />
+          <Route path="students" element={<StaffPermissionGate permission="students.view"><StudentRecordsPage /></StaffPermissionGate>} />
+          <Route path="fees" element={<StaffPermissionGate permission="fees.manage"><FeeStatusPage /></StaffPermissionGate>} />
+          <Route path="announcements" element={<AnnouncementsPage />} />
         </Route>
         <Route path="/teacher/login" element={<TeacherLoginPage />} />
         <Route path="/teacher/forgot-password" element={<TeacherForgotPasswordPage />} />
@@ -210,9 +235,11 @@ function App() {
           }
         >
           <Route path="dashboard" element={<PlatformDashboardPage />} />
+          <Route path="grading-requests" element={<PlatformGradingRequestsPage />} />
           <Route path="institutions" element={<PlatformInstitutionsPage />} />
           <Route path="institutions/:institutionId" element={<PlatformInstitutionDetailPage />} />
           <Route path="billing" element={<PlatformBillingPage />} />
+          <Route path="payments" element={<PlatformPaymentsPage />} />
           <Route path="backup" element={<PlatformBackupPage />} />
           <Route path="restore" element={<PlatformRestorePage />} />
           <Route index element={<Navigate to="dashboard" replace />} />

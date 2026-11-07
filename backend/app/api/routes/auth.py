@@ -196,8 +196,6 @@ def _authenticate(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Your institution's account is not currently active.",
             )
-        from app.services.subscriptions import check_subscription_access
-        check_subscription_access(db, user.institution_id)
 
         if user.role == UserRole.STUDENT:
             from app.services.modules import require_enabled
@@ -298,8 +296,6 @@ def refresh(request: Request, response: Response, db: Session = Depends(get_db))
     if user.role != UserRole.PLATFORM_ADMIN:
         institution = db.get(Institution, user.institution_id) if user.institution_id else None
         if not institution or institution.status != InstitutionStatus.ACTIVE: raise invalid
-        from app.services.subscriptions import check_subscription_access
-        check_subscription_access(db, institution.id)
         if user.role == UserRole.STUDENT:
             from app.services.modules import require_enabled
             require_enabled(institution, 'student_portal')
