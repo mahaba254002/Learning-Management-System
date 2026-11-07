@@ -53,6 +53,8 @@ const MyTimetablePage = lazy(() => import("./pages/timetable/MyTimetablePage"));
 const MarksPage = lazy(() => import("./pages/marks/MarksPage"));
 const GradingPage = lazy(() => import("./pages/marks/GradingPage"));
 const PlatformGradingRequestsPage = lazy(() => import("./pages/platform/PlatformGradingRequestsPage"));
+const MessagesPage = lazy(() => import("./pages/messaging/MessagesPage"));
+const PlatformMessagingPage = lazy(() => import("./pages/platform/PlatformMessagingPage"));
 const InstitutionLayout = lazy(() => import("./pages/institution/InstitutionLayout"));
 const AcademicStructurePage = lazy(() => import('./pages/institution/AcademicStructurePage'));
 const CourseRegistrationsPage = lazy(() => import('./pages/institution/CourseRegistrationsPage'));
@@ -150,6 +152,7 @@ function App() {
           <Route path="timetable" element={<TimetableAdminPage />} />
           <Route path="marks" element={<MarksPage />} />
           <Route path="grading" element={<GradingPage />} />
+          <Route path="messages" element={<MessagesPage />} />
           <Route path="users" element={<AdminUsersPage key="institution-users" />} />
           <Route path="attendance" element={<TeacherAttendancePage />} />
           <Route path="coursework" element={<TeacherCourseworkPage />} />
@@ -236,6 +239,7 @@ function App() {
         >
           <Route path="dashboard" element={<PlatformDashboardPage />} />
           <Route path="grading-requests" element={<PlatformGradingRequestsPage />} />
+          <Route path="messaging" element={<PlatformMessagingPage />} />
           <Route path="institutions" element={<PlatformInstitutionsPage />} />
           <Route path="institutions/:institutionId" element={<PlatformInstitutionDetailPage />} />
           <Route path="billing" element={<PlatformBillingPage />} />

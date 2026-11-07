@@ -22,3 +22,4 @@ from app.models.structure import (AssessmentScale, ScaleLevel, InstitutionLevel,
 from app.models.records import Guardian, StudentGuardian, FeeStatus, DisciplineRecord, Announcement  # noqa: F401
 from app.models.timetable import TimetableTerm, TimetableSlot, TimetableEntry, TeacherUnavailability, LessonChange  # noqa: F401
 from app.models.grading_request import GradingChangeRequest  # noqa: F401
+from app.models.messaging import MessagingSecret, SmsAllowance, GuardianMessage, MessageDelivery  # noqa: F401

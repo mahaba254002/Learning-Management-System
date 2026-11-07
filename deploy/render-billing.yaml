@@ -7,7 +7,8 @@ services:
     rootDir: backend
     schedule: "0 * * * *"
     buildCommand: pip install -r requirements.txt
-    startCommand: python billing_reminders.py --send
+    # Subscription notices, then any parent messages left in the outbox.
+    startCommand: python billing_reminders.py --send; python send_messages.py
     envVars:
       - key: DATABASE_URL
         sync: false
@@ -19,5 +20,13 @@ services:
         sync: false
       - key: BILLING_SUPPORT_EMAIL
         value: mahaba955@gmail.com
+      - key: AT_USERNAME
+        sync: false
+      - key: AT_API_KEY
+        sync: false
+      - key: AT_SENDER_ID
+        sync: false
+      - key: AT_ENVIRONMENT
+        value: production
       - key: ENVIRONMENT
         value: production

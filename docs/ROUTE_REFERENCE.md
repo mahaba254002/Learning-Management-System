@@ -45,6 +45,7 @@ Generated from source with `python scripts/update_reference.py`. This inventory 
 | `/institution/timetable` | TimetableAdminPage | [TimetableAdminPage.jsx](../frontend/src/pages/timetable/TimetableAdminPage.jsx) |
 | `/institution/marks` | MarksPage | [MarksPage.jsx](../frontend/src/pages/marks/MarksPage.jsx) |
 | `/institution/grading` | GradingPage | [GradingPage.jsx](../frontend/src/pages/marks/GradingPage.jsx) |
+| `/institution/messages` | MessagesPage | [MessagesPage.jsx](../frontend/src/pages/messaging/MessagesPage.jsx) |
 | `/institution/users` | AdminUsersPage | [AdminPages.jsx](../frontend/src/pages/AdminPages.jsx) |
 | `/institution/attendance` | TeacherAttendancePage | [TeacherAttendancePage.jsx](../frontend/src/pages/teacher/TeacherAttendancePage.jsx) |
 | `/institution/coursework` | TeacherCourseworkPage | [TeacherCourseworkPage.jsx](../frontend/src/pages/teacher/TeacherCourseworkPage.jsx) |
@@ -96,6 +97,7 @@ Generated from source with `python scripts/update_reference.py`. This inventory 
 | `/platform` | PlatformLayout | [PlatformLayout.jsx](../frontend/src/pages/platform/PlatformLayout.jsx) |
 | `/platform/dashboard` | PlatformDashboardPage | [PlatformDashboardPage.jsx](../frontend/src/pages/platform/PlatformDashboardPage.jsx) |
 | `/platform/grading-requests` | PlatformGradingRequestsPage | [PlatformGradingRequestsPage.jsx](../frontend/src/pages/platform/PlatformGradingRequestsPage.jsx) |
+| `/platform/messaging` | PlatformMessagingPage | [PlatformMessagingPage.jsx](../frontend/src/pages/platform/PlatformMessagingPage.jsx) |
 | `/platform/institutions` | PlatformInstitutionsPage | [PlatformInstitutionsPage.jsx](../frontend/src/pages/platform/PlatformInstitutionsPage.jsx) |
 | `/platform/institutions/:institutionId` | PlatformInstitutionDetailPage | [PlatformInstitutionDetailPage.jsx](../frontend/src/pages/platform/PlatformInstitutionDetailPage.jsx) |
 | `/platform/billing` | PlatformBillingPage | [PlatformBillingPage.jsx](../frontend/src/pages/platform/PlatformBillingPage.jsx) |
@@ -247,6 +249,20 @@ Includes literal APIRouter prefixes. Function links identify the handler; depend
 | GET | `/api/marks/subjects/{subject_id}/marksheet` | `subject_marksheet` | [marks.py](../backend/app/api/routes/marks.py) |
 | GET | `/api/marks/classes/{class_id}/template` | `class_template` | [marks.py](../backend/app/api/routes/marks.py) |
 | GET | `/api/marks/coursework/{coursework_id}/template` | `assessment_template` | [marks.py](../backend/app/api/routes/marks.py) |
+| PUT | `/api/messaging/secret` | `set_secret` | [messaging.py](../backend/app/api/routes/messaging.py) |
+| DELETE | `/api/platform/institutions/{institution_id}/messaging-secrets` | `clear_secrets` | [messaging.py](../backend/app/api/routes/messaging.py) |
+| GET | `/api/messaging/overview` | `overview` | [messaging.py](../backend/app/api/routes/messaging.py) |
+| POST | `/api/messaging/messages` | `create_message` | [messaging.py](../backend/app/api/routes/messaging.py) |
+| PUT | `/api/messaging/messages/{message_id}` | `edit_message` | [messaging.py](../backend/app/api/routes/messaging.py) |
+| POST | `/api/messaging/messages/{message_id}/cancel` | `cancel_message` | [messaging.py](../backend/app/api/routes/messaging.py) |
+| GET | `/api/messaging/messages` | `messages` | [messaging.py](../backend/app/api/routes/messaging.py) |
+| GET | `/api/messaging/messages/{message_id}` | `message_detail` | [messaging.py](../backend/app/api/routes/messaging.py) |
+| GET | `/api/messaging/messages/{message_id}/preview` | `preview` | [messaging.py](../backend/app/api/routes/messaging.py) |
+| POST | `/api/messaging/messages/{message_id}/send` | `send` | [messaging.py](../backend/app/api/routes/messaging.py) |
+| POST | `/api/messaging/messages/{message_id}/retry` | `retry` | [messaging.py](../backend/app/api/routes/messaging.py) |
+| POST | `/api/messaging/at/{secret}/delivery` | `delivery_report` | [messaging.py](../backend/app/api/routes/messaging.py) |
+| PUT | `/api/platform/institutions/{institution_id}/sms-allowance` | `set_allowance` | [messaging.py](../backend/app/api/routes/messaging.py) |
+| GET | `/api/platform/messaging/usage` | `usage` | [messaging.py](../backend/app/api/routes/messaging.py) |
 | POST | `/api/platform/institutions/request-create` | `request_create_institution` | [platform.py](../backend/app/api/routes/platform.py) |
 | POST | `/api/platform/institutions/confirm-create` | `confirm_create_institution` | [platform.py](../backend/app/api/routes/platform.py) |
 | POST | `/api/platform/institutions/{institution_id}/request-archive` | `request_archive_institution` | [platform.py](../backend/app/api/routes/platform.py) |
@@ -366,6 +382,7 @@ Run from backend: `python -m pytest tests/<module>.py -q`. See the maintenance h
 - [test_login.py](../backend/tests/test_login.py)
 - [test_management.py](../backend/tests/test_management.py)
 - [test_marks.py](../backend/tests/test_marks.py)
+- [test_messaging.py](../backend/tests/test_messaging.py)
 - [test_mpesa_billing.py](../backend/tests/test_mpesa_billing.py)
 - [test_pilot.py](../backend/tests/test_pilot.py)
 - [test_progression.py](../backend/tests/test_progression.py)
@@ -409,6 +426,10 @@ Columns below are declared on each class; inherited tenant IDs, UUIDs and timest
 | `assignment_submissions` | `Submission` | `coursework_id`, `student_id`, `answer`, `link_url`, `status`, `submitted_at`, `is_late`, `version` | [learning.py](../backend/app/models/learning.py) |
 | `staff_members` | `StaffMember` | `staff_number`, `first_name`, `last_name`, `category`, `job_title`, `department_id`, `user_id`, `email`, `phone`, `employment_type`, `status`, `joined_on`, `gender`, `date_of_birth`, `qualification`, `specialization`, `invitation_id` | [management.py](../backend/app/models/management.py) |
 | `staff_attendance` | `StaffAttendance` | `staff_id`, `day`, `status`, `note` | [management.py](../backend/app/models/management.py) |
+| `messaging_secrets` | `MessagingSecret` | `user_id`, `question`, `answer_hash`, `failed_attempts`, `locked_until` | [messaging.py](../backend/app/models/messaging.py) |
+| `sms_allowances` | `SmsAllowance` | `institution_id`, `monthly_parts` | [messaging.py](../backend/app/models/messaging.py) |
+| `guardian_messages` | `GuardianMessage` | `kind`, `title`, `template`, `audience`, `status`, `created_by`, `sent_by`, `sent_at` | [messaging.py](../backend/app/models/messaging.py) |
+| `message_deliveries` | `MessageDelivery` | `message_id`, `student_id`, `guardian_name`, `channel`, `address`, `body`, `parts`, `status`, `provider_id`, `cost`, `error`, `attempts`, `sent_at` | [messaging.py](../backend/app/models/messaging.py) |
 | `auth_sessions` | `AuthSession` | `user_id`, `refresh_digest`, `expires_at`, `remember_me`, `revoked` | [pilot.py](../backend/app/models/pilot.py) |
 | `academic_years` | `AcademicYear` | `name`, `start_date`, `end_date`, `status` | [pilot.py](../backend/app/models/pilot.py) |
 | `academic_periods` | `AcademicPeriod` | `year_id`, `name`, `start_date`, `end_date` | [pilot.py](../backend/app/models/pilot.py) |
@@ -473,3 +494,4 @@ Inspect revision/down_revision inside each file and use Alembic history for exec
 - [o7e8f9a0b1c2_student_records_and_attendance_rules.py](../backend/alembic/versions/o7e8f9a0b1c2_student_records_and_attendance_rules.py)
 - [p8f9a0b1c2d3_timetables.py](../backend/alembic/versions/p8f9a0b1c2d3_timetables.py)
 - [q9a0b1c2d3e4_grading_ownership_and_requests.py](../backend/alembic/versions/q9a0b1c2d3e4_grading_ownership_and_requests.py)
+- [r0b1c2d3e4f5_parent_messages.py](../backend/alembic/versions/r0b1c2d3e4f5_parent_messages.py)

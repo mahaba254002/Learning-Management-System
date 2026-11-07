@@ -23,6 +23,7 @@ from app.models.structure import AssessmentScale, CurriculumStrand, OfferingTeac
 from app.models.pilot import AcademicPeriod, AcademicYear
 from app.models.timetable import LessonChange, TeacherUnavailability, TimetableEntry, TimetableSlot
 from app.models.records import Announcement, DisciplineRecord, Guardian
+from app.models.messaging import GuardianMessage
 
 ALLOWED = {400, 403, 404, 405, 409, 422}
 # Public invitation links are found by their secret token, not by tenant.
@@ -74,6 +75,8 @@ def foreign_records(env):
     db.add_all([entry, away]); db.flush()
     change = LessonChange(institution_id=other, entry_id=entry.id, lesson_date=date(2030, 1, 7), kind="CANCELLED", created_by=env["outsider"].id)
     db.add(change)
+    message = GuardianMessage(institution_id=other, kind="ANNOUNCEMENT", title="Other notice", template="Hello", audience={}, created_by=env["outsider"].id)
+    db.add(message)
     db.commit()
     return dict(
         class_id=env["other_cls"].id, subject_id=env["other_subject"].id, student_id=env["other_student"].id,
@@ -85,7 +88,7 @@ def foreign_records(env):
         prompt_id=prompt.id, sequence=1, transaction_id=uuid.uuid4(), secret="x" * 40,
         guardian_id=guardian.id, discipline_id=discipline.id, announcement_id=notice.id,
         period_id=period.id, slot_id=slot.id, entry_id=entry.id, unavailability_id=away.id, change_id=change.id,
-        request_id=uuid.uuid4(),
+        request_id=uuid.uuid4(), message_id=message.id,
     )
 
 

@@ -41,13 +41,14 @@ from app.models.management import StaffMember, StaffAttendance
 from app.models.structure import CurriculumStrand, InstitutionLevel, OfferingTeacher
 from app.models.records import Announcement, DisciplineRecord, FeeStatus, Guardian, StudentGuardian
 from app.models.timetable import LessonChange, TeacherUnavailability, TimetableEntry, TimetableSlot, TimetableTerm
+from app.models.messaging import GuardianMessage, MessageDelivery
 
 MAX_ARCHIVE = 512 * 1024 * 1024
 MAX_INSTITUTION = 50 * 1024 * 1024
-GROUPS = {"people": [User, Student, StaffMember, Guardian, StudentGuardian, DisciplineRecord], "academics": [InstitutionLevel, Department, Programme, StudyLevel, CatalogueUnit, CurriculumStrand, Prerequisite, AcademicYear, AcademicPeriod, AcademicClass, Subject, OfferingTeacher, Enrollment, CourseRegistration, CourseCompletion, ProgressionDecision, FeeStatus, Announcement, TimetableTerm, TimetableSlot, TimetableEntry, TeacherUnavailability, LessonChange],
+GROUPS = {"people": [User, Student, StaffMember, Guardian, StudentGuardian, DisciplineRecord, GuardianMessage, MessageDelivery], "academics": [InstitutionLevel, Department, Programme, StudyLevel, CatalogueUnit, CurriculumStrand, Prerequisite, AcademicYear, AcademicPeriod, AcademicClass, Subject, OfferingTeacher, Enrollment, CourseRegistration, CourseCompletion, ProgressionDecision, FeeStatus, Announcement, TimetableTerm, TimetableSlot, TimetableEntry, TeacherUnavailability, LessonChange],
           "learning": [Coursework, CourseMaterial, Score, Submission, FinalGrade, AcademicDocument], "attendance": [Attendance, StaffAttendance],
           "billing": [Subscription, SubscriptionPayment, BillingNotice]}
-ORDER = [User, Student, Guardian, StudentGuardian, DisciplineRecord, Department, StaffMember, InstitutionLevel, Programme, StudyLevel, CatalogueUnit, CurriculumStrand, StaffAttendance, Prerequisite, AcademicYear, AcademicPeriod, AcademicClass, Subject, OfferingTeacher, Enrollment, CourseRegistration, CourseCompletion, ProgressionDecision, FeeStatus, Announcement, TimetableTerm, TimetableSlot, TimetableEntry, TeacherUnavailability, LessonChange, Coursework, CourseMaterial,
+ORDER = [User, Student, Guardian, StudentGuardian, DisciplineRecord, GuardianMessage, MessageDelivery, Department, StaffMember, InstitutionLevel, Programme, StudyLevel, CatalogueUnit, CurriculumStrand, StaffAttendance, Prerequisite, AcademicYear, AcademicPeriod, AcademicClass, Subject, OfferingTeacher, Enrollment, CourseRegistration, CourseCompletion, ProgressionDecision, FeeStatus, Announcement, TimetableTerm, TimetableSlot, TimetableEntry, TeacherUnavailability, LessonChange, Coursework, CourseMaterial,
          Score, Submission, FinalGrade, AcademicDocument, Attendance, Subscription, SubscriptionPayment, BillingNotice]
 MODELS = {model.__tablename__: model for model in ORDER}
 # Tables that older backups contain. Teachers become staff records on restore;

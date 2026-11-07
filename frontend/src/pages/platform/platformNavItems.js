@@ -6,6 +6,7 @@ export const platformNavItems = [
   { label: "Billing", path: "/platform/billing", icon: "billing" },
   { label: "Payment records", path: "/platform/payments", icon: "billing" },
   { label: "Grading requests", path: "/platform/grading-requests" },
+  { label: "SMS usage", path: "/platform/messaging" },
   { label: "Audit Logs", path: "/platform/audit-logs" },
   { label: "Backup", path: "/platform/backup", icon: "backup" },
   { label: "Restore", path: "/platform/restore", icon: "restore" },

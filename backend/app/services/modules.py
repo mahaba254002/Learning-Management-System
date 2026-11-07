@@ -78,7 +78,7 @@ def path_modules(path):
     if 'staff-allocations' in parts: required.append('course_allocation')
     if 'teaching' in parts or 'timetable' in parts:
         required.append('course_allocation')
-    if any(key in parts for key in ('students', 'enrollments', 'registrations', 'student-imports', 'records')):
+    if any(key in parts for key in ('students', 'enrollments', 'registrations', 'student-imports', 'records', 'messaging')):
         required.append('student_records')
     if 'attendance' in parts and 'management' not in parts:
         required.append('student_attendance')

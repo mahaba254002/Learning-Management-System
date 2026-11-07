@@ -46,6 +46,15 @@ class Settings(BaseSettings):
     # Optional comma-separated Safaricom callback addresses.
     MPESA_ALLOWED_IPS: str = ""
 
+    # Africa's Talking SMS, paid by the platform. Empty username/key = SMS off.
+    AT_ENVIRONMENT: str = "sandbox"
+    AT_USERNAME: str = ""
+    AT_API_KEY: str = ""
+    # Registered alphanumeric sender name; empty uses the provider's shared short code.
+    AT_SENDER_ID: str = ""
+    # Secret path segment for delivery reports, which carry no signature.
+    AT_CALLBACK_SECRET: str = ""
+
     @model_validator(mode="after")
     def _fail_closed(self):
         if self.ENVIRONMENT not in ENVIRONMENTS:
@@ -57,6 +66,10 @@ class Settings(BaseSettings):
                 raise ValueError(f"PROXY_SHARED_SECRET must be at least {MIN_SECRET_LENGTH} characters")
             if self.MPESA_CALLBACK_SECRET and len(self.MPESA_CALLBACK_SECRET) < MIN_SECRET_LENGTH:
                 raise ValueError(f"MPESA_CALLBACK_SECRET must be at least {MIN_SECRET_LENGTH} characters")
+            if self.AT_CALLBACK_SECRET and len(self.AT_CALLBACK_SECRET) < MIN_SECRET_LENGTH:
+                raise ValueError(f"AT_CALLBACK_SECRET must be at least {MIN_SECRET_LENGTH} characters")
+        if self.AT_ENVIRONMENT not in {"sandbox", "production"}:
+            raise ValueError("AT_ENVIRONMENT must be sandbox or production")
         if self.MPESA_ENVIRONMENT not in {"sandbox", "production"}:
             raise ValueError("MPESA_ENVIRONMENT must be sandbox or production")
         return self

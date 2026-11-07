@@ -371,7 +371,7 @@ def test_staff_without_permissions_reads_nothing_else(env):
                record_id=uuid.uuid4(), allocation_id=uuid.uuid4(), year_id=uuid.uuid4(), material_id=uuid.uuid4(),
                invitation_id=uuid.uuid4(), strand_id=uuid.uuid4(), scale_id=uuid.uuid4(), kind='departments', token='x' * 40, prompt_id=uuid.uuid4(), sequence=1, transaction_id=uuid.uuid4(),
                guardian_id=uuid.uuid4(), discipline_id=uuid.uuid4(), announcement_id=uuid.uuid4(),
-               period_id=uuid.uuid4(), slot_id=uuid.uuid4(), entry_id=uuid.uuid4(), unavailability_id=uuid.uuid4(), change_id=uuid.uuid4(), request_id=uuid.uuid4())
+               period_id=uuid.uuid4(), slot_id=uuid.uuid4(), entry_id=uuid.uuid4(), unavailability_id=uuid.uuid4(), change_id=uuid.uuid4(), request_id=uuid.uuid4(), message_id=uuid.uuid4())
     staff = env['as_user'](user)
     leaks = []
     for route in app.routes:
