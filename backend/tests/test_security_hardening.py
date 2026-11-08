@@ -65,9 +65,30 @@ def test_client_ip_header_is_ignored_when_no_secret_is_configured(monkeypatch):
 # Login throttling and audit --------------------------------------------------
 
 def test_one_account_is_limited_across_addresses(env, monkeypatch):
-    monkeypatch.setattr(limiter.redis_client, "incr", lambda key: 10_000 if ":account:" in key else 1)
+    monkeypatch.setattr(limiter.redis_client, "get", lambda key: 10_000 if ":account:" in key else None)
     result = env["client"].post("/api/auth/teacher/login", json=dict(email=env["teacher"].email, password="wrong"))
     assert result.status_code == 429
+
+
+def test_only_failed_sign_ins_count_and_success_clears_them(env, monkeypatch):
+    store = {}
+    monkeypatch.setattr(limiter.redis_client, "incr", lambda key: store.__setitem__(key, store.get(key, 0) + 1) or store[key])
+    monkeypatch.setattr(limiter.redis_client, "expire", lambda key, seconds: True)
+    monkeypatch.setattr(limiter.redis_client, "get", lambda key: store.get(key))
+    monkeypatch.setattr(limiter.redis_client, "delete", lambda key: store.pop(key, None))
+    monkeypatch.setattr(limiter.settings, "ENVIRONMENT", "production", raising=False)
+    env["teacher"].password_hash = hash_password(PASSWORD)
+    env["db"].commit()
+    c, email = env["client"], env["teacher"].email
+    for _ in range(15):  # more than the failure limit, all correct
+        assert c.post("/api/auth/teacher/login", json=dict(email=email, password=PASSWORD)).status_code == 200
+    for _ in range(9):
+        assert c.post("/api/auth/teacher/login", json=dict(email=email, password="Wrong-password-1!")).status_code == 401
+    assert c.post("/api/auth/teacher/login", json=dict(email=email, password=PASSWORD)).status_code == 200
+    assert not any(":account:" in key for key in store)  # success cleared the failures
+    for _ in range(10):
+        c.post("/api/auth/teacher/login", json=dict(email=email, password="Wrong-password-1!"))
+    assert c.post("/api/auth/teacher/login", json=dict(email=email, password=PASSWORD)).status_code == 429
 
 
 def test_sign_in_events_are_audited_without_secrets(env):

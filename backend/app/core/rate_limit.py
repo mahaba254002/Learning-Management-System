@@ -59,6 +59,39 @@ def limit_identity(*, key_prefix: str, identity: str, max_requests: int, window_
     _count(f"ratelimit:{key_prefix}:account:{digest}", effective_max, window_seconds)
 
 
+def _identity_key(key_prefix: str, identity: str) -> str:
+    digest = hashlib.sha256((identity or "").strip().lower().encode()).hexdigest()[:32]
+    return f"ratelimit:{key_prefix}:account:{digest}"
+
+
+def check_failures(*, key_prefix: str, identity: str, max_failures: int) -> None:
+    """Refuse when one account already has too many recent failed attempts. Successes are not counted."""
+    effective_max = max_failures * _DEV_MULTIPLIER if settings.is_development else max_failures
+    try:
+        count = int(redis_client.get(_identity_key(key_prefix, identity)) or 0)
+    except redis_lib.RedisError as exc:
+        logger.error("Rate limiter unavailable: %s", exc)
+        raise HTTPException(503, "Authentication is temporarily unavailable. Please try again shortly.", headers={"Retry-After": "60"}) from exc
+    if count >= effective_max:
+        raise HTTPException(status.HTTP_429_TOO_MANY_REQUESTS, "Too many requests, please try again later.")
+
+
+def record_failure(*, key_prefix: str, identity: str, window_seconds: int) -> None:
+    key = _identity_key(key_prefix, identity)
+    try:
+        if redis_client.incr(key) == 1:
+            redis_client.expire(key, window_seconds)
+    except redis_lib.RedisError as exc:
+        logger.error("Rate limiter unavailable: %s", exc)
+
+
+def clear_failures(*, key_prefix: str, identity: str) -> None:
+    try:
+        redis_client.delete(_identity_key(key_prefix, identity))
+    except redis_lib.RedisError as exc:
+        logger.error("Rate limiter unavailable: %s", exc)
+
+
 def _count(redis_key: str, effective_max: int, window_seconds: int) -> None:
     try:
         # INCR atomically increments the counter (creating it at 1 if it

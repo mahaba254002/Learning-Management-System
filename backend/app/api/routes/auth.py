@@ -32,7 +32,7 @@ from app.core.csrf import CSRF_COOKIE_NAME, generate_csrf_token, verify_csrf
 from app.core.deps import AuthContext, get_current_context
 from app.core.password_policy import PasswordPolicyError, validate_password_policy
 from app.core.client_ip import client_ip
-from app.core.rate_limit import limit_identity, rate_limit
+from app.core.rate_limit import check_failures, clear_failures, limit_identity, rate_limit, record_failure
 from app.models.audit import AuditEvent
 from app.core.security import create_access_token, create_refresh_token, decode_token, hash_password, verify_password
 from app.models.pilot import AuthSession
@@ -143,8 +143,8 @@ def _authenticate(
     can never be used to discover which door a given username belongs to.
     """
     identity = payload.student_id if isinstance(payload, StudentLoginRequest) and payload.student_id else payload.email
-    limit_identity(key_prefix="login", identity=identity, max_requests=ACCOUNT_LOGIN_LIMIT,
-                   window_seconds=ACCOUNT_LOGIN_WINDOW_SECONDS)
+    # Only failed attempts count against an account, and a correct sign-in clears them.
+    check_failures(key_prefix="login", identity=identity, max_failures=ACCOUNT_LOGIN_LIMIT)
 
     if isinstance(payload, StudentLoginRequest) and payload.student_id:
         matches = db.query(User).filter(User.student_login_id == payload.student_id.upper(), User.student_login_method == "STUDENT_ID", User.role == UserRole.STUDENT).limit(2).all()
@@ -167,17 +167,20 @@ def _authenticate(
         # password for an existing one — otherwise response timing leaks
         # which usernames exist.
         verify_password(payload.password, _DUMMY_PASSWORD_HASH)
+        record_failure(key_prefix="login", identity=identity, window_seconds=ACCOUNT_LOGIN_WINDOW_SECONDS)
         raise invalid_credentials
 
     if not verify_password(payload.password, user.password_hash):
         _auth_audit(db, request, user, "auth.login_failed", "Incorrect password")
         db.commit()
+        record_failure(key_prefix="login", identity=identity, window_seconds=ACCOUNT_LOGIN_WINDOW_SECONDS)
         raise invalid_credentials
 
     if user.role not in allowed_roles:
         # Deliberately identical to the wrong-password error above.
         _auth_audit(db, request, user, "auth.login_failed", "Signed in through another portal")
         db.commit()
+        record_failure(key_prefix="login", identity=identity, window_seconds=ACCOUNT_LOGIN_WINDOW_SECONDS)
         raise invalid_credentials
 
     if user.status != UserStatus.ACTIVE or not user.login_enabled:
@@ -221,6 +224,7 @@ def _authenticate(
     db.add(session)
     _auth_audit(db, request, user, "auth.login", "Remember me" if payload.remember_me else "")
     db.commit()
+    clear_failures(key_prefix="login", identity=identity)
 
     _set_auth_cookies(response, access_token=access_token, refresh_token=refresh_token, remember_me=payload.remember_me)
     response.headers["Cache-Control"] = "no-store"
@@ -234,7 +238,7 @@ def _authenticate(
 @router.post(
     "/login",
     response_model=LoginResponse,
-    dependencies=[Depends(rate_limit(max_requests=5, window_seconds=60, key_prefix="login"))],
+    dependencies=[Depends(rate_limit(max_requests=60, window_seconds=60, key_prefix="login"))],
 )
 def login(payload: LoginRequest, request: Request, response: Response, db: Session = Depends(get_db)) -> LoginResponse:
     """Admin login door — platform admin, institution admin only.
@@ -245,7 +249,7 @@ def login(payload: LoginRequest, request: Request, response: Response, db: Sessi
 @router.post(
     "/teacher/login",
     response_model=LoginResponse,
-    dependencies=[Depends(rate_limit(max_requests=5, window_seconds=60, key_prefix="login"))],
+    dependencies=[Depends(rate_limit(max_requests=60, window_seconds=60, key_prefix="login"))],
 )
 def teacher_login(payload: LoginRequest, request: Request, response: Response, db: Session = Depends(get_db)) -> LoginResponse:
     """Teacher login door. Admins and students are rejected here."""
@@ -255,7 +259,7 @@ def teacher_login(payload: LoginRequest, request: Request, response: Response, d
 @router.post(
     "/student/login",
     response_model=LoginResponse,
-    dependencies=[Depends(rate_limit(max_requests=5, window_seconds=60, key_prefix="login"))],
+    dependencies=[Depends(rate_limit(max_requests=60, window_seconds=60, key_prefix="login"))],
 )
 def student_login(payload: StudentLoginRequest, request: Request, response: Response, db: Session = Depends(get_db)) -> LoginResponse:
     """Student login door. Admins and teachers are rejected here."""
@@ -375,6 +379,8 @@ def change_password(
     user.must_change_password = False
     user.temporary_password_expires_at = None
     _bump_password_changed_at(user)
+    for known in (user.email, user.student_login_id):
+        if known: clear_failures(key_prefix="login", identity=known)
     _auth_audit(db, request, user, "auth.password_changed")
     db.commit()
 
@@ -500,6 +506,8 @@ def _reset_password(payload: ResetPasswordRequest, request: Request, db: Session
     user.must_change_password = False
     user.temporary_password_expires_at = None
     _bump_password_changed_at(user)
+    for known in (user.email, user.student_login_id):
+        if known: clear_failures(key_prefix="login", identity=known)
     _retire_reset_codes(db, user.id)
     record.consumed_at = datetime.now(timezone.utc)
     _auth_audit(db, request, user, "auth.password_reset")
@@ -582,6 +590,8 @@ def set_password(payload: SetPasswordRequest, request: Request, db: Session = De
     user.must_change_password = False
     user.temporary_password_expires_at = None
     _bump_password_changed_at(user)
+    for known in (user.email, user.student_login_id):
+        if known: clear_failures(key_prefix="login", identity=known)
     token.used_at = datetime.now(timezone.utc)
     _retire_reset_codes(db, user.id)
     _auth_audit(db, request, user, "auth.password_set", "Account setup link")
