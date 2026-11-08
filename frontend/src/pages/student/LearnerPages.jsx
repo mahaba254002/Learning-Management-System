@@ -290,23 +290,3 @@ export function StudentMessagesPage() {
     </article>)}</div>}
   </>;
 }
-
-/* ---------- Home: the school's notice board and today ---------- */
-
-export function StudentHomePage() {
-  const query = useTeachingQuery("/api/announcements");
-  return <>
-    <h1 className="learner-title">Home</h1>
-    <div className="learner-dashboard">
-      <section className="learner-panel" aria-labelledby="site-news"><h2 id="site-news">Announcements</h2>
-        <QueryState query={query} />
-        {query.data && !query.data.length && <Empty>No announcements.</Empty>}
-        {query.data?.slice(0, 6).map(a => <article key={a.id} className="timeline-item" style={{ gridTemplateColumns: "1fr" }}>
-          <span><strong>{a.title}</strong><small>{new Date(a.created_at).toLocaleDateString(undefined, { day: "numeric", month: "long", year: "numeric" })}{a.author && ` · ${a.author}`}</small>
-            <p className="records-announcement">{a.body}</p></span></article>)}
-        {query.data?.length > 6 && <p><Link to="/student/announcements">All announcements</Link></p>}
-      </section>
-      <aside><TodayLessons /><UpcomingEvents /></aside>
-    </div>
-  </>;
-}

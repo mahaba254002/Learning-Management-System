@@ -7,7 +7,6 @@ import { useAcademicNavigation } from '../../hooks/useAcademicNavigation';
 
 // The top bar, as on a course site.
 const mainItems = [
-  { label: "Home", path: "/student/home" },
   { label: "Dashboard", path: "/student/dashboard" },
   { label: "My courses", path: "/student/courses" },
   { label: "Search course", path: "/student/course-search" },

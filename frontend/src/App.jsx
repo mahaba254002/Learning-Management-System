@@ -30,7 +30,6 @@ const StudentCourseworkPage = lazy(() => import("./pages/student/StudentCoursewo
 const StudentLayout = lazy(() => import("./pages/student/StudentLayout"));
 const LearnerPages = () => import("./pages/student/LearnerPages");
 const StudentDashboardPage = lazy(() => LearnerPages().then(m => ({ default: m.StudentDashboardPage })));
-const StudentHomePage = lazy(() => LearnerPages().then(m => ({ default: m.StudentHomePage })));
 const CourseSearchPage = lazy(() => LearnerPages().then(m => ({ default: m.CourseSearchPage })));
 const StudentMessagesPage = lazy(() => LearnerPages().then(m => ({ default: m.StudentMessagesPage })));
 const StudentMessagesStaffPage = lazy(() => import("./pages/elearning/StudentMessagesStaffPage"));
@@ -230,7 +229,7 @@ function App() {
         >
           <Route index element={<Navigate to="dashboard" replace />} />
           <Route path="dashboard" element={<StudentDashboardPage />} />
-          <Route path="home" element={<StudentHomePage />} />
+          <Route path="home" element={<Navigate to="/student/dashboard" replace />} />
           <Route path="course-search" element={<CourseSearchPage />} />
           <Route path="messages" element={<StudentMessagesPage />} />
           <Route path="reports" element={<AcademicDocumentsPage />} />
