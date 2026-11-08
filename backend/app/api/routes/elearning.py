@@ -582,6 +582,8 @@ def student_courses(db: Session = Depends(get_db), ctx: AuthContext = Depends(st
         Subject, AcademicClass, User).order_by(Subject.name).all()
     ids = [s.id for s, _, _ in rows]
     items = student_items(db, ctx, student, ids)
+    from app.models.learner import CourseVisit
+    visits = dict(scoped(db, CourseVisit, ctx).filter(CourseVisit.user_id == ctx.user_id).with_entities(CourseVisit.subject_id, CourseVisit.visited_at).all())
     material_counts = dict(scoped(db, CourseMaterial, ctx).filter(CourseMaterial.subject_id.in_(ids), CourseMaterial.published.is_(True)).with_entities(
         CourseMaterial.subject_id, func.count(CourseMaterial.id)).group_by(CourseMaterial.subject_id).all())
     out = []
@@ -590,7 +592,7 @@ def student_courses(db: Session = Depends(get_db), ctx: AuthContext = Depends(st
         todo = sorted((w for w, st in mine if st in {'TODO', 'OVERDUE'} and w.due_at), key=lambda w: as_utc(w.due_at))
         out.append(dict(id=s.id, name=s.name, class_name=c.name, academic_year=c.academic_year, teacher_name=f'{u.first_name} {u.last_name}',
                         materials=material_counts.get(s.id, 0), to_do=sum(1 for _, st in mine if st in {'TODO', 'OVERDUE'}),
-                        next_due=work_item(todo[0], 'TODO') if todo else None))
+                        next_due=work_item(todo[0], 'TODO') if todo else None, last_visited_at=as_utc(visits.get(s.id))))
     return out
 
 
@@ -605,6 +607,14 @@ def student_course(subject_id: uuid.UUID, db: Session = Depends(get_db), ctx: Au
     materials = material_views(db, ctx, scoped(db, CourseMaterial, ctx).filter_by(subject_id=subject.id, published=True).order_by(CourseMaterial.created_at).all()) if modules['learning_materials'] else []
     works = [work_item(w, st) for w, st in sorted(student_items(db, ctx, student, [subject.id]), key=lambda x: x[0].created_at)
              if modules['coursework'] and (w.delivery != 'QUIZ' or modules['online_quizzes'])]
+    if not ctx.actor_user_id:  # a platform admin looking on doesn't count as the student opening it
+        from app.models.learner import CourseVisit
+        visit = scoped(db, CourseVisit, ctx).filter_by(user_id=ctx.user_id, subject_id=subject.id).first()
+        if visit:
+            visit.visited_at = engine.now()
+        else:
+            db.add(CourseVisit(institution_id=ctx.institution_id, user_id=ctx.user_id, subject_id=subject.id, visited_at=engine.now()))
+        commit(db)
     return dict(id=subject.id, name=subject.name, class_name=cls.name, academic_year=cls.academic_year,
                 teacher_name=f'{teacher.first_name} {teacher.last_name}' if teacher else '', sections=sections(materials, works))
 

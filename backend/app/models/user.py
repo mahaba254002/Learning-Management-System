@@ -32,6 +32,7 @@ class User(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         CheckConstraint("student_login_method IN ('EMAIL', 'STUDENT_ID')", name="ck_users_login_method"),
         CheckConstraint("(student_login_method = 'EMAIL' AND email IS NOT NULL) OR (role = 'STUDENT' AND student_login_method = 'STUDENT_ID' AND student_login_id IS NOT NULL)", name="ck_users_login_identity"),
         CheckConstraint("student_login_id IS NULL OR student_login_id = upper(student_login_id)", name="ck_users_login_id_upper"),
+        Index("ix_users_online", "institution_id", "last_seen_at"),
     )
 
     # Nullable ONLY for PLATFORM_ADMIN — every other role must belong to an
@@ -68,6 +69,8 @@ class User(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     # password. Checked by the login flow to force a password-change step.
     must_change_password: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     login_enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, server_default="true")
+    # Last authenticated request, at most a minute stale. Shows who is online in the learner portal.
+    last_seen_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     # Stamped every time this user's password changes (self-service change,
     # self-service reset, or admin-assisted reset). get_current_context

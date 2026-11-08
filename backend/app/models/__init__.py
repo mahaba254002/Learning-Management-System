@@ -26,3 +26,4 @@ from app.models.messaging import MessagingSecret, SmsAllowance, GuardianMessage,
 from app.models.elearning import StoredFile, QuizSettings, QuizQuestion, QuizAttempt, QuizAnswer, QuizExtraAttempt, RegistrationWindow, Notification  # noqa: F401
 from app.models.platform_request import PlatformRequest  # noqa: F401
 from app.models.platform_secret import PlatformSecret  # noqa: F401
+from app.models.learner import CourseVisit, StudentMessage, StudentMessageRecipient  # noqa: F401

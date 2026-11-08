@@ -2,8 +2,8 @@ import { useState } from "react";
 import NavIcon from "./NavIcon";
 import NotificationBell from "./NotificationBell";
 import TermTag from "./TermTag";
-import { Link, useLocation, useNavigate } from "react-router-dom";
-import { getRoleHomePath } from "../../routes/roleRoutes";
+import WorkspaceBanner from "./WorkspaceBanner";
+import { Link, useLocation } from "react-router-dom";
 import logo from "../../assets/skynet-logo.png";
 import { useAuth } from "../../context/useAuth";
 import InstitutionWorkspace from "../common/InstitutionWorkspace";
@@ -14,12 +14,10 @@ import { apiRequest } from "../../api/client";
 import "./DashboardLayout.css";
 
 export default function DashboardLayout({ navItems, children, brandLabel }) {
-  const { user, logout, workspace, readOnly, stopWorkspace, isWorkspaceChanging } = useAuth();
-  const navigate = useNavigate();
+  const { user, logout, readOnly } = useAuth();
   const location = useLocation();
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
-  const [returnError, setReturnError] = useState("");
   const terminology = useQuery({ queryKey: ["teaching", user.id, "/api/institution/learning-settings"], queryFn: () => apiRequest("/api/institution/learning-settings"), enabled: Boolean(user.institution_id) });
   const labels = terminology.data;
   const modules = useQuery({ queryKey: ["teaching", user.id, "/api/institution/modules"], queryFn: () => apiRequest("/api/institution/modules"), enabled: Boolean(user.institution_id), refetchInterval: 30000 });
@@ -105,18 +103,7 @@ export default function DashboardLayout({ navItems, children, brandLabel }) {
           </div>
         )}
 
-        {workspace && <section className={`workspace-access-banner ${readOnly ? "" : "workspace-access-banner--full"}`} aria-label="Delegated workspace access">
-          <div><strong>{readOnly ? "Read-only view" : "Full access"}: {user.first_name} {user.last_name}</strong>
-            <p>Signed in as {workspace.actor.first_name} {workspace.actor.last_name}. {readOnly ? "Changes are blocked." : "Actions are recorded under your platform administrator account."}</p></div>
-          <button type="button" disabled={isWorkspaceChanging} onClick={async () => {
-            setReturnError("");
-            try {
-              const actor = await stopWorkspace();
-              navigate(getRoleHomePath(actor?.role), { replace: true });
-            } catch (error) { setReturnError(error.message); }
-          }}>{isWorkspaceChanging ? "Returning…" : "Return to my workspace"}</button>
-          {returnError && <p role="alert">{returnError}</p>}
-        </section>}
+        <WorkspaceBanner />
         <main id="workspace-main" tabIndex={-1} className="dashboard-content" key={`${user.id}:${readOnly}`}>{user.institution_id ? <InstitutionWorkspace><ModuleAccess>{children}</ModuleAccess></InstitutionWorkspace> : children}</main>
       </div>
     </div>

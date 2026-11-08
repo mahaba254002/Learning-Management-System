@@ -12,7 +12,7 @@ forget on an individual route.
 
 import uuid
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 import jwt
 from fastapi import Depends, HTTPException, Request, status
@@ -55,6 +55,20 @@ class AuthContext:
 
 def _unauthorized(detail: str = "Could not validate credentials") -> HTTPException:
     return HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=detail)
+
+
+ONLINE_STAMP_SECONDS = 60
+
+
+def _mark_seen(db, user):
+    """Record activity for "who's online", writing at most once a minute per person."""
+    now = datetime.now(timezone.utc)
+    seen = user.last_seen_at
+    if seen is not None and (seen if seen.tzinfo else seen.replace(tzinfo=timezone.utc)) > now - timedelta(seconds=ONLINE_STAMP_SECONDS):
+        return
+    db.query(User).filter(User.id == user.id).update({User.last_seen_at: now}, synchronize_session=False)
+    db.commit()
+    db.refresh(user)
 
 
 def get_current_context(
@@ -174,6 +188,7 @@ def get_current_context(
 
     from app.services.modules import check_module_access
     check_module_access(db, institution_id, user.role, request.url.path)
+    _mark_seen(db, user)
     return AuthContext(
         user_id=user.id,
         institution_id=institution_id,

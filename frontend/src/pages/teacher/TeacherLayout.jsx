@@ -21,6 +21,7 @@ const navItems = [
   { label: "Student records", path: "/teacher/student-records", icon: "students", classTeacher: true },
   { label: "Fee status", path: "/teacher/fees", icon: "billing", classTeacher: true },
   { label: "Announcements", path: "/teacher/announcements" },
+  { label: "Student messages", path: "/teacher/student-messages", icon: "messages" },
   { label: "My profile", path: "/teacher/profile" },
 ];
 

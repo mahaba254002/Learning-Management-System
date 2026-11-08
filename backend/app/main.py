@@ -20,7 +20,7 @@ from app.db.session import get_db
 from app.models.user import User
 from app.schemas.auth import UserSummary
 
-from app.api.routes import auth, invitations, platform, teaching, learning, contact, workspace_access, structure, billing, records, timetable, marks, messaging, elearning, registration, requests
+from app.api.routes import auth, invitations, platform, teaching, learning, contact, workspace_access, structure, billing, records, timetable, marks, messaging, elearning, registration, requests, learner
 
 logging.basicConfig(level=logging.INFO)
 from app.core.log_redaction import install as _redact_logs  # noqa: E402
@@ -76,6 +76,7 @@ app.include_router(messaging.router)
 app.include_router(elearning.router)
 app.include_router(registration.router)
 app.include_router(requests.router)
+app.include_router(learner.router)
 
 @app.get("/health")
 def health_check():

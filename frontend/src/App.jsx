@@ -28,7 +28,12 @@ const TeacherScoresPage = lazy(() => import("./pages/teacher/TeacherScoresPage")
 const InstitutionClassesPage = lazy(() => import("./pages/institution/InstitutionClassesPage"));
 const StudentCourseworkPage = lazy(() => import("./pages/student/StudentCourseworkPage"));
 const StudentLayout = lazy(() => import("./pages/student/StudentLayout"));
-const StudentDashboardPage = lazy(() => import("./pages/student/StudentDashboardPage"));
+const LearnerPages = () => import("./pages/student/LearnerPages");
+const StudentDashboardPage = lazy(() => LearnerPages().then(m => ({ default: m.StudentDashboardPage })));
+const StudentHomePage = lazy(() => LearnerPages().then(m => ({ default: m.StudentHomePage })));
+const CourseSearchPage = lazy(() => LearnerPages().then(m => ({ default: m.CourseSearchPage })));
+const StudentMessagesPage = lazy(() => LearnerPages().then(m => ({ default: m.StudentMessagesPage })));
+const StudentMessagesStaffPage = lazy(() => import("./pages/elearning/StudentMessagesStaffPage"));
 const StudentAttendancePage = lazy(() => import("./pages/student/StudentAttendancePage"));
 const StudentProfilePage = lazy(() => import("./pages/student/StudentProfilePage"));
 const StudentAssignmentPage = lazy(() => import("./pages/student/StudentAssignmentPage"));
@@ -54,7 +59,7 @@ const PlatformGradingRequestsPage = lazy(() => import("./pages/platform/Platform
 const MessagesPage = lazy(() => import("./pages/messaging/MessagesPage"));
 const PlatformMessagingPage = lazy(() => import("./pages/platform/PlatformMessagingPage"));
 const CoursesPages = () => import("./pages/elearning/CoursesPages");
-const StudentCoursesPage = lazy(() => CoursesPages().then(m => ({ default: m.StudentCoursesPage })));
+const StudentCoursesPage = lazy(() => LearnerPages().then(m => ({ default: m.StudentCoursesPage })));
 const StudentCoursePage = lazy(() => CoursesPages().then(m => ({ default: m.StudentCoursePage })));
 const TeachingCoursesPage = lazy(() => CoursesPages().then(m => ({ default: m.TeachingCoursesPage })));
 const TeachingCoursePage = lazy(() => CoursesPages().then(m => ({ default: m.TeachingCoursePage })));
@@ -177,6 +182,7 @@ function App() {
           <Route path="materials" element={<TeacherMaterialsPage />} />
           <Route path="scores" element={<TeacherScoresPage />} />
           <Route path="courses" element={<TeachingCoursesPage />} />
+          <Route path="student-messages" element={<StudentMessagesStaffPage />} />
           <Route path="courses/:subjectId" element={<TeachingCoursePage />} />
           <Route path="quizzes/:quizId" element={<QuizBuilderPage />} />
           <Route path="course-registration" element={<RegistrationAdminPage />} />
@@ -210,6 +216,7 @@ function App() {
           <Route path="timetable" element={<MyTimetablePage />} />
           <Route path="marks" element={<MarksPage />} />
           <Route path="courses" element={<TeachingCoursesPage />} />
+          <Route path="student-messages" element={<StudentMessagesStaffPage />} />
           <Route path="courses/:subjectId" element={<TeachingCoursePage />} />
           <Route path="quizzes/:quizId" element={<QuizBuilderPage />} />
         </Route>
@@ -223,6 +230,9 @@ function App() {
         >
           <Route index element={<Navigate to="dashboard" replace />} />
           <Route path="dashboard" element={<StudentDashboardPage />} />
+          <Route path="home" element={<StudentHomePage />} />
+          <Route path="course-search" element={<CourseSearchPage />} />
+          <Route path="messages" element={<StudentMessagesPage />} />
           <Route path="reports" element={<AcademicDocumentsPage />} />
           <Route path="subjects" element={<Navigate to="/student/courses" replace />} />
           <Route path="subjects/:subjectId" element={<StudentSubjectRedirect />} />
